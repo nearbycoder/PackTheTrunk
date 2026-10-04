@@ -1,0 +1,75 @@
+# ---- Unity: generated caches and per-user state ------------------------------
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emory[Cc]aptures/
+/[Bb]uild/
+/[Bb]uilds/
+/[Bb]uild[Ss]ettings/
+/[Rr]ecordings/
+/Assets/AssetStoreTools*
+/Assets/Plugins/Editor/JetBrains*
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+crashlytics-build.properties
+mono_crash.*
+
+# Unity-generated IDE project files
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vs/
+.vscode/
+.idea/
+.consulo/
+ExportedObj/
+
+# Build output from other tools
+*.apk
+*.aab
+*.unitypackage
+*.app
+*.x86_64
+*.zip
+node_modules/
+dist/
+
+# ---- Python (Tools/) ---------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+# ---- Blender -----------------------------------------------------------------
+*.blend1
+*.blend2
+
+# ---- Raw captures (the trailer/teaser/screenshots that ship live in docs/media) --
+*.wav
+/captures/
+/docs/media/raw/
+
+# ---- OS junk -----------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp

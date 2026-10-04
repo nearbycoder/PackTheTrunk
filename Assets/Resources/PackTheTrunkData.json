@@ -1,0 +1,1710 @@
+{
+  "chapters": [
+    {"id": "ch1", "title": "Big Things First", "years": "1998", "intro": "Every family has one person who can make anything fit. It started with Grandpa Joe, a red wagon, and a picnic."},
+    {"id": "ch2", "title": "The Summer of Everything", "years": "2010", "intro": "Twelve years later, the whole family has your number."},
+    {"id": "ch3", "title": "Leaving the Nest", "years": "2011 to 2014", "intro": "Dorm rooms, festivals, first apartments. Everything you own, in whatever car you can borrow."},
+    {"id": "ch4", "title": "Two of Us", "years": "2015 to 2019", "intro": "Someone with six hundred records and a cat needs help moving."},
+    {"id": "ch5", "title": "Our Own Front Door", "years": "2020 to 2023", "intro": "A house, a nursery, and the most precious cargo you will ever pack."},
+    {"id": "ch6", "title": "One More Thing", "years": "2024 to 2027", "intro": "Big things first. Fragile on top. And always leave room for one more thing."}
+  ],
+  "items": [
+    {"id": "suitcase_big", "name": "Big Suitcase", "desc": "Dad's. Fourteen outfits for a two-night stay.", "fragile": false, "palette": ["a:#3A7BD5", "b:#1F3B63"], "layers": ["aba|aba"]},
+    {"id": "suitcase_red", "name": "Hard-Shell Suitcase", "desc": "Mom's. Bulletproof. Probably. Please don't test that.", "fragile": false, "palette": ["a:#E0474C", "b:#7A1F22"], "layers": ["aba|aba"]},
+    {"id": "carry_on", "name": "Carry-On", "desc": "Technically within airline size limits.", "fragile": false, "palette": ["a:#2D3436", "b:#B2BEC3"], "layers": ["ab", "ab"]},
+    {"id": "duffel", "name": "Gym Duffel", "desc": "Dad is convinced he'll go jogging. He won't.", "fragile": false, "palette": ["a:#8E44AD", "b:#F1C40F"], "layers": ["aba"]},
+    {"id": "backpack", "name": "Backpack", "desc": "Six granola bars, none of them whole.", "fragile": false, "palette": ["a:#E67E22", "b:#2C3E50"], "layers": ["a", "b"]},
+    {"id": "grocery_bag", "name": "Grocery Bag", "desc": "Baguette sold separately.", "fragile": false, "palette": ["a:#C8A27A"], "layers": ["a"]},
+    {"id": "eggs", "name": "Egg Carton", "desc": "Eighteen chances to ruin Grandma's party.", "fragile": true, "palette": ["a:#F5F0E1", "b:#E8D9B5"], "layers": ["ab"]},
+    {"id": "cake", "name": "Birthday Cake", "desc": "The bakery wrote HAPPY BIRTHDAY GARY. Grandma's name is Rose.", "fragile": true, "palette": ["a:#FFB6C1", "b:#FFFFFF"], "layers": ["ab|ba"]},
+    {"id": "water", "name": "24-Pack of Water", "desc": "Aunt Dee said bring 'some water.'", "fragile": false, "palette": ["a:#7FDBFF", "b:#0074D9"], "layers": ["ab|ba"]},
+    {"id": "watermelon", "name": "Watermelon", "desc": "Heavier than it has any right to be.", "fragile": false, "palette": ["a:#2ECC40"], "layers": ["a"]},
+    {"id": "baguette", "name": "Baguette", "desc": "Structurally load-bearing.", "fragile": false, "palette": ["a:#D4A055", "b:#B8863B"], "layers": ["aba"]},
+    {"id": "toilet_paper", "name": "Bulk Toilet Paper", "desc": "It was on sale. That's the whole story.", "fragile": false, "palette": ["a:#FFFFFF", "b:#89CFF0"], "layers": ["ab|ba", "ba|ab"]},
+    {"id": "cereal", "name": "Cereal Box", "desc": "Contains 2% cereal, 98% air.", "fragile": false, "palette": ["a:#FF4136", "b:#FFDC00"], "layers": ["a", "b"]},
+    {"id": "tent", "name": "Tent Bag", "desc": "Instructions not included. Never were.", "fragile": false, "palette": ["a:#3D9970", "b:#1B4D3E"], "layers": ["aba"]},
+    {"id": "cooler", "name": "Cooler", "desc": "Ice, sandwiches, and one mysterious fish.", "fragile": false, "palette": ["a:#0074D9", "b:#FFFFFF"], "layers": ["aa", "bb"]},
+    {"id": "sleeping_bag", "name": "Sleeping Bag", "desc": "Rated for temperatures you will never camp in.", "fragile": false, "palette": ["a:#FF851B", "b:#B4500B"], "layers": ["a|b"]},
+    {"id": "camp_chair", "name": "Folding Chair", "desc": "Folds in eleven directions, none of them flat.", "fragile": false, "palette": ["a:#1F6F8B", "b:#CCCCCC"], "layers": ["aba"]},
+    {"id": "paddle", "name": "Kayak Paddle", "desc": "Always exactly one trunk-length too long.", "fragile": false, "palette": ["a:#FFDC00", "b:#333333"], "layers": ["abbba"]},
+    {"id": "lantern", "name": "Lantern", "desc": "Battery powered. The batteries are in another car.", "fragile": true, "palette": ["a:#F1C40F"], "layers": ["a"]},
+    {"id": "firewood", "name": "Firewood Bundle", "desc": "Bark everywhere. Forever.", "fragile": false, "palette": ["a:#8B5A2B", "b:#A0522D"], "layers": ["ab"]},
+    {"id": "marshmallows", "name": "Industrial Marshmallows", "desc": "One bag. Forty pounds.", "fragile": false, "palette": ["a:#FFFFFF", "b:#F3E5F5"], "layers": ["ab|ba"]},
+    {"id": "flamingo", "name": "Inflatable Flamingo", "desc": "Fully inflated for the lake. The valve is long gone.", "fragile": false, "palette": ["a:#FF69B4", "b:#FF851B"], "layers": ["aa", "a.", "ab"]},
+    {"id": "gnome", "name": "Garden Gnome", "desc": "Dad's lucky gnome. Comes on every trip. Nobody ever voted on this.", "fragile": true, "palette": ["a:#0074D9", "b:#FF4136"], "layers": ["a", "b"]},
+    {"id": "duck", "name": "Giant Rubber Duck", "desc": "Wes's Duck Derby entry, Sir Quacksalot. Squeaks when compressed.", "fragile": false, "palette": ["a:#FFDC00", "b:#FF851B"], "layers": ["aa|aa", "ab|.."]},
+    {"id": "clock", "name": "Grandfather Clock", "desc": "Grandpa wound it every Sunday for fifty years. It still chimes every fifteen minutes.", "fragile": true, "palette": ["a:#5D3A1A", "b:#F5E6C8"], "layers": ["a", "a", "b", "a"]},
+    {"id": "armchair", "name": "Grandma's Armchair", "desc": "Grandma's armchair. Smells like lavender and hard candy. Non-negotiable.", "fragile": false, "palette": ["a:#C0587E", "b:#7A2F4F"], "layers": ["aa|aa", "bb|.."]},
+    {"id": "cat_tree", "name": "Cat Tree", "desc": "Mr. Whiskers is not coming. The cat tree is.", "fragile": false, "palette": ["a:#C8B79E", "b:#8E7B63"], "layers": ["aa|aa", "b.|..", "aa|.."]},
+    {"id": "lamp", "name": "Floor Lamp", "desc": "Comes with a pre-installed lampshade dent.", "fragile": true, "palette": ["a:#333333", "b:#F5DEB3"], "layers": ["a", "a", "b"]},
+    {"id": "ficus", "name": "Potted Ficus", "desc": "Sheds one leaf per pothole.", "fragile": true, "palette": ["a:#C1693C", "b:#2ECC40"], "layers": ["a", "b"]},
+    {"id": "moving_box", "name": "Moving Box", "desc": "Labeled MISC. Ominous.", "fragile": false, "palette": ["a:#C49A6C", "b:#A47A4C"], "layers": ["ab|ba"]},
+    {"id": "small_box", "name": "Box of Cables", "desc": "Every charging cable ever made. None of them fit anything.", "fragile": false, "palette": ["a:#B08A5C"], "layers": ["a"]},
+    {"id": "portrait", "name": "Portrait of Grandpa", "desc": "Grandpa Joe, painted in 1975. His eyes follow you. He'd find that hilarious.", "fragile": true, "palette": ["a:#D4AF37", "b:#6B4226"], "layers": ["aa", "ab"]},
+    {"id": "lava_lamp", "name": "Lava Lamp", "desc": "From Grandma's hippie days. Extremely fragile. Still groovy.", "fragile": true, "palette": ["a:#555555", "b:#FF4136"], "layers": ["a", "b"]},
+    {"id": "disco_ball", "name": "Disco Ball", "desc": "For emergencies.", "fragile": true, "palette": ["a:#DDDDDD"], "layers": ["a"]},
+    {"id": "trombone", "name": "Trombone", "desc": "Slides into any space. Theoretically.", "fragile": false, "palette": ["a:#E1B53C", "b:#B8902A"], "layers": ["aab|a..|aab"]},
+    {"id": "tuba", "name": "Tuba", "desc": "For the graduation march. Oompah.", "fragile": false, "palette": ["a:#D4A017", "b:#A67C00"], "layers": ["b.|..", "aa|aa"]},
+    {"id": "unicycle", "name": "Unicycle", "desc": "Bonko's graduation project. Previous owner's note: never again.", "fragile": false, "palette": ["a:#222222", "b:#AAAAAA", "c:#FF4136"], "layers": ["a", "b", "c"]},
+    {"id": "cream_pies", "name": "Cream Pies", "desc": "Ammunition.", "fragile": true, "palette": ["a:#FFF8E7", "b:#F4C27A"], "layers": ["ab"]},
+    {"id": "rubber_chicken", "name": "Rubber Chicken", "desc": "Screams. Constantly.", "fragile": false, "palette": ["a:#FFE135", "b:#FF4136"], "layers": ["a|b"]},
+    {"id": "juggling_pins", "name": "Juggling Pins", "desc": "Not for bowling. Don't ask how we know.", "fragile": false, "palette": ["a:#FFFFFF", "b:#FF4136"], "layers": ["aba"]},
+    {"id": "big_shoes", "name": "Size 34 Shoes", "desc": "Size 34. Honk when stepped on.", "fragile": false, "palette": ["a:#FF4136", "b:#FFDC00"], "layers": ["aab", "a.."]},
+    {"id": "seltzer", "name": "Seltzer Bottle", "desc": "Pressurized. Pointed at you.", "fragile": false, "palette": ["a:#7FDBFF"], "layers": ["a"]},
+    {"id": "folded_clown", "name": "A Second Clown", "desc": "Bonko's classmate. Folds. Insists on folding.", "fragile": false, "palette": ["a:#FFFFFF", "b:#FF4136", "c:#0074D9"], "layers": ["ccc", ".a.", ".b."]},
+    {"id": "moose", "name": "Taxidermy Moose Head", "desc": "Dev's uncle's moose head. It comes to every campfire. Nobody knows why.", "fragile": false, "palette": ["a:#6B4226", "b:#D2B48C"], "layers": [".a.", "bab"]},
+    {"id": "cutout", "name": "Cardboard Cutout of You", "desc": "Life-size cardboard cutout of you. Grandma's favorite grandkid, apparently.", "fragile": false, "palette": ["a:#C49A6C", "b:#F1C27D"], "layers": ["aa", "aa", "bb"]},
+    {"id": "surfboard", "name": "Surfboard", "desc": "Uncle Rick's. Wax on. Wax everywhere.", "fragile": false, "palette": ["a:#FFFFFF", "b:#FF851B"], "layers": ["abbbba"]},
+    {"id": "kayak", "name": "Kayak", "desc": "Seats one. Fits zero.", "fragile": false, "palette": ["a:#FF4136", "b:#222222"], "layers": ["aaaaa|abbba"]},
+    {"id": "umbrella", "name": "Beach Umbrella", "desc": "Inverts in winds above two miles per hour.", "fragile": false, "palette": ["a:#FF4136", "b:#FFFFFF"], "layers": ["abab"]},
+    {"id": "boogie_board", "name": "Boogie Board", "desc": "Rad. Gnarly. Slightly dented.", "fragile": false, "palette": ["a:#B10DC9", "b:#FFDC00"], "layers": ["ab"]},
+    {"id": "shark", "name": "Inflatable Shark", "desc": "Uncle Rick named it Bruce.", "fragile": false, "palette": ["a:#7F8C8D", "b:#FFFFFF"], "layers": ["aaab", ".a.."]},
+    {"id": "tiki_torch", "name": "Tiki Torch", "desc": "A fire hazard, but decorative.", "fragile": false, "palette": ["a:#8B5A2B", "b:#FF851B"], "layers": ["aab"]},
+    {"id": "kiddie_pool", "name": "Kiddie Pool", "desc": "Deflated, yet somehow refuses to fold.", "fragile": false, "palette": ["a:#00BFFF", "b:#0091C2"], "layers": ["aba|b.b|aba"]},
+    {"id": "bowling_ball", "name": "Bowling Ball", "desc": "Grandma's league ball. She's undefeated since 1987.", "fragile": false, "palette": ["a:#2C3E50"], "layers": ["a"]},
+    {"id": "bike", "name": "Kid's Bike", "desc": "Your little cousin's. Training wheels included, dignity not.", "fragile": false, "palette": ["a:#222222", "b:#FF4136"], "layers": ["a.a", "bbb"]},
+    {"id": "fishing_rod", "name": "Fishing Rod", "desc": "The one that got away was this rod.", "fragile": false, "palette": ["a:#555555", "b:#C0392B"], "layers": ["aaab"]},
+    {"id": "mirror", "name": "Antique Mirror", "desc": "Antique. Seven years bad luck, minimum.", "fragile": true, "palette": ["a:#B0C4DE", "b:#D4AF37"], "layers": ["ba", "ab"]},
+    {"id": "kitchen_sink", "name": "The Kitchen Sink", "desc": "Grandma said bring everything but the kitchen sink. Mom heard 'bring the kitchen sink.'", "fragile": false, "palette": ["a:#C0C0C0", "b:#7F8C8D"], "layers": ["aaa|aaa", "aba|..."]},
+    {"id": "mattress", "name": "Air Mattress", "desc": "Slow leak. Fast attitude.", "fragile": false, "palette": ["a:#3D9970", "b:#2E7356"], "layers": ["aba|aba"]},
+    {"id": "guitar", "name": "Acoustic Guitar", "desc": "Grandpa Joe's guitar. Knows one song. Everyone in the family knows the one.", "fragile": true, "palette": ["a:#C68E3C", "b:#5D3A1A"], "layers": ["aab"]},
+    {"id": "plant_stand", "name": "Pink Lawn Flamingos", "desc": "A flock of three. They go to every beach party.", "fragile": false, "palette": ["a:#FF69B4"], "layers": ["a.a", "aaa"]},
+    {"id": "picnic_basket", "name": "Picnic Basket", "desc": "Grandma's picnic basket. The checkered cloth has seen forty summers.", "fragile": false, "palette": ["a:#C8A06A", "b:#E53935"], "layers": ["ab"]},
+    {"id": "flowers", "name": "Birthday Bouquet", "desc": "Ninety roses would not fit. These are nine.", "fragile": true, "palette": ["a:#7CB342", "b:#F06292"], "layers": ["a", "b"]},
+    {"id": "trophy", "name": "Last Year's Trophy", "desc": "Duck Derby champion, two years running. Wes polishes it daily.", "fragile": true, "palette": ["a:#5D4037", "b:#D4AF37"], "layers": ["a", "b"]},
+    {"id": "teddy", "name": "Mr. Buttons", "desc": "Grandpa won him at the county fair in 1998. One button eye, one regular eye.", "fragile": false, "palette": ["a:#B07A4A", "b:#6D4C41"], "layers": ["a"]},
+    {"id": "toy_blocks", "name": "Wooden Blocks", "desc": "A, B, C, and one that just says JOE. Grandpa carved them.", "fragile": false, "palette": ["a:#E53935", "b:#FDD835"], "layers": ["a"]},
+    {"id": "lemonade", "name": "Lemonade Jug", "desc": "Grandma Rose's recipe. Extra sugar. Don't tell your mom.", "fragile": true, "palette": ["a:#FFF176", "b:#FFFFFF"], "layers": ["a"]},
+    {"id": "toy_truck", "name": "Toy Dump Truck", "desc": "Has hauled more sand than most real trucks.", "fragile": false, "palette": ["a:#FFB300", "b:#424242"], "layers": ["a"]},
+    {"id": "grandpa_note", "name": "Grandpa's Note", "desc": "Folded in the wagon since 1998: 'Always leave room for one more thing.'", "fragile": true, "palette": ["a:#FFF8E1", "b:#5D4037"], "layers": ["a"]},
+    {"id": "mini_fridge", "name": "Mini Fridge", "desc": "Holds exactly one pizza and forty sodas.", "fragile": false, "palette": ["a:#ECEFF1", "b:#90A4AE"], "layers": ["aa", "ab"]},
+    {"id": "desk_lamp", "name": "Desk Lamp", "desc": "Bends toward whatever you're avoiding studying.", "fragile": true, "palette": ["a:#26A69A", "b:#FFF59D"], "layers": ["a", "b"]},
+    {"id": "hamper", "name": "Laundry Hamper", "desc": "Will be used as a chair for four straight years.", "fragile": false, "palette": ["a:#78909C"], "layers": ["a", "a"]},
+    {"id": "comforter", "name": "Duck Comforter", "desc": "Mom picked it. It has ducks on it. You are eighteen.", "fragile": false, "palette": ["a:#81D4FA", "b:#FFEB3B"], "layers": ["aba"]},
+    {"id": "poster_tube", "name": "Poster Tube", "desc": "Band posters. Mostly bands you'll pretend you never liked.", "fragile": false, "palette": ["a:#FF7043", "b:#37474F"], "layers": ["aaab"]},
+    {"id": "shower_caddy", "name": "Shower Caddy", "desc": "Seven shampoos. Zero conditioners.", "fragile": false, "palette": ["a:#4FC3F7"], "layers": ["a"]},
+    {"id": "speaker", "name": "Party Speaker", "desc": "Goes to eleven. The neighbors go to the police.", "fragile": false, "palette": ["a:#263238", "b:#00E5FF"], "layers": ["a", "b"]},
+    {"id": "glow_sticks", "name": "Glow Sticks", "desc": "Two hundred of them. Dev did the math. Dev did not do the math.", "fragile": false, "palette": ["a:#76FF03", "b:#E040FB"], "layers": ["a"]},
+    {"id": "futon", "name": "Futon", "desc": "Couch by day. Bed by night. Back pain always.", "fragile": false, "palette": ["a:#5C6BC0", "b:#3949AB"], "layers": ["aaa|aaa", "bbb|..."]},
+    {"id": "beanbag", "name": "Beanbag", "desc": "Contains about a million foam beads. For now.", "fragile": false, "palette": ["a:#EC407A"], "layers": ["aa|aa"]},
+    {"id": "record_crate", "name": "Record Crate", "desc": "Alphabetized. Then by mood. Then by Sam's mood.", "fragile": false, "palette": ["a:#A1887F", "b:#212121"], "layers": ["ab"]},
+    {"id": "turntable", "name": "Sam's Turntable", "desc": "Sam's prized turntable. Handle like a baby. Good practice.", "fragile": true, "palette": ["a:#8D6E63", "b:#212121"], "layers": ["ab|ba"]},
+    {"id": "monstera", "name": "Monstera", "desc": "Sam talks to it every morning. It's doing great.", "fragile": true, "palette": ["a:#E07B53", "b:#2E7D32"], "layers": ["a.|..", "bb|bb"]},
+    {"id": "cat_carrier", "name": "Biscuit (in Carrier)", "desc": "Contains Biscuit. Biscuit has opinions about this.", "fragile": false, "palette": ["a:#90A4AE", "b:#FFB74D"], "layers": ["aa", "ab"]},
+    {"id": "toaster", "name": "Toaster", "desc": "One is Sam's. One is yours. You now own two toasters.", "fragile": false, "palette": ["a:#CFD8DC", "b:#37474F"], "layers": ["a"]},
+    {"id": "sams_armchair", "name": "Sam's Armchair", "desc": "Thrift-store find. Mustard yellow. Also non-negotiable.", "fragile": false, "palette": ["a:#E1B12C", "b:#B8860B"], "layers": ["aa|aa", "bb|.."]},
+    {"id": "ring_box", "name": "The Ring", "desc": "Do NOT let Sam see this.", "fragile": true, "palette": ["a:#C62828", "b:#FFD700"], "layers": ["a"]},
+    {"id": "tiered_cake", "name": "Wedding Cake", "desc": "Three tiers. Two tiny figures on top. Zero room for error.", "fragile": true, "palette": ["a:#FFF8E1", "b:#F8BBD0"], "layers": ["aa|aa", "aa|aa", "b.|.."]},
+    {"id": "flower_arch", "name": "Flower Arch", "desc": "Aunt Dee spent two days on it. It is held together with hope.", "fragile": false, "palette": ["a:#8D6E63", "b:#F48FB1"], "layers": ["a..a", "a..a", "bbbb"]},
+    {"id": "veil_box", "name": "Grandma's Veil", "desc": "Rose wore it when she married Joe in 1962. Now it's your turn.", "fragile": true, "palette": ["a:#FFFFFF", "b:#F8BBD0"], "layers": ["ab"]},
+    {"id": "champagne", "name": "Champagne Crate", "desc": "Twelve bottles. Uncle Rick has volunteered to 'test' one.", "fragile": true, "palette": ["a:#8D6E63", "b:#2E7D32"], "layers": ["ab"]},
+    {"id": "camera_bag", "name": "Camera Bag", "desc": "Four hundred photos of sunsets. Six of each other.", "fragile": false, "palette": ["a:#424242", "b:#FF7043"], "layers": ["a"]},
+    {"id": "grill", "name": "Dad's New Grill", "desc": "His retirement present to himself. It has Bluetooth. Why does it have Bluetooth?", "fragile": false, "palette": ["a:#212121", "b:#B71C1C"], "layers": ["a.|..", "bb|bb"]},
+    {"id": "tackle_box", "name": "Tackle Box", "desc": "Forty lures. Dad has caught zero fish with any of them.", "fragile": false, "palette": ["a:#2E7D32", "b:#FFB300"], "layers": ["ab"]},
+    {"id": "kitchen_table", "name": "Kitchen Table", "desc": "Where every family dinner will happen. And where the mail will pile up.", "fragile": false, "palette": ["a:#A1887F", "b:#8D6E63"], "layers": ["a.a|a.a", "bbb|bbb"]},
+    {"id": "crib_flatpack", "name": "Flat-Pack Crib", "desc": "Some assembly required. Some patience also required.", "fragile": false, "palette": ["a:#D7CCC8", "b:#1565C0"], "layers": ["aba|aba"]},
+    {"id": "rocking_chair", "name": "Rocking Chair", "desc": "Grandma rocked your mom in it. Then you. Now it's Rosie's turn.", "fragile": false, "palette": ["a:#8D6E63", "b:#6D4C41"], "layers": ["aa|aa", "aa|..", "bb|.."]},
+    {"id": "baby_mobile", "name": "Duck Mobile", "desc": "Little felt ducks. Sir Quacksalot approves.", "fragile": true, "palette": ["a:#FFEB3B", "b:#FFFFFF"], "layers": ["a"]},
+    {"id": "diapers", "name": "Diapers (Bulk)", "desc": "Very bulk. You will need more.", "fragile": false, "palette": ["a:#E3F2FD", "b:#64B5F6"], "layers": ["ab|ba"]},
+    {"id": "paint_cans", "name": "Paint Cans", "desc": "The color is called Morning Duckling. It's yellow.", "fragile": false, "palette": ["a:#B0BEC5", "b:#FFEB3B"], "layers": ["ab"]},
+    {"id": "car_seat", "name": "Baby Car Seat", "desc": "The most precious cargo you will ever pack.", "fragile": true, "palette": ["a:#455A64", "b:#F48FB1"], "layers": ["aa|aa", "aa|.."]},
+    {"id": "hospital_bag", "name": "Hospital Bag", "desc": "Packed six weeks early. Repacked eleven times.", "fragile": false, "palette": ["a:#7E57C2", "b:#FFFFFF"], "layers": ["ab"]},
+    {"id": "balloons", "name": "IT'S A GIRL Balloons", "desc": "In three colors. Dad bought nine.", "fragile": true, "palette": ["a:#F48FB1", "b:#FFFFFF"], "layers": ["a", "b"]},
+    {"id": "stroller", "name": "Stroller", "desc": "Folds in one easy motion. The motion is not easy.", "fragile": false, "palette": ["a:#37474F", "b:#80CBC4"], "layers": ["aa|aa", "b.|b."]},
+    {"id": "playpen", "name": "Playpen", "desc": "A tiny fence for a tiny person.", "fragile": false, "palette": ["a:#4DB6AC", "b:#FFFFFF"], "layers": ["ab|ba"]},
+    {"id": "baby_bath", "name": "Duck Bath", "desc": "Duck-shaped. Obviously.", "fragile": false, "palette": ["a:#FFEB3B", "b:#FF9800"], "layers": ["ab"]},
+    {"id": "white_noise", "name": "White Noise Machine", "desc": "Plays the ocean. Rosie prefers the vacuum cleaner setting.", "fragile": false, "palette": ["a:#FAFAFA", "b:#90CAF9"], "layers": ["a"]},
+    {"id": "photo_album", "name": "Photo Album", "desc": "Ninety years in one book. Bring tissues.", "fragile": true, "palette": ["a:#6D4C41", "b:#D4AF37"], "layers": ["ab"]},
+    {"id": "sled", "name": "Grandpa's Sled", "desc": "Still the fastest on the hill. Grandpa made sure of it.", "fragile": false, "palette": ["a:#C62828", "b:#8D6E63"], "layers": ["aab", "a.."]},
+    {"id": "skis", "name": "Skis", "desc": "Two skis, two poles, zero lessons.", "fragile": false, "palette": ["a:#1E88E5", "b:#FFFFFF"], "layers": ["aabaa"]},
+    {"id": "snowman_kit", "name": "Snowman Kit", "desc": "Carrot, coal buttons, one of Grandpa's old scarves.", "fragile": false, "palette": ["a:#FF7043", "b:#212121"], "layers": ["a"]},
+    {"id": "thermos", "name": "Cocoa Thermos", "desc": "Hot cocoa. The marshmallows are in the other bag.", "fragile": false, "palette": ["a:#C62828", "b:#ECEFF1"], "layers": ["a"]},
+    {"id": "shovel", "name": "Snow Shovel", "desc": "For the snow. Or for digging out the SUV.", "fragile": false, "palette": ["a:#8D6E63", "b:#1565C0"], "layers": ["aaab"]},
+    {"id": "costume_trunk", "name": "Costume Trunk", "desc": "Sequins, feathers, a top hat. Grandma's talent show look.", "fragile": false, "palette": ["a:#6A1B9A", "b:#FFD700"], "layers": ["ab|ba"]},
+    {"id": "kid_suitcase", "name": "Rosie's Suitcase", "desc": "She packed it herself. One sock, four rocks, and a crayon.", "fragile": false, "palette": ["a:#F06292", "b:#FFFFFF"], "layers": ["ab"]},
+    {"id": "toy_box", "name": "Toy Box", "desc": "Every toy Rosie owns. She needs all of them. All.", "fragile": false, "palette": ["a:#FFCA28", "b:#42A5F5"], "layers": ["ab"]},
+    {"id": "folding_chairs", "name": "Folding Chairs", "desc": "A stack of six. There will be eleven guests.", "fragile": false, "palette": ["a:#ECEFF1", "b:#90A4AE"], "layers": ["ab", "ab"]},
+    {"id": "balloons_grad", "name": "Graduation Balloons", "desc": "CONGRATS in gold. Grandma picked them.", "fragile": true, "palette": ["a:#FFD700", "b:#1E88E5"], "layers": ["a", "b"]}
+  ],
+  "levels": [
+    {
+          "id": "wagon",
+          "chapter": "ch1",
+          "year": 1998,
+          "music": "morning_rain",
+          "medium": "note",
+          "title": "The Little Red Wagon",
+          "vehicle": "Little Red Wagon",
+          "blurb": "Grandpa Joe is teaching you to pack. You are seven.",
+          "style": "toywagon",
+          "bodyColor": "#D32F2F",
+          "w": 3,
+          "h": 1,
+          "d": 2,
+          "blocked": [],
+          "required": [
+                "picnic_basket",
+                "teddy",
+                "toy_blocks"
+          ],
+          "bonus": [
+                "lemonade",
+                "toy_truck"
+          ],
+          "trip": "August · Grandpa's Backyard",
+          "sender": "Grandpa Joe",
+          "messages": [
+                "Kiddo! Picnic at the creek today.",
+                "The wagon's all yours. You're in charge of packing.",
+                "Here's the secret: big things first, fragile on top, and always leave room for one more thing."
+          ],
+          "epilogues": [
+                "Grandpa pulled the wagon to the creek and you held Mr. Buttons the whole way.",
+                "Grandpa said it was the best-packed wagon in the county. He'd know.",
+                "Not a single gap. Grandpa laughed his big laugh and said: 'That's my kid.'"
+          ]
+    },
+    {
+          "id": "weekend",
+          "music": "countryside",
+          "title": "Weekend Getaway",
+          "vehicle": "Sedan",
+          "blurb": "Mom and Dad's anniversary weekend. They 'packed light.'",
+          "style": "sedan",
+          "bodyColor": "#4A90D9",
+          "w": 5,
+          "h": 2,
+          "d": 3,
+          "blocked": [],
+          "required": [
+                "suitcase_big",
+                "suitcase_red",
+                "duffel",
+                "backpack"
+          ],
+          "bonus": [
+                "picnic_basket",
+                "gnome",
+                "flamingo",
+                "small_box"
+          ],
+          "trip": "June · Lake Mirabel",
+          "sender": "Mom",
+          "messages": [
+                "Your dad and I leave for the lake in 20 minutes.",
+                "He packed the car himself. The trunk does not close.",
+                "Grandpa always said you were the best packer in the family. HELP"
+          ],
+          "epilogues": [
+                "They made it to the lake. Dad's jogging duffel stayed in the hallway, where it belongs.",
+                "The trunk closed with only a little sitting on it. Happy anniversary!",
+                "Everything fit, even the gnome. Mom says you're officially in charge of all future trips."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "groceries",
+          "music": "florist",
+          "title": "Grocery Run",
+          "vehicle": "Hatchback",
+          "blurb": "Grandma Rose's 80th birthday party. Don't squish the cake.",
+          "style": "hatch",
+          "bodyColor": "#E74C3C",
+          "w": 4,
+          "h": 3,
+          "d": 3,
+          "blocked": [
+                "....|....|....",
+                "....|....|....",
+                "....|....|####"
+          ],
+          "required": [
+                "water",
+                "grocery_bag",
+                "grocery_bag",
+                "grocery_bag",
+                "eggs",
+                "cake",
+                "baguette",
+                "cereal"
+          ],
+          "bonus": [
+                "toilet_paper",
+                "watermelon",
+                "watermelon",
+                "flowers"
+          ],
+          "trip": "July · Grandma's 80th",
+          "sender": "Aunt Dee",
+          "messages": [
+                "Grandma's 80th is at 4 and I'm stuck at work!!",
+                "Can you grab the groceries and the cake in my hatchback?",
+                "The cake says GARY. Don't ask. Don't squish it either."
+          ],
+          "epilogues": [
+                "The cake survived. Mostly. Grandma ate the GARY part herself.",
+                "Party saved! Grandma wants to know who brought 48 rolls of toilet paper.",
+                "Not one egg cracked. Aunt Dee is telling everyone you're a professional."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "camping",
+          "music": "rainy_forest",
+          "title": "Into the Woods",
+          "vehicle": "SUV",
+          "blurb": "Dev bought ALL the camping gear. And borrowed some extra.",
+          "style": "suv",
+          "bodyColor": "#2E7D32",
+          "w": 6,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                "......|#....#|#....#|......",
+                "......|......|......|......",
+                "......|......|......|......"
+          ],
+          "required": [
+                "tent",
+                "cooler",
+                "sleeping_bag",
+                "sleeping_bag",
+                "sleeping_bag",
+                "camp_chair",
+                "camp_chair",
+                "paddle",
+                "lantern",
+                "firewood",
+                "firewood",
+                "backpack",
+                "backpack"
+          ],
+          "bonus": [
+                "marshmallows",
+                "duck",
+                "fishing_rod",
+                "moose",
+                "guitar",
+                "kiddie_pool"
+          ],
+          "trip": "July · Pinecone Lake",
+          "sender": "Dev",
+          "messages": [
+                "CAMPING TRIP! I bought all the gear",
+                "Also borrowed your grandpa's guitar, my uncle's moose head, and Wes's duck for 'testing'",
+                "The SUV has wheel wells. Why are there always wheel wells"
+          ],
+          "epilogues": [
+                "You forgot the marshmallows. Dev will never forgive you. Dev is sulking in the tent.",
+                "Campfire, guitar, one song on repeat. A perfect night.",
+                "Everything came along. The moose watched over the campfire all night."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "mini",
+          "music": "cat_caffe",
+          "title": "Duck Derby",
+          "vehicle": "Mini",
+          "blurb": "Sir Quacksalot is entered in the Duck Derby. The car is a Mini.",
+          "style": "mini",
+          "bodyColor": "#F1C40F",
+          "w": 3,
+          "h": 2,
+          "d": 3,
+          "blocked": [
+                "...|...|...",
+                "...|...|###"
+          ],
+          "required": [
+                "duck",
+                "carry_on"
+          ],
+          "bonus": [
+                "trophy",
+                "disco_ball",
+                "rubber_chicken"
+          ],
+          "trip": "August · County Fair",
+          "sender": "Wes",
+          "messages": [
+                "Sir Quacksalot is entered in the Duck Derby!!!",
+                "Problem: my car is a Mini. Sir Quacksalot is not mini.",
+                "Bring the trophy. We're defending the title."
+          ],
+          "epilogues": [
+                "Sir Quacksalot made it. The trophy did not. Wes is being brave about it.",
+                "Second place! The judges loved the emotional support chicken.",
+                "Three-time champion! Not a single spare inch in that trunk. Legendary."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "grandma",
+          "music": "morning_rain",
+          "title": "Grandma's Big Move",
+          "vehicle": "Station Wagon",
+          "blurb": "Grandma is moving into Sunny Pines. She's bringing Grandpa's portrait.",
+          "style": "wagon",
+          "bodyColor": "#8D6E63",
+          "w": 5,
+          "h": 3,
+          "d": 5,
+          "blocked": [
+                ".....|#...#|#.#.#|#...#|.....",
+                ".....|.....|.....|.....|.....",
+                "#...#|.....|.....|.....|#####"
+          ],
+          "required": [
+                "armchair",
+                "cat_tree",
+                "clock",
+                "lamp",
+                "moving_box",
+                "moving_box",
+                "moving_box",
+                "ficus",
+                "small_box",
+                "small_box",
+                "portrait"
+          ],
+          "bonus": [
+                "mirror",
+                "bowling_ball",
+                "cutout",
+                "lava_lamp",
+                "guitar"
+          ],
+          "trip": "August · Sunny Pines",
+          "sender": "Grandma Rose",
+          "messages": [
+                "Hello dear, it's Grandma. I'm moving to Sunny Pines on Saturday.",
+                "The house has been too quiet since your grandpa passed.",
+                "I'm bringing the essentials. And Joe's portrait. He'd hate being left behind."
+          ],
+          "epilogues": [
+                "Grandma arrived with most of it. The cardboard you is staying with the neighbors.",
+                "Joe's portrait went up first. Grandma says the room feels right now.",
+                "Every single thing made it. Grandma hung the portrait, wound the clock, and cried a little. The good kind."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "beach",
+          "music": "oceanside",
+          "title": "Surf's Up",
+          "vehicle": "Pickup Truck",
+          "blurb": "Uncle Rick's beach day. A long, beautiful truck bed. Ruined by a toolbox.",
+          "style": "pickup",
+          "bodyColor": "#1565C0",
+          "w": 4,
+          "h": 3,
+          "d": 7,
+          "blocked": [
+                "....|....|....|#..#|#..#|#..#|....",
+                "....|....|....|....|....|....|....",
+                "####|....|....|....|....|....|...."
+          ],
+          "required": [
+                "surfboard",
+                "surfboard",
+                "kayak",
+                "umbrella",
+                "cooler",
+                "boogie_board",
+                "boogie_board",
+                "tiki_torch",
+                "tiki_torch",
+                "shark"
+          ],
+          "bonus": [
+                "kiddie_pool",
+                "flamingo",
+                "paddle",
+                "plant_stand",
+                "bike"
+          ],
+          "trip": "August · Gull Point",
+          "sender": "Uncle Rick",
+          "messages": [
+                "Duuude. Beach day at Gull Point",
+                "Two boards, the kayak, Bruce the shark, the whole crew",
+                "Toolbox is welded in. Long story. Work around it"
+          ],
+          "epilogues": [
+                "Uncle Rick paddled out with what fit. The lawn flamingos watched from the driveway.",
+                "Gnarly day. Bruce the shark scared three seagulls.",
+                "The whole crew made it to the beach. Uncle Rick called you 'the GOAT of trunks.'"
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "clown",
+          "music": "cue",
+          "title": "The Clown Car",
+          "vehicle": "Clown Car",
+          "blurb": "Bonko graduates from clown college today. Someone is already in the car.",
+          "style": "clown",
+          "bodyColor": "#FF6F00",
+          "w": 4,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                "....|.#..|....|....",
+                "....|.#..|....|....",
+                "#..#|....|....|#..#"
+          ],
+          "required": [
+                "unicycle",
+                "tuba",
+                "trombone",
+                "cream_pies",
+                "cream_pies",
+                "rubber_chicken",
+                "rubber_chicken",
+                "juggling_pins",
+                "big_shoes"
+          ],
+          "bonus": [
+                "folded_clown",
+                "seltzer",
+                "seltzer",
+                "disco_ball"
+          ],
+          "trip": "September · Clown College",
+          "sender": "Cousin Bonko",
+          "messages": [
+                "I GRADUATE TODAY",
+                "Need my tuba, trombone, pies, chickens, and unicycle at the ceremony",
+                "Heads up: there's already a clown in the car. He lives there now"
+          ],
+          "epilogues": [
+                "Bonko graduated with honks. One seltzer bottle was left behind, which is probably for the best.",
+                "The march was a triumph. Several pies were deployed.",
+                "Every prop, every pie. Bonko's speech thanked you before the faculty."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "everything",
+          "music": "bartender",
+          "title": "Everything But...",
+          "vehicle": "Minivan",
+          "blurb": "The whole family is driving to see Grandma. Everyone's bringing everything.",
+          "style": "van",
+          "bodyColor": "#7E57C2",
+          "w": 6,
+          "h": 4,
+          "d": 5,
+          "blocked": [
+                "......|#....#|#....#|#....#|......",
+                "......|......|......|......|......",
+                "......|......|......|......|......",
+                "######|......|......|......|######"
+          ],
+          "required": [
+                "suitcase_big",
+                "suitcase_red",
+                "carry_on",
+                "carry_on",
+                "cooler",
+                "tent",
+                "mattress",
+                "bike",
+                "guitar",
+                "toilet_paper",
+                "duffel",
+                "backpack",
+                "backpack",
+                "ficus"
+          ],
+          "bonus": [
+                "kitchen_sink",
+                "moose",
+                "flamingo",
+                "duck",
+                "gnome",
+                "disco_ball",
+                "kiddie_pool",
+                "boogie_board"
+          ],
+          "trip": "September · Family Reunion",
+          "sender": "Mom",
+          "messages": [
+                "Family reunion at Sunny Pines this weekend!",
+                "Everyone is bringing everything. Dev is bringing the moose.",
+                "Grandma said 'bring everything but the kitchen sink.' Your dad heard that wrong."
+          ],
+          "epilogues": [
+                "Most of the family's stuff made it. The kitchen sink is waiting by the curb, hopeful.",
+                "The whole family made it to Sunny Pines. Grandma made lemonade.",
+                "The minivan held a whole summer. The kitchen sink is now in Grandma's garden. Packing Legend."
+          ],
+          "chapter": "ch2",
+          "year": 2010,
+          "medium": "phone"
+    },
+    {
+          "id": "dorm",
+          "chapter": "ch3",
+          "year": 2011,
+          "music": "cat_caffe",
+          "medium": "phone",
+          "title": "Dorm Bound",
+          "vehicle": "Hatchback",
+          "blurb": "Your first dorm room. Mom insists on driving.",
+          "style": "hatch",
+          "bodyColor": "#E74C3C",
+          "w": 4,
+          "h": 3,
+          "d": 3,
+          "blocked": [
+                "....|....|....",
+                "....|....|....",
+                "....|....|####"
+          ],
+          "required": [
+                "mini_fridge",
+                "comforter",
+                "hamper",
+                "desk_lamp",
+                "backpack",
+                "poster_tube"
+          ],
+          "bonus": [
+                "shower_caddy",
+                "teddy",
+                "toaster",
+                "small_box",
+                "lava_lamp",
+                "beanbag"
+          ],
+          "trip": "September · Westbrook College",
+          "sender": "Mom",
+          "messages": [
+                "I can't believe my baby is going to college.",
+                "I put Mr. Buttons in the bag. You said you didn't want him. He's in the bag.",
+                "Aunt Dee's hatchback again. You know what to do."
+          ],
+          "epilogues": [
+                "Most of it made it. Mr. Buttons rode home with Mom. She says he'll keep your room warm.",
+                "You moved in before lunch. Mom cried in the parking lot. Twice.",
+                "Your roommate asked how you fit all that in a hatchback. You said: big things first."
+          ]
+    },
+    {
+          "id": "festival",
+          "chapter": "ch3",
+          "year": 2012,
+          "music": "cue",
+          "medium": "phone",
+          "title": "Festival Weekend",
+          "vehicle": "Minivan",
+          "blurb": "Dev's mom's minivan, three days of music, and too many glow sticks.",
+          "style": "van",
+          "bodyColor": "#7E57C2",
+          "w": 5,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                ".....|#...#|#...#|.....",
+                ".....|.....|.....|.....",
+                ".....|.....|.....|....."
+          ],
+          "required": [
+                "tent",
+                "tent",
+                "cooler",
+                "sleeping_bag",
+                "sleeping_bag",
+                "camp_chair",
+                "camp_chair",
+                "speaker",
+                "glow_sticks"
+          ],
+          "bonus": [
+                "flamingo",
+                "beanbag",
+                "guitar",
+                "marshmallows",
+                "kiddie_pool",
+                "thermos",
+                "lantern",
+                "firewood"
+          ],
+          "trip": "July · Greenfield Festival",
+          "sender": "Dev",
+          "messages": [
+                "THREE DAYS. FOUR BANDS I'VE HEARD OF.",
+                "I borrowed my mom's minivan. And two tents. And a flamingo.",
+                "Grandma let me borrow your grandpa's guitar. I promised to be careful."
+          ],
+          "epilogues": [
+                "You got there. The flamingo did not. Dev has written it a eulogy.",
+                "Three days of mud and music. Dev learned the one song on Grandpa's guitar.",
+                "Everything fit, even the beanbag. Dev's mom says you can borrow the van anytime."
+          ]
+    },
+    {
+          "id": "moveout",
+          "chapter": "ch3",
+          "year": 2013,
+          "music": "countryside",
+          "medium": "phone",
+          "title": "Move-Out Day",
+          "vehicle": "Pickup Truck",
+          "blurb": "Uncle Rick's truck. Two years of dorm life. One futon.",
+          "style": "pickup",
+          "bodyColor": "#1565C0",
+          "w": 4,
+          "h": 3,
+          "d": 5,
+          "blocked": [
+                "....|#..#|#..#|#..#|....",
+                "....|....|....|....|....",
+                "####|....|....|....|...."
+          ],
+          "required": [
+                "futon",
+                "mini_fridge",
+                "moving_box",
+                "moving_box",
+                "desk_lamp",
+                "beanbag"
+          ],
+          "bonus": [
+                "lava_lamp",
+                "hamper",
+                "poster_tube",
+                "ficus",
+                "bike",
+                "comforter",
+                "shower_caddy"
+          ],
+          "trip": "May · Westbrook College",
+          "sender": "Uncle Rick",
+          "messages": [
+                "Duuude. Heard you need a truck.",
+                "The toolbox is still welded in. Still a long story.",
+                "Grandma says her lava lamp better survive your dorm years. No pressure."
+          ],
+          "epilogues": [
+                "The futon made it. The ficus did not. It had a good run.",
+                "Two years of dorm life in one truck bed. Uncle Rick is impressed. Quietly.",
+                "Grandma's lava lamp survived. She's telling everyone at Sunny Pines."
+          ]
+    },
+    {
+          "id": "city",
+          "chapter": "ch3",
+          "year": 2014,
+          "music": "a_cup_of_tea",
+          "medium": "phone",
+          "title": "The Big City",
+          "vehicle": "Mini",
+          "blurb": "Your first apartment. Wes's Mini. Everything you own.",
+          "style": "mini",
+          "bodyColor": "#F1C40F",
+          "w": 3,
+          "h": 2,
+          "d": 3,
+          "blocked": [
+                "...|...|...",
+                "...|...|###"
+          ],
+          "required": [
+                "carry_on",
+                "backpack",
+                "toaster",
+                "ficus"
+          ],
+          "bonus": [
+                "teddy",
+                "small_box",
+                "shower_caddy"
+          ],
+          "trip": "January · Your First Apartment",
+          "sender": "Wes",
+          "messages": [
+                "You got the job!! First apartment in the city!",
+                "My Mini is the only car I have. Sir Quacksalot is NOT coming. Probably.",
+                "Grandma sent a cutting from her ficus. She says every home needs something growing."
+          ],
+          "epilogues": [
+                "Your first apartment is tiny and perfect. The ficus cutting is on the windowsill.",
+                "Wes helped you carry everything up five flights. Sir Quacksalot supervised.",
+                "Every inch used. Mom mailed Mr. Buttons with a note: 'For the new place.'"
+          ]
+    },
+    {
+          "id": "graduation",
+          "chapter": "ch3",
+          "year": 2014,
+          "music": "florist",
+          "medium": "phone",
+          "title": "Cap and Gown",
+          "vehicle": "Sedan",
+          "blurb": "Graduation party. Grandma insists Grandpa comes too.",
+          "style": "sedan",
+          "bodyColor": "#4A90D9",
+          "w": 5,
+          "h": 2,
+          "d": 3,
+          "blocked": [],
+          "required": [
+                "cake",
+                "folding_chairs",
+                "flowers",
+                "cooler"
+          ],
+          "bonus": [
+                "portrait",
+                "balloons_grad",
+                "champagne",
+                "lemonade",
+                "camera_bag",
+                "speaker"
+          ],
+          "trip": "May · Graduation Day",
+          "sender": "Grandma Rose",
+          "messages": [
+                "Hello dear. I'm so proud of you I could burst.",
+                "Dee is driving us to the party. She drives just like your grandpa did.",
+                "Bring Joe's portrait, would you? He should see this."
+          ],
+          "epilogues": [
+                "The party was lovely. Grandpa's portrait had the best seat.",
+                "Grandma gave a speech. Nobody had a dry eye. Not even Uncle Rick.",
+                "Grandpa's portrait watched you cross the stage. The cake said CONGRATULATIONS GARY."
+          ]
+    },
+    {
+          "id": "records",
+          "chapter": "ch4",
+          "year": 2015,
+          "music": "cat_caffe",
+          "medium": "phone",
+          "title": "Six Hundred Records",
+          "vehicle": "Hatchback",
+          "blurb": "Sam has six hundred records and a cat. You have a hatchback.",
+          "style": "hatch",
+          "bodyColor": "#26A69A",
+          "w": 4,
+          "h": 3,
+          "d": 3,
+          "blocked": [
+                "....|....|....",
+                "....|....|....",
+                "....|....|####"
+          ],
+          "required": [
+                "record_crate",
+                "record_crate",
+                "record_crate",
+                "turntable",
+                "cat_carrier",
+                "monstera",
+                "moving_box"
+          ],
+          "bonus": [
+                "sams_armchair",
+                "toaster"
+          ],
+          "trip": "March · Sam's New Place",
+          "sender": "Sam",
+          "messages": [
+                "Hi! Dev says you're the person to call about packing?",
+                "I have six hundred records, one turntable, a monstera, and a cat named Biscuit.",
+                "Biscuit has opinions. Please don't take them personally."
+          ],
+          "epilogues": [
+                "Most of it made it. Sam made you dinner as a thank-you. You stayed till midnight.",
+                "Biscuit sat on your lap the whole drive. Sam says that has never happened before.",
+                "Every record, every leaf. Sam asked if you're free next Saturday. Not for packing."
+          ]
+    },
+    {
+          "id": "together",
+          "chapter": "ch4",
+          "year": 2016,
+          "music": "countryside",
+          "medium": "phone",
+          "title": "Two of Everything",
+          "vehicle": "Station Wagon",
+          "blurb": "Merging two lives into one station wagon. Two toasters included.",
+          "style": "wagon",
+          "bodyColor": "#8D6E63",
+          "w": 5,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                ".....|#...#|#...#|.....",
+                ".....|.....|.....|.....",
+                "#...#|.....|.....|#####"
+          ],
+          "required": [
+                "sams_armchair",
+                "record_crate",
+                "record_crate",
+                "toaster",
+                "toaster",
+                "moving_box",
+                "moving_box",
+                "cat_carrier",
+                "monstera"
+          ],
+          "bonus": [
+                "teddy",
+                "lava_lamp",
+                "turntable",
+                "desk_lamp",
+                "beanbag",
+                "comforter"
+          ],
+          "trip": "June · Moving In Together",
+          "sender": "Sam",
+          "messages": [
+                "Big day! Our first place together.",
+                "Grandma lent us her station wagon. She says it's lucky.",
+                "We own two toasters now. We are keeping both. This is non-negotiable."
+          ],
+          "epilogues": [
+                "Home, mostly. One toaster stayed behind. Sam is grieving.",
+                "Sam put your ficus next to the monstera. They seem happy.",
+                "Two lives, one wagon. Biscuit claimed the armchair within four minutes."
+          ]
+    },
+    {
+          "id": "question",
+          "chapter": "ch4",
+          "year": 2017,
+          "music": "rainy_forest",
+          "medium": "phone",
+          "title": "The Question",
+          "vehicle": "SUV",
+          "blurb": "A camping trip. Sam doesn't know about the ring.",
+          "style": "suv",
+          "bodyColor": "#2E7D32",
+          "w": 4,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                "....|#..#|#..#|....",
+                "....|....|....|....",
+                "....|....|....|...."
+          ],
+          "required": [
+                "tent",
+                "cooler",
+                "sleeping_bag",
+                "sleeping_bag",
+                "lantern",
+                "firewood",
+                "guitar",
+                "ring_box",
+                "camp_chair"
+          ],
+          "bonus": [
+                "marshmallows",
+                "camp_chair",
+                "thermos",
+                "flamingo",
+                "fishing_rod",
+                "moose"
+          ],
+          "trip": "October · Pinecone Lake",
+          "sender": "Dev",
+          "messages": [
+                "Okay. I've got the SUV. Sam thinks it's just a camping trip.",
+                "Grandma gave me Grandpa's guitar for you. She said 'tell them to play the song.'",
+                "The ring is in the little red box. DO NOT pack it under anything."
+          ],
+          "epilogues": [
+                "Sam said yes before you finished the song. The marshmallows were forgotten. Nobody cared.",
+                "You played the one song by the fire. Sam said yes. Dev cried the hardest.",
+                "Everything perfect. Sam said yes. Grandma answered the phone on the first ring."
+          ]
+    },
+    {
+          "id": "wedding",
+          "chapter": "ch4",
+          "year": 2018,
+          "music": "florist",
+          "medium": "phone",
+          "title": "Wedding Day",
+          "vehicle": "Minivan",
+          "blurb": "The wedding is in Grandma's garden. The cake has three tiers.",
+          "style": "van",
+          "bodyColor": "#F48FB1",
+          "w": 5,
+          "h": 3,
+          "d": 5,
+          "blocked": [
+                ".....|#...#|#...#|#...#|.....",
+                ".....|.....|.....|.....|.....",
+                "#####|.....|.....|.....|#####"
+          ],
+          "required": [
+                "tiered_cake",
+                "flower_arch",
+                "folding_chairs",
+                "folding_chairs",
+                "speaker",
+                "veil_box",
+                "champagne",
+                "folding_chairs"
+          ],
+          "bonus": [
+                "gnome",
+                "juggling_pins",
+                "flowers",
+                "photo_album",
+                "cooler",
+                "balloons",
+                "lemonade",
+                "camera_bag"
+          ],
+          "trip": "June · The Garden at Sunny Pines",
+          "sender": "Aunt Dee",
+          "messages": [
+                "The wedding is at Sunny Pines!! Grandma insisted.",
+                "The cake is three tiers. If it falls over I will simply walk into the sea.",
+                "Grandma's veil is in the white box. She wore it when she married your grandpa."
+          ],
+          "epilogues": [
+                "Married! Bonko's juggling pins stayed home. Probably for the best.",
+                "Grandma watched you walk down the aisle in her veil. She held Joe's photo the whole time.",
+                "Not one crumb out of place. Grandma danced with Dad. Dad cried. Dad always cries."
+          ]
+    },
+    {
+          "id": "honeymoon",
+          "chapter": "ch4",
+          "year": 2018,
+          "music": "oceanside",
+          "medium": "phone",
+          "title": "Just Married",
+          "vehicle": "Convertible",
+          "blurb": "Uncle Rick's convertible. Pack light. Leave room for souvenirs.",
+          "style": "convertible",
+          "bodyColor": "#00897B",
+          "w": 4,
+          "h": 2,
+          "d": 3,
+          "blocked": [],
+          "required": [
+                "suitcase_red",
+                "carry_on",
+                "camera_bag",
+                "umbrella"
+          ],
+          "bonus": [
+                "boogie_board",
+                "picnic_basket"
+          ],
+          "trip": "July · The Coast Road",
+          "sender": "Sam",
+          "messages": [
+                "Honeymoon road trip!! Uncle Rick lent us his convertible.",
+                "He said 'treat her like family.' He meant the car.",
+                "Pack light. Leave room for souvenirs."
+          ],
+          "epilogues": [
+                "Just married, a little cramped. The beach umbrella rode in Sam's lap.",
+                "Coast road, top down, Biscuit at the neighbors'. Perfect.",
+                "Perfectly packed. Sam says it's the most romantic trunk they've ever seen."
+          ]
+    },
+    {
+          "id": "retire",
+          "chapter": "ch4",
+          "year": 2019,
+          "music": "countryside",
+          "medium": "phone",
+          "title": "Gone Fishing",
+          "vehicle": "Pickup Truck",
+          "blurb": "Dad is retiring. The gnome is retiring with him.",
+          "style": "pickup",
+          "bodyColor": "#1565C0",
+          "w": 4,
+          "h": 3,
+          "d": 5,
+          "blocked": [
+                "....|#..#|#..#|#..#|....",
+                "....|....|....|....|....",
+                "####|....|....|....|...."
+          ],
+          "required": [
+                "grill",
+                "cooler",
+                "fishing_rod",
+                "fishing_rod",
+                "tackle_box",
+                "camp_chair",
+                "camp_chair",
+                "kayak"
+          ],
+          "bonus": [
+                "gnome",
+                "lantern",
+                "thermos",
+                "umbrella",
+                "paddle"
+          ],
+          "trip": "September · Lake Mirabel",
+          "sender": "Dad",
+          "messages": [
+                "It's your dad. I'm retired! I'm going fishing every day.",
+                "I bought a grill. It has Bluetooth. I don't know why.",
+                "Bringing the gnome. He's retiring too. He's earned it."
+          ],
+          "epilogues": [
+                "Dad caught nothing. Dad was delighted anyway.",
+                "Dad grilled with Bluetooth. Nobody knows what the Bluetooth does.",
+                "Everything packed, gnome included. Dad sent a photo of him and the gnome at sunrise."
+          ]
+    },
+    {
+          "id": "house",
+          "chapter": "ch5",
+          "year": 2020,
+          "music": "a_cup_of_tea",
+          "medium": "phone",
+          "title": "Our Own Front Door",
+          "vehicle": "Moving Truck",
+          "blurb": "A house of your own. Grandma's armchair is coming with you.",
+          "style": "boxtruck",
+          "bodyColor": "#ECEFF1",
+          "w": 5,
+          "h": 4,
+          "d": 5,
+          "blocked": [
+                ".....|#...#|#...#|.....|.....",
+                ".....|.....|.....|.....|.....",
+                ".....|.....|.....|.....|.....",
+                ".....|.....|.....|.....|....."
+          ],
+          "required": [
+                "kitchen_table",
+                "armchair",
+                "sams_armchair",
+                "moving_box",
+                "moving_box",
+                "moving_box",
+                "record_crate",
+                "record_crate",
+                "monstera",
+                "cat_carrier",
+                "mattress",
+                "turntable",
+                "moving_box",
+                "moving_box",
+                "cat_tree"
+          ],
+          "bonus": [
+                "bike",
+                "toaster",
+                "lava_lamp",
+                "ficus"
+          ],
+          "trip": "April · 14 Maple Lane",
+          "sender": "Sam",
+          "messages": [
+                "WE BOUGHT A HOUSE.",
+                "Grandma says her armchair should go to us. She says it's time.",
+                "Rented the big truck. Biscuit is furious about everything."
+          ],
+          "epilogues": [
+                "Home. A few boxes stayed at the old place. You'll go back for them. Probably.",
+                "Grandma's armchair is by the window. Biscuit has already claimed it.",
+                "Every last thing. You stood in the empty living room, then it wasn't empty anymore."
+          ]
+    },
+    {
+          "id": "ninety",
+          "chapter": "ch5",
+          "year": 2020,
+          "music": "florist",
+          "medium": "phone",
+          "title": "Grandma's 90th",
+          "vehicle": "Hatchback",
+          "blurb": "Ten years later. Same hatchback. Same bakery.",
+          "style": "hatch",
+          "bodyColor": "#E74C3C",
+          "w": 4,
+          "h": 3,
+          "d": 3,
+          "blocked": [
+                "....|....|....",
+                "....|....|....",
+                "....|....|####"
+          ],
+          "required": [
+                "cake",
+                "grocery_bag",
+                "grocery_bag",
+                "photo_album",
+                "flowers",
+                "water",
+                "eggs"
+          ],
+          "bonus": [
+                "balloons",
+                "watermelon",
+                "lemonade",
+                "toilet_paper"
+          ],
+          "trip": "July · Grandma's 90th",
+          "sender": "Aunt Dee",
+          "messages": [
+                "Grandma turns NINETY on Sunday!!",
+                "Same hatchback. Same bakery. Guess what the cake says.",
+                "It says GARY. They remembered. Grandma is thrilled."
+          ],
+          "epilogues": [
+                "The cake survived. Grandma ate the GARY part herself. Again.",
+                "Ninety candles. The fire department was very understanding.",
+                "Grandma read the photo album out loud, every page. Then she said: 'Now, where's my lemonade?'"
+          ]
+    },
+    {
+          "id": "nursery",
+          "chapter": "ch5",
+          "year": 2021,
+          "music": "morning_rain",
+          "medium": "phone",
+          "title": "Flat-Pack Nursery",
+          "vehicle": "Sedan",
+          "blurb": "Grandma's rocking chair and an 84-piece crib.",
+          "style": "sedan",
+          "bodyColor": "#4A90D9",
+          "w": 5,
+          "h": 2,
+          "d": 4,
+          "blocked": [
+                "#...#|.....|.....|#...#",
+                ".....|.....|.....|....."
+          ],
+          "required": [
+                "crib_flatpack",
+                "rocking_chair",
+                "diapers",
+                "paint_cans",
+                "baby_mobile"
+          ],
+          "bonus": [
+                "teddy",
+                "white_noise",
+                "baby_bath",
+                "monstera",
+                "lamp"
+          ],
+          "trip": "February · 14 Maple Lane",
+          "sender": "Sam",
+          "messages": [
+                "So. The nursery.",
+                "Grandma's sending over the rocking chair. She rocked your mom in it. And you.",
+                "The crib has 84 pieces. I have counted them three times."
+          ],
+          "epilogues": [
+                "The crib has 83 pieces now. It's fine. It's sturdy. Mostly.",
+                "The nursery is Morning Duckling yellow. The mobile spins all on its own.",
+                "Everything built and ready. You sat in Grandma's rocking chair and practiced humming."
+          ]
+    },
+    {
+          "id": "cominghome",
+          "chapter": "ch5",
+          "year": 2021,
+          "music": "morning_rain",
+          "medium": "phone",
+          "title": "Coming Home",
+          "vehicle": "Sedan",
+          "blurb": "Bringing Rosie home. Drive slow.",
+          "style": "sedan",
+          "bodyColor": "#4A90D9",
+          "w": 4,
+          "h": 2,
+          "d": 3,
+          "blocked": [],
+          "required": [
+                "car_seat",
+                "hospital_bag",
+                "flowers",
+                "balloons"
+          ],
+          "bonus": [
+                "teddy",
+                "photo_album",
+                "small_box",
+                "white_noise",
+                "diapers"
+          ],
+          "trip": "May · St. Mary's Hospital",
+          "sender": "Mom",
+          "messages": [
+                "She's perfect. Grandma cried. Your dad cried more.",
+                "Rosie. You named her after Grandma. Grandma hasn't stopped smiling.",
+                "Grandma found Mr. Buttons in her attic. She says he's Rosie's now."
+          ],
+          "epilogues": [
+                "Rosie slept the whole way home. You checked on her eleven times.",
+                "Home. Mr. Buttons is guarding the crib. He takes it very seriously.",
+                "The most precious cargo you'll ever pack, packed perfectly. Welcome home, Rosie."
+          ]
+    },
+    {
+          "id": "babytrip",
+          "chapter": "ch5",
+          "year": 2022,
+          "music": "oceanside",
+          "medium": "phone",
+          "title": "Everything a Baby Needs",
+          "vehicle": "SUV",
+          "blurb": "Rosie weighs 18 pounds. Her stuff weighs 400.",
+          "style": "suv",
+          "bodyColor": "#2E7D32",
+          "w": 5,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                ".....|#...#|#...#|.....",
+                ".....|.....|.....|.....",
+                ".....|.....|.....|....."
+          ],
+          "required": [
+                "stroller",
+                "playpen",
+                "diapers",
+                "diapers",
+                "car_seat",
+                "suitcase_big",
+                "baby_bath",
+                "white_noise",
+                "cooler"
+          ],
+          "bonus": [
+                "teddy",
+                "umbrella",
+                "kiddie_pool",
+                "toy_box"
+          ],
+          "trip": "August · Gull Point",
+          "sender": "Sam",
+          "messages": [
+                "First family vacation! Three days at the beach.",
+                "Rosie weighs 18 pounds. Her stuff weighs 400.",
+                "Uncle Rick says the kiddie pool is a 'must.' Uncle Rick doesn't have to pack it."
+          ],
+          "epilogues": [
+                "The kiddie pool stayed home. Rosie played in the sand instead. She ate some.",
+                "Rosie's first beach. She laughed at every single wave.",
+                "Everything a baby needs, and then some. Rosie fell asleep under the umbrella with Mr. Buttons."
+          ]
+    },
+    {
+          "id": "snow",
+          "chapter": "ch5",
+          "year": 2022,
+          "music": "rainy_forest",
+          "medium": "phone",
+          "title": "First Snow",
+          "vehicle": "SUV",
+          "blurb": "Rosie's first snow. Grandpa's sled is still the fastest.",
+          "style": "suv",
+          "bodyColor": "#5C6BC0",
+          "w": 5,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                ".....|#...#|#...#|.....",
+                ".....|.....|.....|.....",
+                ".....|.....|.....|....."
+          ],
+          "required": [
+                "sled",
+                "skis",
+                "shovel",
+                "snowman_kit",
+                "thermos",
+                "cooler",
+                "sleeping_bag",
+                "duffel",
+                "sleeping_bag",
+                "camp_chair",
+                "camp_chair"
+          ],
+          "bonus": [
+                "firewood",
+                "lantern",
+                "marshmallows",
+                "toy_box",
+                "thermos",
+                "picnic_basket"
+          ],
+          "trip": "December · Pinecone Lake Cabin",
+          "sender": "Dev",
+          "messages": [
+                "It SNOWED at the cabin! Bring Rosie!",
+                "Grandma says Grandpa's old sled is in her garage. Bring that too.",
+                "I have the cocoa. You bring everything else. As usual."
+          ],
+          "epilogues": [
+                "Rosie rode Grandpa's sled down the bunny hill. Then fifty more times.",
+                "A snowman with one of Grandpa's old scarves. Grandma made you send three photos.",
+                "Every last thing. Snowman, sled, cocoa by the fire. Rosie's first snow was perfect."
+          ]
+    },
+    {
+          "id": "talent",
+          "chapter": "ch5",
+          "year": 2023,
+          "music": "cue",
+          "medium": "phone",
+          "title": "The Sunny Pines Talent Show",
+          "vehicle": "Clown Car",
+          "blurb": "Grandma's talent show act is a secret. It involves a tuba.",
+          "style": "clown",
+          "bodyColor": "#FF6F00",
+          "w": 4,
+          "h": 3,
+          "d": 4,
+          "blocked": [
+                "....|.#..|....|....",
+                "....|.#..|....|....",
+                "#..#|....|....|#..#"
+          ],
+          "required": [
+                "costume_trunk",
+                "tuba",
+                "guitar",
+                "disco_ball",
+                "cream_pies",
+                "speaker"
+          ],
+          "bonus": [
+                "unicycle",
+                "rubber_chicken",
+                "juggling_pins",
+                "folded_clown",
+                "seltzer",
+                "big_shoes",
+                "balloons"
+          ],
+          "trip": "March · Sunny Pines",
+          "sender": "Cousin Bonko",
+          "messages": [
+                "GRANDMA SIGNED UP FOR THE TALENT SHOW.",
+                "Her act is a secret. She needs a tuba, a disco ball, and Grandpa's guitar.",
+                "The other clown is still in the car. He's her backup dancer now."
+          ],
+          "epilogues": [
+                "Grandma won second place. First place went to a man who whistled. She's demanding a recount.",
+                "Grandma played the one song on Grandpa's guitar. The whole room sang along.",
+                "Grandma won first prize. She dedicated it to Joe, then made the clown take a bow."
+          ]
+    },
+    {
+          "id": "helper",
+          "chapter": "ch6",
+          "year": 2024,
+          "music": "cat_caffe",
+          "medium": "phone",
+          "title": "Little Helper",
+          "vehicle": "Mini",
+          "blurb": "Rosie is packing for her first sleepover. She needs help.",
+          "style": "mini",
+          "bodyColor": "#F1C40F",
+          "w": 3,
+          "h": 2,
+          "d": 3,
+          "blocked": [
+                "...|...|...",
+                "...|...|###"
+          ],
+          "required": [
+                "kid_suitcase",
+                "toy_box",
+                "teddy",
+                "duck"
+          ],
+          "bonus": [
+                "toy_blocks",
+                "lemonade",
+                "rubber_chicken"
+          ],
+          "trip": "June · Sleepover at Grandma's",
+          "sender": "Sam",
+          "messages": [
+                "Rosie has insisted on packing her own bag for Grandma's.",
+                "She packed one sock and four rocks.",
+                "She says you have to help, because you're the best packer in the whole world."
+          ],
+          "epilogues": [
+                "Rosie forgot her toothbrush, but brought the rocks. Grandma says that's the important stuff.",
+                "Rosie packed Mr. Buttons first. 'Big things first,' she said. You didn't teach her that.",
+                "Every gap filled. Rosie high-fived you. Grandma says she's a natural."
+          ],
+          "packFor": "Rosie"
+    },
+    {
+          "id": "grandmahome",
+          "chapter": "ch6",
+          "year": 2025,
+          "music": "a_cup_of_tea",
+          "medium": "phone",
+          "title": "Coming Home to Us",
+          "vehicle": "Station Wagon",
+          "blurb": "Grandma's moving in. She's bringing Grandpa.",
+          "style": "wagon",
+          "bodyColor": "#8D6E63",
+          "w": 5,
+          "h": 3,
+          "d": 5,
+          "blocked": [
+                ".....|#...#|#.#.#|#...#|.....",
+                ".....|.....|.....|.....|.....",
+                "#...#|.....|.....|.....|#####"
+          ],
+          "required": [
+                "clock",
+                "portrait",
+                "lamp",
+                "moving_box",
+                "moving_box",
+                "ficus",
+                "photo_album",
+                "small_box",
+                "small_box",
+                "cat_tree",
+                "moving_box",
+                "small_box"
+          ],
+          "bonus": [
+                "lava_lamp",
+                "bowling_ball",
+                "mirror",
+                "cutout",
+                "lemonade",
+                "flowers",
+                "guitar"
+          ],
+          "trip": "April · 14 Maple Lane",
+          "sender": "Grandma Rose",
+          "messages": [
+                "Hello dear. Sunny Pines has been lovely.",
+                "But I'd rather spend my mornings with Rosie. If you'll have me.",
+                "I'm only bringing the essentials. The clock. And Joe, of course."
+          ],
+          "epilogues": [
+                "Grandma moved in. Rosie gave her a tour of every room. Twice.",
+                "The clock is in the hallway. It chimes every fifteen minutes. Rosie counts along.",
+                "Everything came home. Grandma hung Joe's portrait next to your wedding photo. 'There,' she said."
+          ]
+    },
+    {
+          "id": "lakeagain",
+          "chapter": "ch6",
+          "year": 2025,
+          "music": "countryside",
+          "medium": "phone",
+          "title": "Lake Mirabel, Again",
+          "vehicle": "Sedan",
+          "blurb": "Mom and Dad's 40th anniversary. Back to the lake, all of us.",
+          "style": "sedan",
+          "bodyColor": "#4A90D9",
+          "w": 5,
+          "h": 2,
+          "d": 4,
+          "blocked": [],
+          "required": [
+                "suitcase_big",
+                "suitcase_red",
+                "picnic_basket",
+                "cooler",
+                "kid_suitcase",
+                "flamingo",
+                "duffel"
+          ],
+          "bonus": [
+                "gnome",
+                "teddy",
+                "lemonade",
+                "camp_chair",
+                "toy_truck"
+          ],
+          "trip": "June · Lake Mirabel",
+          "sender": "Mom",
+          "messages": [
+                "Forty years married! We're going back to the lake. All of us.",
+                "Your dad packed the car himself. The trunk does not close.",
+                "Some things never change."
+          ],
+          "epilogues": [
+                "Three generations at the lake. Dad's jogging duffel stayed home. Again.",
+                "Dad brought the gnome. Rosie brought the flamingo. Grandma brought the lemonade.",
+                "Everything fit. Mom said: 'Just like the first time.' Dad cried. Dad always cries."
+          ]
+    },
+    {
+          "id": "garage",
+          "chapter": "ch6",
+          "year": 2026,
+          "music": "cue",
+          "medium": "phone",
+          "title": "The Garage Sale",
+          "vehicle": "Pickup Truck",
+          "blurb": "Everything must go. Except the things that mustn't.",
+          "style": "pickup",
+          "bodyColor": "#1565C0",
+          "w": 4,
+          "h": 3,
+          "d": 5,
+          "blocked": [
+                "....|#..#|#..#|#..#|....",
+                "....|....|....|....|....",
+                "####|....|....|....|...."
+          ],
+          "required": [
+                "futon",
+                "beanbag",
+                "toaster",
+                "mini_fridge",
+                "moving_box",
+                "moving_box",
+                "poster_tube"
+          ],
+          "bonus": [
+                "kitchen_sink",
+                "comforter",
+                "lava_lamp"
+          ],
+          "trip": "May · The Garage",
+          "sender": "Sam",
+          "messages": [
+                "Garage sale this weekend! Everything must go.",
+                "Except the gnome. And Grandma's lava lamp. And the duck comforter, apparently.",
+                "We still own two toasters. One of them has to go. You choose."
+          ],
+          "epilogues": [
+                "Half of it sold. The duck comforter came back home. Nobody's surprised.",
+                "The futon went to a college kid. You told them: big things first.",
+                "Garage cleared. Grandma bought the lava lamp back for a dollar."
+          ]
+    },
+    {
+          "id": "reunion2",
+          "chapter": "ch6",
+          "year": 2026,
+          "music": "bartender",
+          "medium": "phone",
+          "title": "Everyone, Everything",
+          "vehicle": "Minivan",
+          "blurb": "The whole family. Every last thing.",
+          "style": "van",
+          "bodyColor": "#7E57C2",
+          "w": 6,
+          "h": 4,
+          "d": 5,
+          "blocked": [
+                "......|#....#|#....#|#....#|......",
+                "......|......|......|......|......",
+                "......|......|......|......|......",
+                "######|......|......|......|######"
+          ],
+          "required": [
+                "suitcase_big",
+                "suitcase_red",
+                "carry_on",
+                "cooler",
+                "tent",
+                "guitar",
+                "kid_suitcase",
+                "toy_box",
+                "picnic_basket",
+                "speaker",
+                "sled",
+                "grill",
+                "folding_chairs",
+                "folding_chairs",
+                "cooler",
+                "camp_chair",
+                "camp_chair"
+          ],
+          "bonus": [
+                "gnome",
+                "duck",
+                "flamingo",
+                "moose",
+                "kitchen_sink",
+                "lantern",
+                "mattress",
+                "duffel"
+          ],
+          "trip": "August · Pinecone Lake",
+          "sender": "Uncle Rick",
+          "messages": [
+                "Family reunion at the lake! Everybody's coming!",
+                "Dev's bringing the moose. Wes is bringing Sir Quacksalot. Bonko is bringing a second clown.",
+                "And yeah. The kitchen sink. Grandma's orders."
+          ],
+          "epilogues": [
+                "Everyone made it. Most of everything made it. That counts.",
+                "Thirty people, one lake, one song on Grandpa's guitar.",
+                "Everyone, everything. Grandma looked around the campfire and said: 'Joe would've loved this.'"
+          ]
+    },
+    {
+          "id": "finale",
+          "chapter": "ch6",
+          "year": 2027,
+          "music": "morning_rain",
+          "medium": "note",
+          "title": "One More Thing",
+          "vehicle": "Little Red Wagon",
+          "blurb": "Grandpa's wagon, a picnic at the creek, and Rosie.",
+          "style": "toywagon",
+          "bodyColor": "#D32F2F",
+          "w": 3,
+          "h": 1,
+          "d": 3,
+          "blocked": [],
+          "required": [
+                "picnic_basket",
+                "teddy",
+                "toy_blocks",
+                "lemonade"
+          ],
+          "bonus": [
+                "toy_truck",
+                "grandpa_note"
+          ],
+          "trip": "August · The Creek",
+          "sender": "Grandma Rose",
+          "messages": [
+                "I found Joe's old wagon in the attic. A little paint and it's good as new.",
+                "Rosie wants a picnic at the creek. Just like you used to.",
+                "I think it's your turn to teach her. Joe would love that."
+          ],
+          "epilogues": [
+                "Rosie pulled the wagon all by herself. Mostly.",
+                "You told Rosie the secret: big things first, fragile on top.",
+                "Rosie found the note tucked in the wagon. 'Always leave room for one more thing.' She asked what it meant. You looked at your family, and you told her."
+          ],
+          "packFor": "Rosie"
+    }
+  ]
+}
