@@ -67,6 +67,31 @@ namespace PackTheTrunk
             return ok;
         }
 
+        /// <summary>Pick an item up as if it had been clicked.</summary>
+        public void AutoHold(PackItem item)
+        {
+            if (held != null) PutBack();
+            TryPickUp(item);
+        }
+
+        public void AutoPutBack() => PutBack();
+
+        /// <summary>Every height the held item could rest at in this column (more than one means a shelf or a gap).</summary>
+        public List<int> HeldRestingHeights(int x, int z) =>
+            held == null ? new List<int>() : grid.RestingHeights(held.Shape, x, z, held.Def.Fragile, new List<int>());
+
+        public Vector3Int TrunkSize => grid.Size;
+
+        /// <summary>Part of the car (wheel well, toolbox, sloped glass, the clown) rather than packing space.</summary>
+        public bool IsWall(Vector3Int cell) => grid.IsWall(cell);
+
+        public bool AutoClose()
+        {
+            if (!CanClose()) return false;
+            StartCoroutine(CloseTrunk());
+            return true;
+        }
+
         /// <summary>Packs an item at an exact spot through the normal pick-up / place path.</summary>
         public bool AutoPlace(PackItem item, Quaternion orientation, Vector3Int pos)
         {

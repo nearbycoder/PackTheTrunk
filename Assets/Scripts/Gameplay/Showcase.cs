@@ -15,9 +15,10 @@ namespace PackTheTrunk
     /// Records a gameplay video. Launch the player with
     /// <c>-pttShowcase &lt;frameDir&gt; -pttSolutions &lt;file&gt;</c>: it plays levels like a person would
     /// (smooth mouse moves, real clicks and key presses), draws a cursor, key badges and captions,
-    /// and writes one JPEG per frame at a fixed 30 fps for ffmpeg to stitch together.
+    /// and writes one PNG per frame at a fixed 30 fps for ffmpeg to stitch together.
+    /// Add <c>-pttTrailer</c> for the trailer script instead (see Showcase.Trailer.cs).
     /// </summary>
-    public class Showcase : MonoBehaviour
+    public partial class Showcase : MonoBehaviour
     {
         const int Fps = 30;
 
@@ -59,6 +60,7 @@ namespace PackTheTrunk
             showcase.outDir = args[i + 1];
             int s = Array.IndexOf(args, "-pttSolutions");
             if (s >= 0 && s + 1 < args.Length) showcase.solutionsPath = args[s + 1];
+            showcase.trailer = Array.IndexOf(args, "-pttTrailer") >= 0;
         }
 
         IEnumerator Start()
@@ -80,6 +82,11 @@ namespace PackTheTrunk
             game.AutoShowTitle();
             BuildOverlay();
             StartCoroutine(CaptureLoop());
+            if (trailer)
+            {
+                yield return TrailerScript();
+                yield break;
+            }
 
             mouse = new Vector2(Screen.width * 0.62f, Screen.height * 0.3f);
             Push();
@@ -535,6 +542,7 @@ namespace PackTheTrunk
             var canvasGo = new GameObject("Showcase Overlay", typeof(Canvas), typeof(CanvasScaler));
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.GetComponent<Canvas>();
+            overlay = canvas;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 1000;
             var root = (RectTransform)canvasGo.transform;
@@ -582,6 +590,7 @@ namespace PackTheTrunk
         {
             if (cursor == null) return;
             float dt = UiTime.Delta;
+            if (trailer) TrailerLateUpdate();
             cursor.position = mouse;
             ring.position = mouse;
             ringT = Mathf.Min(1f, ringT + dt / 0.35f);
@@ -599,12 +608,24 @@ namespace PackTheTrunk
             while (true)
             {
                 yield return wait;
-                if (!capturing) continue;
+                if (!capturing && pendingStill == null)
+                {
+                    DrainAudio();
+                    continue;
+                }
                 if (grab == null || grab.width != Screen.width || grab.height != Screen.height)
                     grab = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
                 grab.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
                 grab.Apply();
-                File.WriteAllBytes(Path.Combine(outDir, $"frame_{frame++:00000}.png"), grab.EncodeToPNG());
+                if (pendingStill != null) SaveStill();
+                if (!capturing)
+                {
+                    DrainAudio();
+                    continue;
+                }
+                // The trailer records a lot of footage: high-quality JPEG keeps it fast and small.
+                if (trailer) File.WriteAllBytes(Path.Combine(outDir, $"frame_{frame++:00000}.jpg"), grab.EncodeToJPG(95));
+                else File.WriteAllBytes(Path.Combine(outDir, $"frame_{frame++:00000}.png"), grab.EncodeToPNG());
                 CaptureAudio();
             }
         }
@@ -629,6 +650,19 @@ namespace PackTheTrunk
                     wavWriter.Write((short)(Mathf.Clamp(buffer[i], -1f, 1f) * 32767f));
                 wavSamples += buffer.Length;
             }
+        }
+
+        /// <summary>
+        /// Between trailer clips the audio renderer keeps running: pull this frame's samples and
+        /// drop them, or they would pile up and land in the next clip out of sync.
+        /// </summary>
+        void DrainAudio()
+        {
+            if (wav == null) return;
+            int count = AudioRenderer.GetSampleCountForCaptureFrame();
+            if (count <= 0) return;
+            using (var buffer = new NativeArray<float>(count * channels, Allocator.Temp))
+                AudioRenderer.Render(buffer);
         }
 
         void FinishAudio()
