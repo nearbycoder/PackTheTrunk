@@ -1,63 +1,151 @@
+<div align="center">
+
+<img src="docs/media/teaser.webp" alt="Pack The Trunk in motion: a suitcase is picked up, turned and dropped into a sedan, a moving truck fills up in seconds, and a minivan's trunk slams shut" width="880">
+
 # Pack The Trunk
 
-Fit suitcases, groceries, camping gear, and ridiculous objects into increasingly awkward spaces.
+**Fit suitcases, groceries, camping gear, and ridiculous objects into increasingly awkward spaces.**
 
-A voxel packing puzzle built in Unity 6.6 (URP). Each level parks a car in a driveway next to a
-pile of stuff. Pack every **essential** into the trunk, then close it. Each **extra** you squeeze
-in raises your star rating, and everything you don't fit gets left on the curb.
+*A cozy voxel packing puzzle about one family, thirty years, and one very full trunk.*
 
-## Controls
+[![Unity 6.6](https://img.shields.io/badge/Unity-6.6%20(URP)-222c37?logo=unity&logoColor=white)](https://unity.com/)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux%20x86__64-f57c00?logo=linux&logoColor=white)](https://github.com/nearbycoder/PackTheTrunk/releases/latest)
+[![Blender 4.5](https://img.shields.io/badge/models-Blender%204.5-e87d0d?logo=blender&logoColor=white)](https://www.blender.org/)
+[![C#](https://img.shields.io/badge/code-C%23-512bd4?logo=dotnet&logoColor=white)](Assets/Scripts)
+[![Release](https://img.shields.io/github/v/release/nearbycoder/PackTheTrunk?label=download&color=29a89e)](https://github.com/nearbycoder/PackTheTrunk/releases/latest)
+
+**[Download for Linux](https://github.com/nearbycoder/PackTheTrunk/releases/latest)** ·
+**[Watch the trailer](docs/media/pack-the-trunk-trailer.mp4)** ·
+[Screenshots](#screenshots) ·
+[Build from source](#build-from-source)
+
+</div>
+
+## Trailer
+
+[![Pack The Trunk trailer: click to watch (MP4, 1080p)](docs/media/trailer-poster.jpg)](docs/media/pack-the-trunk-trailer.mp4)
+
+<sub>Click the poster to open the 1080p MP4 (1:50, with sound). It's also attached to the
+[v0.1.0 release](https://github.com/nearbycoder/PackTheTrunk/releases/tag/v0.1.0).</sub>
+
+## About
+
+Every family has one person who can make anything fit. In 1998 it's Grandpa Joe, a little red
+wagon and a picnic at the creek, and his rule: ***big things first, fragile on top, and always
+leave room for one more thing.*** After that, you're the family's packer.
+
+Each trip parks a car in the driveway next to a picnic blanket piled with stuff. Pack every
+**essential** into the trunk, then close it. Every **extra** you squeeze in raises your star
+rating, and whatever doesn't fit gets left on the curb. The trunks get stranger (wheel wells,
+sloped hatch glass, a pickup's toolbox, a clown who was already in the car), and so does the
+cargo: a giant rubber duck, a taxidermy moose head, six hundred records, a tiered wedding cake,
+and eventually the kitchen sink.
+
+Between the puzzles, the family texts you. Over 33 trips and six chapters you pack for a
+grandmother's big move, a dorm, a festival, a wedding, a first house and a nursery, until you're
+back in Grandpa's wagon teaching your own daughter. Every trunk you close is photographed for
+the family album.
+
+## How to play
+
+Pick something up off the blanket, turn it until it fits, and drop it into the trunk. A green
+ghost shows where it will land; red means it won't fit, and the game tells you why.
 
 | Input | Action |
 | --- | --- |
-| Left click | Pick up an item (from the driveway, the list, or back out of the trunk) / drop it in |
-| `R` or right click | Turn (hold `Shift` to reverse) |
-| `T` | Tip it over, away from the camera |
-| `F` | Roll it sideways |
-| Mouse wheel / `W` `S` | Choose between resting heights (shelves and gaps) in that spot |
-| `Esc` or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
-| `Z` / `Backspace` | Undo |
-| `Space` / `Enter` | Close the trunk once the essentials are packed |
-| Right-drag, `Q` `E` | Orbit the camera, wheel zooms when your hands are empty |
-| `M` | Music on / off |
-| `Space` / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
-| `Space` / `R` / `Esc` on the postcard | Next trip / try again / trip map |
+| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in |
+| **`R`** or **right click** | Turn it (hold **`Shift`** to turn the other way) |
+| **`T`** | Tip it over, away from the camera |
+| **`F`** | Roll it sideways |
+| **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
+| **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
+| **`Z`** / **`Backspace`** | Undo |
+| **`Space`** / **`Enter`** | Close the trunk once the essentials are packed |
+| **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
+| **`M`** | Music on / off |
+| **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
+| **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
 
-## Menus and settings
+Mouse and keyboard only for now: there's no gamepad or touch support yet. The full list is also
+in **Settings → Controls**, and key hints run along the bottom of the screen while you pack.
 
-The game boots to a title screen (the next trip's car parked in the driveway, slow camera drift)
-and a main menu: **Continue**, **Trip Map**, **Family Album**, **Settings**, **Credits**, **Quit**.
-`Esc` pauses while packing (resume, restart, settings, trip map, main menu) and blurs the scene
-behind the menu (it also pauses by itself if the window loses focus mid-trip). Screens change
-behind a paper-wipe transition with a little car driving across; input waits until it has passed,
-so nothing can be pressed twice.
+### The rules
 
-Settings are saved and applied live (`Scripts/Core/GameSettings.cs`):
-
-- **Audio**: master, music, sound effects and ambience volume; mute when the window loses focus.
-- **Display**: window mode, resolution, V-Sync, frame-rate limit, field of view, interface size.
-- **Graphics**: quality preset (Low/Medium/High/Ultra/Custom), render resolution, anti-aliasing
-  (off, FXAA, SMAA, MSAA 4x + SMAA), shadow quality, ambient occlusion, ink outlines, depth of
-  field, bloom. These drive a runtime copy of the URP asset and its renderer features.
-- **Gameplay**: camera speed, invert tilt, screen shake, key hints, story text speed, erase progress.
-- **Controls**: the full key list.
-
-## Rules
-
-- Items snap to a grid and can't overlap the car, wheel wells, sloped hatch glass, toolboxes,
-  or the clown who was already in the car.
-- Everything has to rest on something. You can't leave items floating.
-- **Fragile** items (eggs, cake, gnome, lava lamp…) can't have anything on top of them.
+- Items snap to a grid and can't overlap the car, wheel wells, sloped hatch glass, toolboxes, or
+  the clown who was already in the car.
+- Everything has to rest on something. Nothing floats.
+- **Fragile** things (eggs, cakes, the garden gnome, the lava lamp…) can't have anything on top.
 - Stars: ★ every essential packed, ★★ at least half the extras, ★★★ everything.
 
-## Story and levels
+## Features
 
-33 trips across 30 years of one family's life, told through texts from relatives and handwritten
-notes. It starts in 1998 when Grandpa Joe teaches you to pack his little red wagon for a picnic
-at the creek. His rule: *big things first, fragile on top, and always leave room for one more
-thing.* After that you're the family's packer. Heirlooms come back from trip to trip: Mr. Buttons
-the teddy, Grandpa's guitar and portrait, the grandfather clock, Grandma Rose's armchair, the
-garden gnome, the lava lamp, and the wagon itself.
+<table>
+<tr>
+<td width="50%"><img src="docs/media/screenshots/02-packing.jpg" alt="Holding a suitcase over a sedan's trunk with a green ghost showing where it will land"></td>
+<td width="50%">
+
+**A tactile packing puzzle.** 116 objects modelled in Blender, each filling exactly the grid cells
+it occupies, so what you see is what you pack. Turn, tip and roll anything with three keys that
+follow the camera, choose between shelves and gaps, and orbit the trunk to find the space you
+missed. Undo is unlimited, and anything can be lifted back out.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Awkward spaces, fragile things.** Eleven rides, from a toy wagon and a Mini to a pickup, a
+convertible, a minivan and a moving truck, each with its own trunk shape and obstacles. Fragile
+cargo has to ride on top, so the order you pack in matters. Every level is proven solvable to
+100% by an offline solver.
+
+</td>
+<td width="50%"><img src="docs/media/screenshots/05-fragile.jpg" alt="The game refusing to put a grocery bag on top of the fragile birthday cake"></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/media/screenshots/03-slam.jpg" alt="The sedan's trunk slams shut and confetti pops over the roof"></td>
+<td width="50%">
+
+**The slam.** Close the trunk and it slams, confetti pops, the horn honks, and the car pulls out
+of the driveway. A postcard stamps your stars and lists what got left on the curb.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**A family story in 33 trips.** Texts from Mom, notes from Grandpa, chapter cards, and
+heirlooms (Mr. Buttons the teddy, Grandpa's guitar, the grandfather clock, the gnome) that come
+back trip after trip, scored with a lo-fi soundtrack.
+
+</td>
+<td width="50%"><img src="docs/media/screenshots/04-story.jpg" alt="Mom's texts on a phone next to the trip card for Weekend Getaway"></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/media/screenshots/10-family-album.jpg" alt="The family album: a polaroid of every packed trunk from 1998 to 2027"></td>
+<td width="50%">
+
+**The family album.** The game photographs every trunk you close. The trip map is a scrapbook
+paged by chapter, and the album fills with one polaroid per trip.
+
+</td>
+</tr>
+</table>
+
+Also in the box:
+
+- **Menus and settings that feel finished.** A title screen with the next trip's car parked in
+  the driveway, a pause menu that blurs the world behind it (and pauses by itself if the window
+  loses focus), and a paper-wipe transition with a little car driving across. Settings are saved
+  and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
+  quality presets, render scale, anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient
+  occlusion, ink outlines, depth of field, bloom, camera speed, screen shake, key hints and
+  story text speed.
+- **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
+  glass), spatial panning, music that crossfades between screens, muffles behind the story texts
+  and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.
+
+## Content
 
 | Chapter | Years | Trips |
 | --- | --- | --- |
@@ -68,117 +156,202 @@ garden gnome, the lava lamp, and the wagon itself.
 | V. Our Own Front Door | 2020 to 2023 | Our Own Front Door, Grandma's 90th, Flat-Pack Nursery, Coming Home, Everything a Baby Needs, First Snow, The Sunny Pines Talent Show |
 | VI. One More Thing | 2024 to 2027 | Little Helper, Coming Home to Us, Lake Mirabel, Again, The Garage Sale, Everyone, Everything, One More Thing |
 
-The trip map is a family album paged by chapter, and each chapter opens with a title card. When
-you close a trunk the game snaps a photo of it (saved under `persistentDataPath/album`). The
-finale puts you back in Grandpa's wagon, teaching your daughter Rosie. Then Grandma Rose's last
-note leads to the family album: one polaroid for every trip you packed.
+- **33 trips** across **6 chapters**, from a 3×1×2 toy wagon to a 6×4×5 minivan holding 25 things.
+- **11 vehicles**: Little Red Wagon, Sedan, Hatchback, SUV, Mini, Station Wagon, Pickup Truck,
+  Clown Car, Minivan, Convertible, Moving Truck.
+- **116 items**, 29 of them fragile, from egg cartons and a bowling ball to a unicycle, a
+  grandfather clock, a flat-pack crib, a disco ball and a second, folding clown.
+- A finale, an ending and a credits roll. No spoilers here.
 
-`Tools/solve_levels.py` proves every level can be packed 100% under the game's rules, and prints
-a solution if you're stuck (spoilers): `python3 Tools/solve_levels.py grandma`.
+## Screenshots
 
-## Project layout
+| | |
+| --- | --- |
+| ![Title screen: the next trip's car parked in the driveway under the logo](docs/media/screenshots/01-title.jpg) | ![Holding a suitcase over the sedan's trunk, the green ghost showing where it lands](docs/media/screenshots/02-packing.jpg) |
+| ![The trunk slams shut and confetti pops over the sedan](docs/media/screenshots/03-slam.jpg) | ![Mom's texts on a phone next to the trip card for Weekend Getaway](docs/media/screenshots/04-story.jpg) |
+| ![A grocery bag held over the birthday cake: the cake is fragile, nothing goes on top of it](docs/media/screenshots/05-fragile.jpg) | ![The Clown Car: there's already a clown sitting in the trunk, so the tuba won't fit there](docs/media/screenshots/06-clown-car.jpg) |
+| ![Everyone, Everything: a minivan nearly full, 23 of 25 things packed](docs/media/screenshots/07-everyone-everything.jpg) | ![The postcard: two stars, with the garden gnome and the box of cables left on the curb](docs/media/screenshots/08-postcard.jpg) |
+| ![The trip map, paged by chapter, with stars for every trip](docs/media/screenshots/09-trip-map.jpg) | ![The family album, with a polaroid of every trunk from 1998 to 2027](docs/media/screenshots/10-family-album.jpg) |
+
+## Play it
+
+1. Download `PackTheTrunk-v0.1.0-linux-x86_64.zip` from the
+   [latest release](https://github.com/nearbycoder/PackTheTrunk/releases/latest).
+2. Unzip it and run `./PackTheTrunk.sh` (or `./PackTheTrunk.x86_64` directly). If your unzip tool
+   drops the executable bits, `chmod +x PackTheTrunk.sh PackTheTrunk.x86_64` first.
+
+It needs a 64-bit Linux desktop with OpenGL 4.5 or Vulkan. The launcher script uses Unity's native
+Wayland backend when you're on Wayland, because the player hung at startup through XWayland on
+the development machine. Progress, settings and album photos are saved under
+`~/.config/unity3d/Nearby Games/Pack The Trunk/`.
+
+## Build from source
+
+**Requirements:** Unity **6000.6.2f1** (Unity 6.6) with Linux Build Support (and WebGL Build
+Support for the web target), Python 3 for the tools, ffmpeg for recordings and the trailer,
+Blender **4.5** to regenerate models, and numpy + scipy to re-synthesize the stingers.
+
+```sh
+git clone https://github.com/nearbycoder/PackTheTrunk.git
+cd PackTheTrunk
+Tools/unity.sh               # open in the editor, then press Play
+Tools/unity.sh build-linux   # batch build: Builds/Linux/PackTheTrunk.x86_64
+Tools/unity.sh build-webgl   # batch build: Builds/WebGL (not tested or published yet)
+Tools/play.sh                # run the Linux build
+```
+
+`Tools/unity.sh` looks for the editor at `~/Unity/Hub/Editor/6000.6.2f1/Editor/Unity`; set
+`UNITY=/path/to/Unity` to use another install. The **Pack The Trunk** menu in the editor has the
+same build entry points (`Assets/Editor/BuildScript.cs`).
+
+### Validators and tests
+
+```sh
+python3 Tools/solve_levels.py            # prove every level packs 100% under the game's rules
+python3 Tools/solve_levels.py grandma    # print one level's solution (spoilers)
+Tools/autopilot.sh                       # self-test: menus, settings, pause and all 33 trips, PASS/FAIL + screenshots
+PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about a minute)
+Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
+```
+
+The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
+`-pttAutopilot`. It clicks, rotates, drops and undoes with real input events, packs all 33 trips
+from the solver's solutions, closes every trunk, opens the ending and the album, and writes
+screenshots to `/tmp/ptt-autopilot` (about 5 minutes).
+
+### Regenerating assets
+
+```sh
+Tools/build_models.sh                    # every Blender model -> Assets/Resources/Models (items, vehicles, props)
+Tools/build_models.sh items --only duck,tuba --preview /tmp/prev
+python3 Tools/blender/contact_sheet.py /tmp/prev items   # labelled contact sheets for review
+Tools/audio/build_sfx.sh                 # rebuild Assets/Resources/Audio from the CC0 packs + synthesized stingers
+```
+
+`build_sfx.sh` expects Kenney's Interface Sounds, Impact Sounds, RPG Audio and UI Audio packs
+unzipped under `$KENNEY` (default `/tmp/kenney`) and Thimras' park ambiences under `$AMB`
+(default `/tmp/amb`). The stingers are rendered by `Tools/audio/render_stingers.py`.
+
+### Recordings, screenshots and the trailer
+
+```sh
+Tools/record.sh [name]          # gameplay video with captions -> Recordings/<name>.mp4
+Tools/record_trailer.sh         # scripted trailer footage + clean stills -> Recordings/trailer-capture
+Tools/make_trailer.py           # cut the trailer, poster, teaser and screenshots -> docs/media
+Tools/package_release.sh 0.1.0  # zip the Linux build for a release -> Builds/PackTheTrunk-v0.1.0-linux-x86_64.zip
+```
+
+Both recorders run the real game at a locked 30 fps (`Time.captureFramerate`) and capture its
+audio in lockstep with `AudioRenderer`, so every take is identical and nothing stutters. They
+start from a fresh save; `record_trailer.sh` backs yours up and restores it afterwards (`record.sh`
+does not). The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
+re-taken without the rest: `PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/retake`,
+then pass both folders to `make_trailer.py` (later folders win). `make_trailer.py` needs Pillow
+(`pip install pillow`); the edit, the captions and the music bed are defined at the top of the script.
+
+## Project structure
 
 ```
 Assets/
-  Resources/PackTheTrunkData.json   all items and levels (shapes are ASCII layers)
-  Resources/Materials/              URP Lit templates (opaque + transparent ghost)
+  Resources/PackTheTrunkData.json   every item, level and chapter (shapes are ASCII layers)
+  Resources/Models/                 Blender-generated FBX: 116 items, 33 vehicle bodies, props
+  Resources/Music/, Audio/          soundtrack, sound effects and ambience (CREDITS.md in each)
+  Resources/Fonts/                  Lilita One, Varela Round, Patrick Hand (OFL, licences alongside)
+  Shaders/                          toon, ink outline, ghost, sky, FX sprite
+  Scenes/Main.unity                 just the camera, sun and post-processing volume
   Scripts/Data/                     JSON loading, VoxelShape (rotations)
-  Scripts/Gameplay/                 GameController, TrunkGrid (rules), PackItem, CameraRig
-  Scripts/Visuals/                  voxel mesher, procedural cars, material cache
-  Scripts/Core/                     GameSettings (options, applied live), UiTime (menu clock), OwnedAssets
+  Scripts/Gameplay/                 GameController, TrunkGrid (rules), PackItem, CameraRig,
+                                    AutoPilot / Showcase / Bench (test, capture and benchmark modes)
+  Scripts/Visuals/                  voxel mesher, procedural cars, model and material libraries, FX
   Scripts/UI/                       runtime-built uGUI: title, menus, settings, HUD, results, album
-  Scripts/Audio/                    MusicDirector (soundtrack), Sfx (foley, stingers, ambience), MasterBus (limiter)
-  Resources/Audio/                  sound effects and ambience loops (see CREDITS.md there)
-  Editor/BuildScript.cs             "Pack The Trunk" menu + batch build entry points
+  Scripts/Audio/                    MusicDirector, Sfx, MasterBus (compressor + limiter)
+  Scripts/Core/                     GameSettings (applied live), UiTime, OwnedAssets
+  Editor/                           build entry points, import settings, project setup
 Tools/
   solve_levels.py                   level solver / validator
-  unity.sh                          editor launcher (works around libxml2 on CachyOS)
+  autopilot.sh, play.sh, unity.sh   self-test, run the build, editor launcher / batch builds
+  record.sh, record_trailer.sh      gameplay video and trailer capture
+  make_trailer.py                   trailer, poster, teaser and screenshots
+  package_release.sh, release/      release zip and its launcher script
+  blender/                          model generators (items.py, vehicles.py, props.py, ptt_lib.py)
+  audio/                            build_sfx.sh, render_stingers.py
+docs/media/                         trailer, poster, teaser and screenshots used by this README
 ```
 
-## Music
+## Tech highlights
 
-Chill lo-fi from **TAD's "lofi Compilation"** ([OpenGameArt](https://opengameart.org/content/lofi-compilation),
-CC0 public domain), trimmed and loudness-normalised in `Assets/Resources/Music` (see `CREDITS.md`
-there). `MusicDirector` gives each trip its own track (`"music"` in the level JSON), crossfades
-between screens, loops by crossfading into itself, muffles the music behind a low-pass filter while
-the story texts are on screen, and ducks it under the trunk slam, honk and win jingle.
+- **Data-driven voxel shapes.** Items and levels live in one JSON file. An item's shape is a list
+  of ASCII layers (`|` separates rows, each string is a slice from bottom to top, letters map to a
+  palette), so adding an item or a level is a text edit. `VoxelShape` handles the 24
+  orientations; `R`/`T`/`F` turn around axes snapped to the camera, so "tip it away from me"
+  always means what you'd expect.
+- **Rules in one place.** `TrunkGrid` answers every question the game asks: does it fit, what is
+  it resting on, is anything fragile underneath or on top, and at which heights could it rest in
+  this column (that list is what the mouse wheel and `W`/`S` cycle through). The error toasts come
+  from the same checks, so the game can always say *why* something won't fit.
+- **Proven-solvable levels.** `Tools/solve_levels.py` is a backtracking packer using the same
+  rules. It proves every level packs 100%, and its solutions drive the autopilot, the gameplay
+  recorder and the trailer.
+- **Blender as a build step.** Every model is generated by Python in Blender
+  (`Tools/blender/`): one builder per item, sized to the exact grid cells the item occupies, and
+  one body per level wrapped around that level's trunk (with `Lid`, `Tailgate` and `Wheel_*`
+  as separate objects so they animate). Materials are named by colour and swapped for shared URP
+  materials on import. Items without a model fall back to coloured voxels.
+- **Everything is built at runtime.** `GameController` bootstraps itself with
+  `RuntimeInitializeOnLoadMethod`; cars, the driveway, the UI and even UI sprites are created in
+  code, and runtime meshes, textures and materials are freed with their trip (`OwnedAssets`).
+- **No hitch on the money shot.** The album photo is rendered when the trunk closes, read back
+  from the GPU asynchronously and encoded to PNG on a worker thread. The packing loop allocates
+  nothing per frame. On the development machine (Ryzen AI Max+ 395 / Radeon 8060S, 1600×900,
+  High) every screen averages 2–3 ms uncapped, with no frames over 33 ms during play.
+- **Audio that behaves.** `Sfx` pools 16 voices, pans by screen position, never repeats the same
+  variation twice in a row and never steals a stinger. `MusicDirector` gives each trip its own
+  track, crossfades, loops seamlessly and low-passes the music behind story texts. The mix runs
+  through `MasterBus`: make-up gain, a 2:1 bus compressor and a −1.5 dBFS peak limiter.
+- **Deterministic capture.** The showcase and trailer modes drive the real game with queued
+  input events, lock the frame rate with `Time.captureFramerate`, and pull audio through
+  `AudioRenderer` every frame, so video and sound stay in sync even while capture is paused
+  between clips.
 
-## Sound
+## Credits
 
-Recorded foley and UI sounds come from Kenney's CC0 packs; the driveway ambience (birdsong and a
-breeze) is a CC0 park recording by Thimras cut into seamless loops. The warm moments (trip
-complete, chapter cards, star bells, the "press any key" chime) plus the horn, engine and whooshes
-are synthesized offline by `Tools/audio/render_stingers.py` (FM electric piano and bells through a
-convolution reverb). `Sfx` pools 16 voices, pans each sound to where it happens on screen, picks a
-landing sound from the item's material and size (soft bags, wood, metal, glass for fragile things),
-randomises pitch and never repeats the same variation twice in a row. Every clip is loaded at boot;
-when all voices are busy the oldest ordinary sound is stolen, never a stinger. The final mix runs
-through `MasterBus` on the audio listener: +4 dB make-up gain (the raw mix sat near -25 LUFS),
-a gentle 2:1 bus compressor above -10 dBFS and a -1.5 dBFS peak limiter, so stacked one-shots
-can't clip. `Tools/audio/build_sfx.sh`
-rebuilds the folder; sources and licences are in `Assets/Resources/Audio/CREDITS.md`.
+Made by [nearbycoder](https://github.com/nearbycoder) (Nearby Games). All 3D models are generated
+by the project's own Blender scripts, and the shaders, UI art (sprites are generated in code),
+writing and stingers are original to this project.
 
-## Models (Blender)
+| What | By | Licence |
+| --- | --- | --- |
+| Music: ["lofi Compilation"](https://opengameart.org/content/lofi-compilation) (9 tracks) | TAD | CC0 1.0 |
+| Interface, impact, RPG and UI sound packs ([kenney.nl](https://kenney.nl/assets/category:Audio)) | Kenney | CC0 1.0 |
+| [Park ambiences](https://opengameart.org/content/park-ambiences) (birds, wind loops) | Thimras | CC0 1.0 |
+| Stingers, horn, engine, whooshes (`Tools/audio/render_stingers.py`) | Pack The Trunk | original |
+| [Lilita One](https://fonts.google.com/specimen/Lilita+One) | Juan Montoreano | SIL OFL 1.1 |
+| [Varela Round](https://fonts.google.com/specimen/Varela+Round) | Joe Prince / Varela Round Project Authors | SIL OFL 1.1 |
+| [Patrick Hand](https://fonts.google.com/specimen/Patrick+Hand) | Patrick Wagesreiter | SIL OFL 1.1 |
+| Unity 6 (URP, Input System, uGUI packages) | Unity Technologies | Unity licence terms (not redistributed here) |
 
-All 3D art is generated by Python scripts run in Blender 4.5 (`Tools/blender/`), exported as FBX
-into `Assets/Resources/Models/`, and loaded at runtime by `ModelLibrary`:
+Per-file details: [`Assets/Resources/Music/CREDITS.md`](Assets/Resources/Music/CREDITS.md),
+[`Assets/Resources/Audio/CREDITS.md`](Assets/Resources/Audio/CREDITS.md), and the `OFL-*.txt`
+licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts).
 
-- `items.py`: one builder per item (60). Each model fills exactly the grid cells its item occupies
-  in the JSON, so what you see is what you pack. Rotations turn the model with the item, and an
-  invisible voxel mesh stays as the click target.
-- `vehicles.py`: one body per level, wrapped around that level's exact trunk size. `Lid`, `LidFlap`,
-  `Tailgate` and `Wheel_*` are separate objects so they can animate.
-- `props.py`: trees, bushes, the house at the end of the driveway, fence, mailbox, street lamps.
-- `ptt_lib.py`: primitives authored in Unity coordinates. Materials are named `col_/metal_/glass_/glow_`
-  plus a hex colour and get swapped for shared URP materials on load.
+**Tooling:** Unity 6.6 (URP), Blender 4.5, Python 3, ffmpeg and Pillow, developed with [Claude Code](https://claude.com/claude-code).
 
-Rebuild with `Tools/build_models.sh`. To review models, render Eevee previews from the game-camera
-angle and the reverse angle, then lay them out as labelled contact sheets:
+## Status and known issues
 
-```sh
-Tools/build_models.sh items --only duck,tuba --preview /tmp/prev
-python3 Tools/blender/contact_sheet.py /tmp/prev items
-```
+Version **0.1.0**: all 33 trips, the story, the album, menus and settings are complete, and the
+autopilot passes every trip. Still rough or missing:
 
-Exported objects carry the display names ("Giant Rubber Duck", "Sedan (Weekend Getaway)"); file
-names stay as the JSON ids. Items without a
-builder fall back to coloured voxels, so new JSON items work before they're modelled.
-
-Everything is created at runtime from `GameController` (bootstrapped automatically by
-`RuntimeInitializeOnLoadMethod`), so the `Main` scene only holds the camera, sun, and
-post-processing volume. To add an item or level, edit the JSON. In item layers, `|` separates
-rows (far to near), each layer string is one slice from bottom to top, letters map to the
-`palette`, and `.` is empty.
-
-## Running
-
-```sh
-Tools/play.sh                # play the built game
-Tools/unity.sh               # open in the editor, then press Play
-Tools/unity.sh build-linux   # Builds/Linux/PackTheTrunk.x86_64
-Tools/unity.sh build-webgl   # Builds/WebGL
-Tools/autopilot.sh           # self-test: menus, settings, pause and all 33 trips; PASS/FAIL + screenshots
-PTT_QUICK=1 Tools/autopilot.sh  # same, but only three trips (about a minute)
-Tools/record.sh [name]       # gameplay video (title, menus, settings, three trips, pause, finale, album, credits)
-Tools/play.sh -pttBench      # benchmark: holds each screen uncapped, logs frame times ([Perf] lines in the player log)
-```
-
-Performance: the self-test and benchmark log per-phase frame times (average, p50/p95/p99, max,
-frames over 33 ms), level build times and the audio mix peak (`[Perf]` and `[Audio]` lines). On
-the development machine (Ryzen AI Max+ 395 / Radeon 8060S, 1600×900, High) every screen averages
-2–3 ms uncapped with no frames over 33 ms during play, a trip builds in 25–100 ms behind the
-transition, and the mix peaks around -2 dBFS with nothing clipping. Runtime-made meshes, textures
-and materials are freed with their trip (`OwnedAssets`), album photos are read back from the GPU
-asynchronously and saved as PNG on a worker thread, and the packing loop allocates nothing per frame.
-
-The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched
-with `-pttAutopilot`. It clicks, rotates, drops and undoes using real input events, packs all
-33 trips from the solver's solutions, closes every trunk, opens the ending and the album, and
-writes screenshots to `/tmp/ptt-autopilot` (about 5 minutes).
-
-Machine notes (CachyOS, Wayland):
-- Unity Hub is installed per-user in `~/Applications/unityhub` (from Unity's official repo).
-  The editor uses the Personal license on the signed-in account.
-- The editor needs `libxml2.so.2`. `sudo pacman -S libxml2-legacy` fixes that properly;
-  `Tools/unity.sh` uses a local copy in `~/.local/share/ptt-unity-libs` meanwhile.
-- The player hangs at startup through XWayland, so `Tools/play.sh` passes `-force-wayland`.
+- **Linux only.** The release ships a Linux x86_64 build. Unity can target Windows, macOS and
+  WebGL from this project, but those builds haven't been made or tested yet.
+- **Mouse and keyboard only.** No gamepad, touch or remappable controls yet.
+- **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
+  under XWayland, so the launchers force Unity's native Wayland backend. The player picks
+  OpenGL Core by default; Vulkan works with `-force-vulkan`.
+- **Editor on Arch-based distros.** The Unity editor needs `libxml2.so.2`; install
+  `libxml2-legacy` (or point `LD_LIBRARY_PATH` at a copy, as `Tools/unity.sh` does).
+- **Capture modes wipe the save.** `-pttShowcase` (used by `record.sh` and `record_trailer.sh`)
+  starts from a fresh save; only `record_trailer.sh` backs yours up and restores it.
+- The showcase recorder segfaulted once mid-capture and succeeded on a re-run; the recorders now
+  retry once. The cause wasn't found.
+- No licence has been chosen for the project's own code and content yet. Third-party assets keep
+  the licences listed above.
