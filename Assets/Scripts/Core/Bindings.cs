@@ -28,11 +28,19 @@ namespace PackTheTrunk
             { Action.LookRight, Key.E }, { Action.Close, Key.Space }, { Action.Music, Key.M },
         };
 
-        static readonly Dictionary<Action, Key[]> Alternates = new Dictionary<Action, Key[]>
+        // Indexed by action (an array, not an enum-keyed dictionary: no boxing in the per-frame path).
+        static readonly Key[][] Alternates = BuildAlternates();
+
+        static Key[][] BuildAlternates()
         {
-            { Action.ShelfUp, new[] { Key.UpArrow } }, { Action.ShelfDown, new[] { Key.DownArrow } },
-            { Action.Undo, new[] { Key.Backspace } }, { Action.Close, new[] { Key.Enter, Key.NumpadEnter } },
-        };
+            var alts = new Key[Enum.GetValues(typeof(Action)).Length][];
+            for (int i = 0; i < alts.Length; i++) alts[i] = Array.Empty<Key>();
+            alts[(int)Action.ShelfUp] = new[] { Key.UpArrow };
+            alts[(int)Action.ShelfDown] = new[] { Key.DownArrow };
+            alts[(int)Action.Undo] = new[] { Key.Backspace };
+            alts[(int)Action.Close] = new[] { Key.Enter, Key.NumpadEnter };
+            return alts;
+        }
 
         public static string Name(Action action)
         {
@@ -55,10 +63,23 @@ namespace PackTheTrunk
 
         static string PrefKey(Action action) => "ptt.key." + action.ToString().ToLowerInvariant();
 
+        // Read every frame by the packing loop, so cached (the save is only read when keys change).
+        static Key[] cache;
+
         public static Key KeyFor(Action action)
         {
-            int stored = Prefs.GetInt(PrefKey(action), -1);
-            return stored > 0 && Enum.IsDefined(typeof(Key), stored) ? (Key)stored : Defaults[action];
+            if (cache == null) Reload();
+            return cache[(int)action];
+        }
+
+        static void Reload()
+        {
+            cache = new Key[All.Length];
+            foreach (var action in All)
+            {
+                int stored = Prefs.GetInt(PrefKey(action), -1);
+                cache[(int)action] = stored > 0 && Enum.IsDefined(typeof(Key), stored) ? (Key)stored : Defaults[action];
+            }
         }
 
         /// <summary>Keys that can't be bound: Escape stays "back", Shift stays "the other way".</summary>
@@ -81,6 +102,7 @@ namespace PackTheTrunk
                     Prefs.SetInt(PrefKey(other), (int)old);
             Prefs.SetInt(PrefKey(action), (int)key);
             Prefs.Save();
+            Reload();
             Changed?.Invoke();
         }
 
@@ -88,6 +110,7 @@ namespace PackTheTrunk
         {
             foreach (var action in All) Prefs.DeleteKey(PrefKey(action));
             Prefs.Save();
+            Reload();
             Changed?.Invoke();
         }
 
@@ -105,9 +128,9 @@ namespace PackTheTrunk
             var kb = Keyboard.current;
             if (kb == null) return false;
             if (Control(kb, KeyFor(action))?.wasPressedThisFrame == true) return true;
-            if (Alternates.TryGetValue(action, out var extras))
-                foreach (var extra in extras)
-                    if (!BoundElsewhere(extra, action) && kb[extra].wasPressedThisFrame) return true;
+            var extras = Alternates[(int)action];
+            for (int i = 0; i < extras.Length; i++)
+                    if (!BoundElsewhere(extras[i], action) && kb[extras[i]].wasPressedThisFrame) return true;
             return false;
         }
 
