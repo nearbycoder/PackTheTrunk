@@ -634,7 +634,7 @@ namespace PackTheTrunk
                     if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame) heightBias++;
                     if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame) heightBias--;
                 }
-                if ((keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) && CanClose())
+                if ((keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) && CanClose() && ConfirmKeyClose())
                 {
                     StartCoroutine(CloseTrunk());
                     return;
@@ -984,6 +984,37 @@ namespace PackTheTrunk
             RefreshHud();
         }
 
+        float closeArmedUntil;
+
+        /// <summary>
+        /// Space and Enter also hurry the story along, so a habitual press shouldn't end the trip while
+        /// extras would still fit: the first press asks, a second one within a couple of seconds closes.
+        /// (The Close button is a deliberate click and always closes.)
+        /// </summary>
+        bool ConfirmKeyClose()
+        {
+            if (Time.unscaledTime <= closeArmedUntil || AllPacked() || !ExtraStillFits()) return true;
+            closeArmedUntil = Time.unscaledTime + 2.2f;
+            int left = items.Count(i => i.IsBonus && !IsPacked(i));
+            sfx.Error();
+            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! SPACE again to close anyway.", 2.2f);
+            return false;
+        }
+
+        /// <summary>Could any extra still on the blanket go into the trunk somewhere, in any orientation?</summary>
+        bool ExtraStillFits()
+        {
+            foreach (var item in items)
+            {
+                if (!item.IsBonus || IsPacked(item)) continue;
+                foreach (var (_, shape) in item.Def.Shape.Orientations())
+                    for (int x = 0; x + shape.Size.x <= grid.Size.x; x++)
+                    for (int z = 0; z + shape.Size.z <= grid.Size.z; z++)
+                        if (grid.RestingHeights(shape, x, z, item.Def.Fragile, restingHeights).Count > 0) return true;
+            }
+            return false;
+        }
+
         bool RequiredJustFinished() => items.Count(i => !i.IsBonus) > 0 && items.Where(i => i.IsBonus).All(i => i.State == ItemState.Pile);
 
         void Undo()
@@ -1066,10 +1097,17 @@ namespace PackTheTrunk
             ui.HideHudForCutscene(true);
 
             while (items.Any(i => i.State == ItemState.Dropping)) yield return null;
-            StartCoroutine(TakeTrunkPhoto());
 
             var packed = items.Where(i => i.State == ItemState.Packed).ToList();
             var left = items.Where(i => i.State != ItemState.Packed).ToList();
+            int req = items.Count(i => !i.IsBonus);
+            int bonus = items.Count(i => i.IsBonus);
+            int bonusDone = packed.Count(i => i.IsBonus);
+            int stars = 1 + (bonusDone * 2 >= bonus ? 1 : 0) + (bonusDone == bonus ? 1 : 0);
+            string key = "ptt.stars." + level.Id;
+            int best = Prefs.GetInt(key, 0);
+            // The album keeps the best trunk: a quick replay for fewer stars doesn't replace the photo.
+            if (stars >= best || PhotoFor(level.Id) == null) StartCoroutine(TakeTrunkPhoto());
             foreach (var item in packed)
             {
                 item.SetColliderEnabled(false);
@@ -1111,12 +1149,7 @@ namespace PackTheTrunk
                 yield return null;
             }
 
-            int req = items.Count(i => !i.IsBonus);
-            int bonus = items.Count(i => i.IsBonus);
-            int bonusDone = packed.Count(i => i.IsBonus);
-            int stars = 1 + (bonusDone * 2 >= bonus ? 1 : 0) + (bonusDone == bonus ? 1 : 0);
-            string key = "ptt.stars." + level.Id;
-            Prefs.SetInt(key, Mathf.Max(Prefs.GetInt(key, 0), stars));
+            Prefs.SetInt(key, Mathf.Max(best, stars));
             Prefs.Save();
 
             mode = Mode.Results;

@@ -176,6 +176,7 @@ namespace PackTheTrunk
                 yield return Wait(1.2f);
                 Check(game.IsShowingResults, $"{def.Id}: closing the trunk shows the postcard");
                 if (level == 0 || level == GameDatabase.Levels.Count - 1 || level % 8 == 4) yield return Shot(def.Id + "-results");
+                if (level == 0) Check(!AnyText("gnome"), "the wagon's perfect postcard doesn't mention a gnome (there isn't one)");
 
                 if (level == 0)
                 {
@@ -193,6 +194,8 @@ namespace PackTheTrunk
                 }
             }
 
+            yield return EarlyCloseChecks(solutions);
+
             // The finale: Grandma's note, then the family album.
             PerfProbe.Begin("ending + album");
             game.AutoShowEnding();
@@ -206,6 +209,41 @@ namespace PackTheTrunk
             Log("done");
             Application.Quit();
         }
+
+        /// <summary>
+        /// Replay the (already 3-star) wagon with only the essentials: one Space must not close while
+        /// extras still fit, a second must, and the 1-star close must keep the 3-star album photo.
+        /// </summary>
+        IEnumerator EarlyCloseChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            var photo = Path.Combine(Prefs.AlbumDir, "wagon.png");
+            string before = File.Exists(photo) ? Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes(photo))) : null;
+            Check(before != null && Prefs.GetInt("ptt.stars.wagon") == 3, "the wagon has a 3-star photo before the replay");
+
+            PerfProbe.Begin("packing");
+            game.AutoStartLevel(0);
+            yield return Wait(1.2f);
+            foreach (var (itemId, cells) in solutions["wagon"])
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && !it.IsBonus && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            yield return Press(Key.Space);
+            yield return Wait(0.6f);
+            Check(game.IsPlaying && !game.IsShowingResults, "one Space with extras that still fit doesn't close the trunk");
+            yield return Shot("early-close-prompt");
+            yield return Press(Key.Space);
+            for (float t = 0f; t < 9f && !game.IsShowingResults; t += Time.unscaledDeltaTime) yield return null;
+            Check(game.IsShowingResults, "a second Space closes it anyway");
+            yield return Wait(2f);
+            string after = File.Exists(photo) ? Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes(photo))) : null;
+            Check(before != null && after == before && Prefs.GetInt("ptt.stars.wagon") == 3, "a 1-star replay keeps the 3-star photo and stars");
+        }
+
+        static bool AnyText(string fragment) =>
+            FindObjectsByType<UnityEngine.UI.Text>(FindObjectsInactive.Exclude).Any(t => t.text.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
 
         /// <summary>Find the orientation of the item's authored shape that produces the solver's cells.</summary>
         internal static Quaternion FindOrientation(VoxelShape baseShape, List<Vector3Int> cells)

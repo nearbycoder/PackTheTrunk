@@ -1240,7 +1240,8 @@ namespace PackTheTrunk
             while (placeText.fontSize > 36 && placeText.preferredWidth > 560f) placeText.fontSize--;
             epilogueText.text = level.Epilogues != null && level.Epilogues.Length >= stars && stars > 0 ? level.Epilogues[stars - 1] : "";
             var behind = leftBehind.ToList();
-            leftBehindText.text = behind.Count == 0 ? "Nothing left behind. Not even the gnome." : "Left on the curb: " + string.Join(", ", behind) + ".";
+            bool gnome = level.Required.Concat(level.Bonus).Any(d => d.Id == "gnome");
+            leftBehindText.text = behind.Count == 0 ? (gnome ? "Nothing left behind. Not even the gnome." : "Nothing left behind. Not one thing.") : "Left on the curb: " + string.Join(", ", behind) + ".";
             resultsCounts.text = $"Essentials  <b>{reqDone}/{req}</b>\nExtras  <b>{bonusDone}/{bonus}</b>\n<size=21>{(level.Title.Contains(level.Vehicle) ? "" : level.Vehicle + " · ")}{level.Title}{(level.Year > 0 ? " · " + level.Year : "")}</size>";
             nextLabel.text = hasNext ? "NEXT TRIP" : "THE END";
             resultsKeys.text = hasNext ? "<b>SPACE</b>  next trip      <b>R</b>  try again      <b>ESC</b>  map" : "<b>SPACE</b>  the end      <b>R</b>  try again      <b>ESC</b>  map";
