@@ -21,7 +21,7 @@ namespace PackTheTrunk
         string solutionsPath;
         GameController game;
         int shot;
-        bool quick;
+        bool quick, layoutOnly;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -32,6 +32,7 @@ namespace PackTheTrunk
             var pilot = new GameObject("AutoPilot").AddComponent<AutoPilot>();
             pilot.outDir = args[i + 1];
             pilot.quick = Array.IndexOf(args, "-pttQuick") >= 0;
+            pilot.layoutOnly = Array.IndexOf(args, "-pttLayoutOnly") >= 0;
             int s = Array.IndexOf(args, "-pttSolutions");
             if (s >= 0 && s + 1 < args.Length) pilot.solutionsPath = args[s + 1];
         }
@@ -39,6 +40,19 @@ namespace PackTheTrunk
         IEnumerator Start()
         {
             Directory.CreateDirectory(outDir);
+            if (layoutOnly)
+            {
+                // Just the HUD layout pass, at whatever window size the player was launched with.
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                yield return null;
+                Uncap();
+                game = FindAnyObjectByType<GameController>();
+                yield return Wait(3f);
+                yield return LayoutChecks();
+                Log("done");
+                Application.Quit();
+                yield break;
+            }
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             PerfProbe.Attach();
             yield return null;
@@ -199,6 +213,7 @@ namespace PackTheTrunk
             yield return HintChecks();
             yield return SeeThroughChecks();
             yield return RebindChecks();
+            yield return LayoutChecks();
             // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
             yield return GamepadChecks();
 
@@ -587,6 +602,65 @@ namespace PackTheTrunk
             yield return Wait(0.4f);
             Check(!game.XRayActive && game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough),
                 "see-through: letting go of Tab and putting the item back restores everything");
+        }
+
+        /// <summary>
+        /// The HUD at this screen shape, at 80%, 100% and 120% interface size, on the biggest trip with
+        /// everything showing (held card, a tip, a toast): no two pieces overlap, nothing leaves the
+        /// screen, and every packing-list row fits its area without overlapping the next.
+        /// </summary>
+        IEnumerator LayoutChecks()
+        {
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("reunion2"));
+            yield return Wait(2.5f);
+            // The last row: if the list scrolls, holding it has to bring it into view.
+            var last = game.Items.Last(i => i.State == ItemState.Pile);
+            game.AutoHold(last);
+            string size = $"{Screen.width}x{Screen.height}";
+            foreach (var scale in new[] { 0.8f, 1f, 1.2f })
+            {
+                GameSettings.UiScale = scale;
+                Uncap();
+                game.Ui.ShowTip("Grandpa's tip for the layout check: a sentence about as long as the longest real tip is.");
+                game.Ui.Toast("A toast for the layout check, as long as the longest real one is.", 30f);
+                yield return Wait(1.2f);
+                var rects = game.Ui.HudRects();
+                var screen = new Rect(0, 0, Screen.width, Screen.height);
+                var problems = new List<string>();
+                var names = rects.Keys.ToList();
+                for (int i = 0; i < names.Count; i++)
+                {
+                    var a = rects[names[i]];
+                    if (a.xMin < -1 || a.yMin < -1 || a.xMax > screen.xMax + 1 || a.yMax > screen.yMax + 1) problems.Add($"{names[i]} off screen");
+                    for (int j = i + 1; j < names.Count; j++)
+                    {
+                        var b = rects[names[j]];
+                        float w = Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin), h = Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin);
+                        if (w > 2f && h > 2f) problems.Add($"{names[i]} overlaps {names[j]}");
+                    }
+                }
+                var (area, rows) = game.Ui.ListRects();
+                // Rows scrolled out of view are fine when the list scrolls; otherwise none may spill.
+                int outside = game.Ui.ListScrolls ? 0 : rows.Count(r => r.yMin < area.yMin - 1 || r.yMax > area.yMax + 1);
+                if (!game.Ui.RowVisible(last)) problems.Add($"the held {last.Def.Name}'s row is scrolled out of view");
+                float smallest = rows.Count > 0 ? rows.Min(r => r.height) : 0f;
+                float overflow = game.Ui.ListTextOverflow();
+                int stacked = 0;
+                var sorted = rows.OrderByDescending(r => r.yMax).ToList();
+                for (int i = 1; i < sorted.Count; i++) if (sorted[i].yMax > sorted[i - 1].yMin + 1f) stacked++;
+                if (outside > 0) problems.Add($"{outside} of {rows.Count} list rows spill out of the list");
+                if (stacked > 0) problems.Add($"{stacked} list rows overlap the one above");
+                if (overflow > 1f) problems.Add($"list text is {overflow:0} units taller than its {smallest:0}-unit rows");
+                if (smallest < 19.5f) problems.Add($"list rows squashed to {smallest:0} units");
+                Check(problems.Count == 0, $"layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? $"{names.Count} HUD pieces, {rows.Count} list rows of {smallest:0} units{(game.Ui.ListScrolls ? " (scrolling)" : "")}, all clear" : string.Join("; ", problems)));
+                yield return Shot($"layout-{size}-{scale * 100:0}");
+            }
+            GameSettings.UiScale = 1f;
+            Uncap();
+            game.Ui.HideTip();
+            game.AutoPutBack();
+            yield return Wait(0.5f);
         }
 
         IEnumerator OpenControls()

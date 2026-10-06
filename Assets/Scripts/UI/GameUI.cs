@@ -25,16 +25,143 @@ namespace PackTheTrunk
             if (keyboardHintsRow == null) return;
             UiKit.Clear(keyboardHintsRow);
             string L(Bindings.Action a) => Bindings.Label(a);
-            UiTheme.KeyHint(keyboardHintsRow, "CLICK", "grab / drop");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Turn), "turn");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Tip), "tip");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Roll), "roll");
-            UiTheme.KeyHint(keyboardHintsRow, "WHEEL", "shelf");
-            UiTheme.KeyHint(keyboardHintsRow, "ESC", "back / pause");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Undo), "undo");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.LookLeft) + " " + L(Bindings.Action.LookRight), "orbit");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.XRay), "x-ray");
-            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Close), "close");
+            Hint(keyboardHintsRow, "CLICK", "grab / drop", 0);
+            Hint(keyboardHintsRow, L(Bindings.Action.Turn), "turn", 1);
+            Hint(keyboardHintsRow, L(Bindings.Action.Tip), "tip", 2);
+            Hint(keyboardHintsRow, L(Bindings.Action.Roll), "roll", 3);
+            Hint(keyboardHintsRow, "WHEEL", "shelf", 6);
+            Hint(keyboardHintsRow, "ESC", "back / pause", 9);
+            Hint(keyboardHintsRow, L(Bindings.Action.Undo), "undo", 5);
+            Hint(keyboardHintsRow, L(Bindings.Action.LookLeft) + " " + L(Bindings.Action.LookRight), "orbit", 8);
+            Hint(keyboardHintsRow, L(Bindings.Action.XRay), "x-ray", 7);
+            Hint(keyboardHintsRow, L(Bindings.Action.Close), "close", 4);
+            hudLayoutWidth = -1f;
+        }
+
+        /// <summary>Key hint with a rank: when the strip doesn't fit, the highest ranks drop out first.</summary>
+        void Hint(RectTransform row, string key, string caption, int rank) => hintRank[UiTheme.KeyHint(row, key, caption)] = rank;
+
+        readonly Dictionary<RectTransform, int> hintRank = new Dictionary<RectTransform, int>();
+        float hudLayoutWidth = -1f, hudLayoutHeight = -1f;
+        const float ListReserve = 470f, HudMargin = 40f;
+
+        /// <summary>
+        /// Fit the HUD to the canvas (screen shape and interface size): the key-hint strip keeps to the
+        /// space left of the packing list, dropping its least important hints (then shrinking a little)
+        /// rather than running into the list; Grandpa's tip moves under the trip tag when the gap at the
+        /// top is too narrow; the toast centres in the free space.
+        /// </summary>
+        void LayoutHud()
+        {
+            float width = root.rect.width;
+            hudLayoutWidth = width;
+            hudLayoutHeight = root.rect.height;
+            float strip = width - 44f - ListReserve - 24f;
+            keyHints.sizeDelta = new Vector2(strip, keyHints.sizeDelta.y);
+            foreach (var row in new[] { keyboardHintsRow, padHintsRow })
+            {
+                if (row == null) continue;
+                var children = new List<RectTransform>();
+                foreach (Transform c in row) { c.gameObject.SetActive(true); children.Add((RectTransform)c); }
+                row.localScale = Vector3.one;
+                float Needed() { LayoutRebuilder.ForceRebuildLayoutImmediate(row); return LayoutUtility.GetPreferredWidth(row); }
+                var byRank = children.OrderByDescending(c => hintRank.TryGetValue(c, out var r) ? r : 0).ToList();
+                int dropped = 0;
+                while (Needed() > strip && dropped < byRank.Count - 5)
+                    byRank[dropped++].gameObject.SetActive(false);
+                float needed = Needed();
+                if (needed > strip) row.localScale = Vector3.one * Mathf.Max(0.75f, strip / needed);
+            }
+            if (tipShown) PlaceTip();
+            PlaceToast();
+            // A different canvas height (interface size changed mid-trip, window resized): new rows.
+            if (listItems != null && Mathf.Abs(listViewport.rect.height - listBuiltFor) > 1f)
+            {
+                BuildListRows(listItems);
+                RefreshHud(listItems, lastRefresh.Held, lastRefresh.CanClose, lastRefresh.AllPacked, lastRefresh.FreeCells);
+                ScrollToRow(lastRefresh.Held);
+            }
+        }
+
+        /// <summary>The toast sits in the middle of the space left of the packing list, as tall as its text.</summary>
+        void PlaceToast()
+        {
+            float free = root.rect.width - ListReserve - 2f * HudMargin - 30f;
+            float w = Mathf.Min(860f, free);
+            toastHolder.sizeDelta = new Vector2(w, 74f);
+            float h = Mathf.Max(74f, toast.preferredHeight + 22f);
+            toastHolder.sizeDelta = new Vector2(w, h);
+            toastHolder.anchoredPosition = new Vector2(HudMargin + free * 0.5f - root.rect.width * 0.5f, 300f);
+        }
+
+        // ------------------------------------------------------------------ layout self-test
+
+        static Rect ScreenRect(RectTransform rt)
+        {
+            var c = new Vector3[4];
+            rt.GetWorldCorners(c);
+            float xMin = Mathf.Min(c[0].x, c[1].x, c[2].x, c[3].x), xMax = Mathf.Max(c[0].x, c[1].x, c[2].x, c[3].x);
+            float yMin = Mathf.Min(c[0].y, c[1].y, c[2].y, c[3].y), yMax = Mathf.Max(c[0].y, c[1].y, c[2].y, c[3].y);
+            return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+        }
+
+        static Rect? ChildrenRect(Transform parent)
+        {
+            Rect? union = null;
+            foreach (Transform child in parent)
+            {
+                if (!child.gameObject.activeInHierarchy) continue;
+                var r = ScreenRect((RectTransform)child);
+                union = union is Rect u ? Rect.MinMaxRect(Mathf.Min(u.xMin, r.xMin), Mathf.Min(u.yMin, r.yMin), Mathf.Max(u.xMax, r.xMax), Mathf.Max(u.yMax, r.yMax)) : r;
+            }
+            return union;
+        }
+
+        /// <summary>Screen rectangles of every HUD piece that's showing (for the layout self-test).</summary>
+        public Dictionary<string, Rect> HudRects()
+        {
+            var rects = new Dictionary<string, Rect>();
+            void Add(string name, Transform t)
+            {
+                if (t != null && t.gameObject.activeInHierarchy) rects[name] = ScreenRect((RectTransform)t);
+            }
+            Add("trip tag", hud.Find("Trip Tag"));
+            if (hud.Find("Buttons") is Transform b && ChildrenRect(b) is Rect br) rects["buttons"] = br;
+            Add("packing list", hud.Find("Packing List"));
+            Add("held card", heldPanel);
+            foreach (var row in new[] { keyboardHintsRow, padHintsRow })
+                if (row != null && row.gameObject.activeInHierarchy && ChildrenRect(row) is Rect kr) rects["key hints"] = kr;
+            if (tipShown) Add("tip", tipHolder);
+            if (toastGroup.alpha > 0.5f) Add("toast", toastHolder);
+            return rects;
+        }
+
+        /// <summary>Canvas units per screen pixel (screen shape and interface size).</summary>
+        public float UnitsPerPixel => 1f / root.GetComponent<Canvas>().scaleFactor;
+
+        /// <summary>How far the tallest row name's glyphs (about 1.1x the font size) overflow the row, in canvas units.</summary>
+        public float ListTextOverflow()
+        {
+            float worst = float.MinValue;
+            foreach (var row in rows.Values)
+                worst = Mathf.Max(worst, row.Name.fontSize * 1.1f - ((RectTransform)row.Name.transform.parent).rect.height);
+            return rows.Count == 0 ? 0f : worst;
+        }
+
+        /// <summary>The packing list's item area and each row in it, on screen.</summary>
+        public (Rect Area, List<Rect> Rows) ListRects()
+        {
+            // In the list's own (unrotated) space and canvas units: the notepad is tilted a degree, so
+            // screen-space boxes of neighbouring rows would always overlap a little.
+            var list = new List<Rect>();
+            foreach (Transform row in itemList)
+            {
+                if (!row.gameObject.activeInHierarchy) continue;
+                var rt = (RectTransform)row;
+                var r = rt.rect;
+                list.Add(new Rect((Vector2)itemList.localPosition + (Vector2)rt.localPosition + r.min, r.size));
+            }
+            return (listViewport.rect, list);
         }
 
         /// <summary>The key caps currently shown in the keyboard hint strip (for the self-test).</summary>
@@ -108,7 +235,10 @@ namespace PackTheTrunk
 
         // HUD
         Text tagTrip, tagTitle, tagBlurb, listFrom;
-        RectTransform itemList;
+        RectTransform itemList, listViewport;
+        ScrollRect listScroll;
+        Text moreBelow, moreAbove;
+        bool listScrolls;
         Text countsText, spaceText;
         RectTransform spaceFill;
         Button closeButton;
@@ -169,7 +299,10 @@ namespace PackTheTrunk
             scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 0.5f;
+            // Expand: the whole 1920x1080 design (divided by the interface size) is always on screen,
+            // and wider or taller screens just get extra room. (Matching half width / half height made
+            // the canvas shorter than the design on ultrawide screens and squeezed the packing list.)
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             root = (RectTransform)canvasGo.transform;
 
             BuildTitle();
@@ -204,6 +337,15 @@ namespace PackTheTrunk
             UpdateTitle();
             UpdateHudMotion();
             UpdateTip();
+            if (moreBelow != null)
+            {
+                bool more = listScrolls && itemList.anchoredPosition.y + listViewport.rect.height < itemList.rect.height - 2f;
+                if (moreBelow.gameObject.activeSelf != more) moreBelow.gameObject.SetActive(more);
+                bool above = listScrolls && itemList.anchoredPosition.y > 2f;
+                if (moreAbove.gameObject.activeSelf != above) moreAbove.gameObject.SetActive(above);
+            }
+            if (hud.gameObject.activeSelf && (!Mathf.Approximately(root.rect.width, hudLayoutWidth) || !Mathf.Approximately(root.rect.height, hudLayoutHeight)))
+                LayoutHud();
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
             bool escUsed = UpdateRebind();
@@ -785,8 +927,34 @@ namespace PackTheTrunk
             listFrom = UiTheme.Label("From", list, "", UiTheme.Hand, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
             listFrom.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(84, -108), new Vector2(-26, -76));
 
-            itemList = UiKit.Rect("Items", list).Place(Vector2.zero, Vector2.one, new Vector2(18, 214), new Vector2(-18, -114));
+            // The rows scroll (wheel over the list) when a big trip doesn't fit at a readable size.
+            listViewport = UiKit.Rect("Items", list).Place(Vector2.zero, Vector2.one, new Vector2(18, 214), new Vector2(-18, -114));
+            listViewport.gameObject.AddComponent<RectMask2D>();
+            var listHit = listViewport.gameObject.AddComponent<Image>();
+            listHit.color = new Color(1f, 1f, 1f, 0f);
+            itemList = UiKit.Rect("Rows", listViewport);
+            itemList.anchorMin = new Vector2(0f, 1f);
+            itemList.anchorMax = new Vector2(1f, 1f);
+            itemList.pivot = new Vector2(0.5f, 1f);
+            itemList.anchoredPosition = Vector2.zero;
+            itemList.sizeDelta = Vector2.zero;
             UiKit.Vertical(itemList.gameObject, 2);
+            itemList.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            listScroll = listViewport.gameObject.AddComponent<ScrollRect>();
+            listScroll.content = itemList;
+            listScroll.viewport = listViewport;
+            listScroll.horizontal = false;
+            listScroll.movementType = ScrollRect.MovementType.Clamped;
+            listScroll.inertia = false;
+            listScroll.scrollSensitivity = 28f;
+            moreBelow = UiTheme.Label("More", list, "more below  ▾", UiTheme.Hand, 21, UiTheme.Accent, TextAnchor.MiddleRight);
+            moreBelow.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(30, 194), new Vector2(-28, 216));
+            moreBelow.raycastTarget = false;
+            moreBelow.gameObject.SetActive(false);
+            moreAbove = UiTheme.Label("More Above", list, "▴  more above", UiTheme.Hand, 21, UiTheme.Accent, TextAnchor.MiddleRight);
+            moreAbove.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(30, -108), new Vector2(-28, -80));
+            moreAbove.raycastTarget = false;
+            moreAbove.gameObject.SetActive(false);
 
             countsText = UiTheme.Label("Counts", list, "", UiTheme.Body, 21, UiTheme.Ink, TextAnchor.MiddleLeft);
             countsText.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(30, 168), new Vector2(-24, 204));
@@ -849,21 +1017,22 @@ namespace PackTheTrunk
             var padHints = UiKit.Rect("Gamepad", keys).Fill();
             var ph = UiKit.Horizontal(padHints.gameObject, 18, TextAnchor.MiddleLeft);
             ph.childControlWidth = true;
-            UiTheme.KeyHint(padHints, "A", "grab / drop");
-            UiTheme.KeyHint(padHints, "X", "turn");
-            UiTheme.KeyHint(padHints, "Y", "tip");
-            UiTheme.KeyHint(padHints, "RB", "roll");
-            UiTheme.KeyHint(padHints, "D-PAD", "shelf");
-            UiTheme.KeyHint(padHints, "B", "put back");
-            UiTheme.KeyHint(padHints, "VIEW", "undo");
-            UiTheme.KeyHint(padHints, "R-STICK", "look");
-            UiTheme.KeyHint(padHints, "L3", "x-ray");
-            UiTheme.KeyHint(padHints, "D-PAD >", "close");
+            Hint(padHints, "A", "grab / drop", 0);
+            Hint(padHints, "X", "turn", 1);
+            Hint(padHints, "Y", "tip", 2);
+            Hint(padHints, "RB", "roll", 3);
+            Hint(padHints, "D-PAD", "shelf", 6);
+            Hint(padHints, "B", "put back", 9);
+            Hint(padHints, "VIEW", "undo", 5);
+            Hint(padHints, "R-STICK", "look", 8);
+            Hint(padHints, "L3", "x-ray", 7);
+            Hint(padHints, "D-PAD >", "close", 4);
             padHintsRow = padHints;
             void ShowPadHints()
             {
                 kbHints.gameObject.SetActive(!GamepadCursor.Active);
                 padHints.gameObject.SetActive(GamepadCursor.Active);
+                hudLayoutWidth = -1f;
             }
             ShowPadHints();
             GamepadCursor.ActiveChanged += ShowPadHints;
@@ -885,12 +1054,32 @@ namespace PackTheTrunk
             spaceShown = spaceTarget = 0f;
             keyHints.gameObject.SetActive(GameSettings.KeyHints);
             BuildFragileTags(items);
+            BuildListRows(items);
+            ShowResultsPanel(false);
+        }
 
+        IReadOnlyList<PackItem> listItems;
+        float listBuiltFor = -1f;
+        (PackItem Held, bool CanClose, bool AllPacked, int FreeCells) lastRefresh;
+
+        /// <summary>
+        /// One row per item, sized to the list's actual height (which depends on the screen shape and
+        /// the interface size), so even the 25-item trips fit without rows running into each other.
+        /// </summary>
+        void BuildListRows(IReadOnlyList<PackItem> items)
+        {
+            listItems = items;
             rows.Clear();
             UiKit.Clear(itemList);
-            float available = 1080f - 118f - 40f - 214f - 114f;
-            float rowHeight = Mathf.Clamp(available / Mathf.Max(1, items.Count) - 2f, 24f, 46f);
-            int fontSize = rowHeight < 30f ? 22 : rowHeight < 38f ? 25 : 28;
+            float available = listViewport.rect.height > 50f ? listViewport.rect.height : 1080f - 118f - 40f - 214f - 114f;
+            listBuiltFor = available;
+            // Never below a readable 20 units; if that doesn't fit, the list scrolls instead.
+            float rowHeight = Mathf.Clamp(available / Mathf.Max(1, items.Count) - 2f, 20f, 46f);
+            listScrolls = items.Count * (rowHeight + 2f) > available + 1f;
+            listScroll.enabled = listScrolls;
+            itemList.anchoredPosition = Vector2.zero;
+            // Glyphs are about 1.1x the font size tall: keep them inside the row.
+            int fontSize = Mathf.Min(rowHeight < 30f ? 22 : rowHeight < 38f ? 25 : 28, Mathf.Clamp(Mathf.FloorToInt((rowHeight + 1f) / 1.18f), 13, 28));
             foreach (var item in items)
             {
                 var captured = item;
@@ -909,7 +1098,7 @@ namespace PackTheTrunk
                 line.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, 2));
                 line.raycastTarget = false;
 
-                float box = Mathf.Min(rowHeight - 8f, 26f);
+                float box = Mathf.Clamp(rowHeight - 6f, 9f, 26f);
                 var boxOuter = UiKit.Image("Box", rowRt, UiTheme.InkSoft, true);
                 boxOuter.pixelsPerUnitMultiplier = 4f;
                 boxOuter.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(26, 0), new Vector2(box, box));
@@ -946,14 +1135,43 @@ namespace PackTheTrunk
                 UiKit.Horizontal(stamps.gameObject, 6, TextAnchor.MiddleRight);
                 if (item.Def.Fragile) UiTheme.StampLabel(stamps, "FRAGILE", UiTheme.Stamp, 14, -5f);
                 if (item.IsBonus) UiTheme.StampLabel(stamps, "EXTRA", new Color(0.85f, 0.6f, 0.1f), 14, 4f);
+                // The stamps are 28 units tall: shrink them with short rows.
+                stamps.localScale = Vector3.one * Mathf.Clamp01((rowHeight + 2f) / 30f);
 
                 rows[item] = new ItemRow { Marker = marker, Check = check, Strike = strike, Name = name, Stamps = stamps, StrikeWidth = strike.rectTransform.sizeDelta.x };
             }
-            ShowResultsPanel(false);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(itemList);
         }
+
+        /// <summary>Scroll the packing list so this item's row is fully in view.</summary>
+        void ScrollToRow(PackItem item)
+        {
+            if (!listScrolls || item == null || !rows.TryGetValue(item, out var row)) return;
+            var rt = (RectTransform)row.Name.transform.parent;
+            float top = -(rt.localPosition.y + rt.rect.yMax);
+            float bottom = top + rt.rect.height;
+            float view = listViewport.rect.height;
+            float offset = itemList.anchoredPosition.y;
+            if (top < offset) offset = top;
+            else if (bottom > offset + view) offset = bottom - view;
+            offset = Mathf.Clamp(offset, 0f, Mathf.Max(0f, itemList.rect.height - view));
+            itemList.anchoredPosition = new Vector2(0f, offset);
+        }
+
+        /// <summary>Is this item's row entirely inside the visible part of the list? (self-test)</summary>
+        public bool RowVisible(PackItem item)
+        {
+            if (!rows.TryGetValue(item, out var row)) return false;
+            var rt = (RectTransform)row.Name.transform.parent;
+            float top = -(rt.localPosition.y + rt.rect.yMax) - itemList.anchoredPosition.y;
+            return top >= -1f && top + rt.rect.height <= listViewport.rect.height + 1f;
+        }
+
+        public bool ListScrolls => listScrolls;
 
         public void RefreshHud(IReadOnlyList<PackItem> items, PackItem held, bool canClose, bool allPacked, int freeCells)
         {
+            lastRefresh = (held, canClose, allPacked, freeCells);
             int req = 0, reqDone = 0, bonus = 0, bonusDone = 0;
             foreach (var item in items)
             {
@@ -1016,6 +1234,7 @@ namespace PackTheTrunk
             heldPanel.gameObject.SetActive(item != null);
             hoverText.gameObject.SetActive(item == null);
             if (item == null) return;
+            ScrollToRow(item);
             heldName.text = item.Def.Name;
             UiKit.Clear(heldStamps);
             UiTheme.StampLabel(heldStamps, item.IsBonus ? "EXTRA" : "ESSENTIAL", item.IsBonus ? new Color(0.85f, 0.6f, 0.1f) : UiTheme.Teal, 17, -3f);
@@ -1055,11 +1274,32 @@ namespace PackTheTrunk
 
         const float TipLeft = 744f, TipTop = -128f, TipRightMargin = 490f;
 
+        Vector2 tipHome = new Vector2(TipLeft, TipTop);
+
+        /// <summary>
+        /// Between the trip tag and the packing list when there's room (wrapping taller as it narrows);
+        /// on narrow canvases (4:3, big interface sizes) under the trip tag instead.
+        /// </summary>
+        void PlaceTip()
+        {
+            float gap = root.rect.width - TipLeft - TipRightMargin;
+            float width;
+            if (gap >= 480f)
+            {
+                width = Mathf.Min(690f, gap);
+                tipHome = new Vector2(TipLeft, TipTop);
+            }
+            else
+            {
+                width = Mathf.Min(660f, root.rect.width - ListReserve - 2f * HudMargin - 30f);
+                tipHome = new Vector2(HudMargin, -250f);
+            }
+            tipHolder.sizeDelta = new Vector2(width, width < 600f ? 176f : 136f);
+        }
+
         public void ShowTip(string text)
         {
-            // Narrower screens (16:10, 4:3) leave less room between the tag and the list: wrap taller.
-            float width = Mathf.Clamp(root.rect.width - TipLeft - TipRightMargin, 420f, 690f);
-            tipHolder.sizeDelta = new Vector2(width, width < 600f ? 176f : 136f);
+            PlaceTip();
             tipText.text = text;
             tipShown = true;
             tipHolder.gameObject.SetActive(true);
@@ -1072,13 +1312,14 @@ namespace PackTheTrunk
             if (tipHolder == null || !tipHolder.gameObject.activeSelf) return;
             tipGroup.alpha = Mathf.MoveTowards(tipGroup.alpha, tipShown ? 1f : 0f, UiTime.Delta * (tipShown ? 5f : 3.5f));
             // Drops in from above as it fades in, lifts away as it fades out.
-            tipHolder.anchoredPosition = new Vector2(TipLeft, TipTop + 40f * (1f - Ease.OutCubic(tipGroup.alpha)));
+            tipHolder.anchoredPosition = tipHome + new Vector2(0f, 40f * (1f - Ease.OutCubic(tipGroup.alpha)));
             if (!tipShown && tipGroup.alpha <= 0f) tipHolder.gameObject.SetActive(false);
         }
 
         public void Toast(string message, float seconds = 2.2f)
         {
             toast.text = message;
+            if (toastHolder != null && root != null) PlaceToast();
             toastTimer = seconds;
             toastGroup.alpha = 1f;
         }

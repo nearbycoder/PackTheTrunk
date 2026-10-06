@@ -169,7 +169,9 @@ Also in the box:
   and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
   quality presets, render scale, anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient
   occlusion, ink outlines, depth of field, bloom, camera speed, screen shake, key hints,
-  Grandpa's tips, placement colours and story text speed.
+  Grandpa's tips, placement colours and story text speed. The HUD fits 16:9, 16:10, 4:3 and
+  21:9 screens at every interface size from 80% to 120%. When a big trip's packing list wouldn't
+  fit at a readable size, it scrolls (and follows whatever you're holding).
 - **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
   glass), spatial panning, music that crossfades between screens, muffles behind the story texts
   and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.
@@ -241,14 +243,15 @@ same build entry points (`Assets/Editor/BuildScript.cs`).
 python3 Tools/solve_levels.py            # prove every level packs 100% under the game's rules
 python3 Tools/solve_levels.py grandma    # print one level's solution (spoilers)
 Tools/autopilot.sh                       # self-test: menus, settings, pause and all 33 trips, PASS/FAIL + screenshots
-PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about a minute)
+PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about three minutes)
+PTT_LAYOUT=1 PTT_SIZE=1200x900 Tools/autopilot.sh   # only the HUD layout check, at a 4:3 window
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
 ```
 
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
 `-pttAutopilot`. It clicks, rotates, drops and undoes with real input events, packs all 33 trips
 from the solver's solutions, closes every trunk, opens the ending and the album, and writes
-screenshots to `/tmp/ptt-autopilot` (about 5 minutes). Like the recorders and the benchmark, it
+screenshots to `Recordings/autopilot` (about 9 minutes). Like the recorders and the benchmark, it
 plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings and progress in memory,
 photos in a cache folder), and `autopilot.sh` checks that your own save is byte-for-byte untouched.
 
