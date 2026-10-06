@@ -393,9 +393,9 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus two rounds of improvements since that release (see
+Version **0.1.0** plus three rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, and the autopilot (168 checks) passes every trip. Still rough or missing:
+settings are complete, and the autopilot (194 checks) passes every trip. Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
@@ -418,5 +418,11 @@ settings are complete, and the autopilot (168 checks) passes every trip. Still r
   thread inside `wl_display_dispatch_queue_pending`, which is Unity's native Wayland backend handling
   compositor events, not game code. It hasn't been reproduced on demand. The recorders and
   `autopilot.sh` keep the log and retry once.
+- **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
+  meter or Grandpa's seal. The README screenshots are from round 2, so they don't show the meter
+  or the seal either (`docs/media/improvements/round3/` has round-3 shots).
+- **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
+  autopilot's queued input stopped registering and every input check failed. Re-run when it's
+  quieter.
 - No licence has been chosen for the project's own code and content yet. Third-party assets keep
   the licences listed above.

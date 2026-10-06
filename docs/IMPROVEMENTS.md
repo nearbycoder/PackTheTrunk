@@ -401,3 +401,50 @@ is here to press buttons.
 Each item ends with `build-linux` (0 errors), the solver, a quick autopilot, and screenshots in
 `docs/media/improvements/round3/`. The round ends with a full autopilot (0 FAIL, save untouched) and
 a `-pttBench` re-run.
+
+## Round 3 results (2026-10-06)
+
+All five scope items shipped, plus one fix found along the way (F). The final full autopilot
+(`Tools/autopilot.sh`, all 33 trips) had **194 PASS, 0 FAIL**, the real save was untouched, and
+there was no player crash. The HUD layout pass is clean at 16:9, 16:10, 4:3 and 21:9 × 80/100/120%
+(12/12). The solver proves all 33 levels, and `build-linux` has 0 errors. Screenshots are in
+`docs/media/improvements/round3/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| Quiet-machine benchmark (round-2 debt) | `8f2a2b4` | `-pttBench` at load 0.5 on round-2 `main`: the minivan is 1.8 ms packing / 1.8 ms holding, the same as round 1. Round 2's 2.7 ms was machine load. |
+| A. Restart you can take back | `345977b` | `RestartChecks` (5 checks) click the real RESTART button and the pause menu's: 9 packed items go back to the blanket, the trunk is empty, and one Z puts all 9 back in the same cells and orientations. With nothing packed it says so and adds no undo step. `a-restart-unpacked.jpg` |
+| B. Live star meter | `1f1d8c8` | `StarMeterChecks` (5): empty at first; 3 stars when everything's in; taking Grandma's 5 extras out reads 2,2,1,1,1 (3 of 5 still makes two); putting the third back earns two stars and the toast says what makes three; taking out an essential empties it. The meter matched the postcard on **all 33 trips** and on the 1-star early close. The layout pass now also checks that the counts line fits and that the meter clears the heading. `b-star-meter*.jpg` |
+| C. Grandpa's seal | `d36f851` | `SealChecks` (10) plus 2 in the main flow: a hint-free pack is sealed (postcard, pref); a hinted three-star pack isn't, and says how to earn it; TRY AGAIN and RESTART start a fresh attempt, and undoing RESTART restores the "hinted" mark; a hinted replay keeps the seal; a 1-star replay keeps it; the map and album show and count seals (33/33 polaroids in the full run). `c-seal-*.jpg` |
+| D. Hint ghost's see-through | `4da8f8e` | `SeeThroughChecks` puts Grandpa's ghost in the covered gap with empty hands: the skis go see-through and are restored when the hint clears (2 new checks). `d-hint-ghost-see-through.jpg` |
+| E. Gamepad readiness | `f20acf9` | `InputReportChecks` (2): a simulated gamepad's `[Input] added/removed` lines, and a simulated generic `Joystick` gets the "not supported" line and toast. `docs/GAMEPAD-TEST.md` is the owner's checklist. **Still not tested on physical hardware.** `e-unsupported-joystick-toast.jpg` |
+| F. Key hints never wrap | `dd4078b` | Found in the round-3 screenshots: after a rebind or an interface-size change, hint captions wrapped ("und / o"). The layout check now flags wrapped captions: 3 FAILs on the old code in a quick run, 0 after. `f-key-hints-before-after.jpg` |
+
+**Benchmark (`-pttBench`, 1600×900, High)** after round 3, at load 3–7 (`Recordings/round3/bench-after.log`):
+the 25-item minivan reads 1.9 ms packing (p99 3.8) and 1.9 ms holding (p99 3.4), against 1.8 / 1.8 ms
+before at load 0.5. Every other screen is 1.7–1.8 ms. There are no frames over 33 ms, and there's about one GC per
+phase, as before. Within the noise of a machine that wasn't fully quiet: no measurable cost.
+
+Things round 3 turned up along the way:
+
+- **The autopilot is unreliable when the machine is overloaded.** At load average 37–45 (other
+  sessions' builds), two quick runs failed every input check from the title screen onwards: queued
+  input events never registered. The same build passed 101/101 later at load 20. I rebuilt the
+  previous commit to rule out round 3's code (it also passed at the lower load). The runs now wait
+  for load < 22 first. Treat an all-FAIL run on a busy machine as environmental and re-run it.
+- **A relative `-logFile` path lands in `Builds/Linux/`**, not the working directory, because the
+  player resolves it against its own folder. Pass an absolute path (`autopilot.sh` with an absolute
+  output folder does).
+- **No controller showed up.** The player's `[Input]` report lists the mouse, the keyboard and a
+  touchscreen, and nothing for the 8BitDo Pro 3 receiver plugged into this machine. That fits the
+  receiver having no paired controller (only a `hidraw` node exists).
+- **`[Audio]`:** the full run measured 2.7 dBFS before the limiter and −1.5 dBFS after (round 1: 1.4 / −1.5). As
+  noted before, the input peak depends on how many scripted drops land together. Round 3's runs
+  also add star chimes when the meter fills and extra pack-everything passes. The limiter holds the
+  output at −1.5 dBFS.
+
+Still open after round 3: Windows (needs the module), WebGL and hosting, signing and notarization,
+releases and re-cutting the trailer (all owner decisions); a physical gamepad / Steam Deck test
+(`docs/GAMEPAD-TEST.md`); README screenshots that show the star meter and the seal (a stills-only
+capture, about 3 minutes, when the owner wants the gallery refreshed); and bigger replayability
+ideas from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
