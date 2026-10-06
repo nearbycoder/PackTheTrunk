@@ -444,6 +444,7 @@ namespace PackTheTrunk
             RefreshHud();
             music.Play(level.Music);
             music.SetMuffled(false);
+            OnTripStartTips();
         }
 
         // ------------------------------------------------------------------ Arrival
@@ -522,6 +523,7 @@ namespace PackTheTrunk
             arrival = null;
             levelIndex = index;
             level = GameDatabase.Levels[index];
+            ClearTips();
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             items.Clear();
             undo.Clear();
@@ -618,6 +620,7 @@ namespace PackTheTrunk
                 }
             }
             if (mode != Mode.Playing || paused) return;
+            UpdateTips();
 
             var mouse = Mouse.current;
             var keyboard = Keyboard.current;
@@ -634,8 +637,8 @@ namespace PackTheTrunk
                     if (keyboard.rKey.wasPressedThisFrame) Rotate(Vector3.up, shift);
                     if (keyboard.tKey.wasPressedThisFrame) Rotate(rig.SnappedRight(), shift);
                     if (keyboard.fKey.wasPressedThisFrame) Rotate(rig.SnappedForward(), shift);
-                    if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame) heightBias++;
-                    if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame) heightBias--;
+                    if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame) { heightBias++; tipShelfPicked = true; }
+                    if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame) { heightBias--; tipShelfPicked = true; }
                 }
                 if ((keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) && CanClose() && ConfirmKeyClose())
                 {
@@ -669,6 +672,7 @@ namespace PackTheTrunk
                 {
                     heightBias += scroll > 0 ? 1 : -1;
                     scrollCooldown = 0.08f;
+                    tipShelfPicked = true;
                 }
 
                 UpdateTarget(ray, overUi);
@@ -682,6 +686,7 @@ namespace PackTheTrunk
                         sfx.Error();
                         ui.Toast(ExplainProblem(held.Shape, targetPos.x, targetPos.z));
                         held.Squash(0.4f);
+                        QueueTip(Tip.Turn);
                     }
                     else PutBack();
                 }
@@ -917,6 +922,7 @@ namespace PackTheTrunk
             sfx.Pickup(item);
             ui.ShowHeld(item);
             RefreshHud();
+            OnPickedUpTips(item);
         }
 
         void PutBack()
@@ -955,6 +961,7 @@ namespace PackTheTrunk
             var q = Quaternion.AngleAxis(reverse ? -90f : 90f, axis);
             held.Rotate(q);
             heightBias = 0;
+            tipRotated = true;
             sfx.Rotate(held.transform.position);
         }
 
@@ -966,6 +973,7 @@ namespace PackTheTrunk
 
             undo.Push(pendingSnapshot);
             pendingSnapshot = null;
+            OnPlacedTips();
             grid.Place(item, pos);
             item.GridPos = pos;
             item.State = ItemState.Dropping;
@@ -1097,6 +1105,7 @@ namespace PackTheTrunk
         {
             if (held != null) PutBack();
             mode = Mode.Closing;
+            ClearTips();
             SetHovered(null);
             ghost.gameObject.SetActive(false);
             ui.HideHudForCutscene(true);

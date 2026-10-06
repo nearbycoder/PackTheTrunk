@@ -197,6 +197,7 @@ namespace PackTheTrunk
             }
 
             yield return EarlyCloseChecks(solutions);
+            yield return TipChecks(solutions);
 
             // The finale: Grandma's note, then the family album.
             PerfProbe.Begin("ending + album");
@@ -279,6 +280,147 @@ namespace PackTheTrunk
             yield return Press(Key.Escape);
             yield return Wait(0.5f);
             Check(game.Held == null && second.State == ItemState.Pile, "Escape puts the held item back");
+        }
+
+        IEnumerator WaitForTip(string tip, float timeout)
+        {
+            for (float t = 0f; t < timeout && game.ActiveTip != tip; t += Time.unscaledDeltaTime) yield return null;
+        }
+
+        /// <summary>
+        /// From a clean slate, trigger each of Grandpa's tips the way a player would and check it shows
+        /// (and goes away when the player does the thing); then check none of them ever repeats.
+        /// </summary>
+        IEnumerator TipChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            game.AutoResetTips();
+            var trunk = (Func<Transform>)(() => game.CurrentVehicle.transform);
+
+            // Trip 1, first look: pick something up.
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(0);
+            yield return WaitForTip("pickup", 4f);
+            Check(game.ActiveTip == "pickup", "tip: a new trip says to pick something up");
+            yield return Wait(0.6f);
+            yield return Shot("tip-pickup");
+
+            var first = game.Items.First(i => !i.Def.Fragile && i.State == ItemState.Pile);
+            yield return MoveMouse(first.transform.position + (Vector3)first.Shape.Center);
+            yield return Click();
+            // Whatever the click landed on (things overlap a little on the blanket).
+            var basket = game.Held;
+            if (basket == null) { Check(false, "tip: picking something up on the wagon"); yield break; }
+            yield return WaitForTip("aim", 2f);
+            Check(game.ActiveTip == "aim", "tip: holding something explains the ghost");
+            bool found = false;
+            for (int x = 0; x < game.TrunkSize.x && !found; x++)
+            for (int z = 0; z < game.TrunkSize.z && !found; z++)
+            {
+                yield return MoveMouse(trunk().TransformPoint(new Vector3(x + 0.5f, 0f, z + 0.5f)));
+                yield return Wait(0.15f);
+                found = game.HasValidTarget;
+            }
+            yield return Wait(0.6f);
+            yield return Shot("tip-aim");
+            yield return Click();
+            yield return Wait(1f);
+            Check(game.ActiveTip != "aim", "tip: dropping it in retires the aiming tip");
+
+            // A fragile thing, then holding it where it can't go.
+            var jug = game.Items.FirstOrDefault(i => i.Def.Fragile && i.State == ItemState.Pile);
+            if (jug != null)
+            {
+                yield return MoveMouse(jug.transform.position + (Vector3)jug.Shape.Center);
+                yield return Click();
+                if (game.Held != jug) game.AutoHold(jug);
+                yield return WaitForTip("fragile", 2f);
+                Check(game.ActiveTip == "fragile", "tip: picking up something fragile explains fragile");
+                yield return Wait(0.6f);
+                yield return Shot("tip-fragile");
+                yield return MoveMouse(basket.transform.position + (Vector3)basket.Shape.Center + Vector3.up * 0.5f);
+                yield return WaitForTip("turn", 10f);
+                Check(game.ActiveTip == "turn", "tip: hovering where it won't fit suggests turning it");
+                yield return Wait(0.6f);
+                yield return Shot("tip-turn");
+                yield return Press(Key.R);
+                yield return Wait(0.6f);
+                Check(game.ActiveTip != "turn", "tip: turning it retires the turning tip");
+                yield return Press(Key.Escape);
+                yield return Wait(0.4f);
+            }
+            else Check(false, "tip: the wagon has a fragile item");
+
+            // A few placements in, mention undo.
+            foreach (var (itemId, cells) in solutions["wagon"])
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.05f);
+            }
+            yield return WaitForTip("undo", 10f);
+            Check(game.ActiveTip == "undo", "tip: after a few drops it mentions undo");
+            yield return Wait(0.6f);
+            yield return Shot("tip-undo");
+
+            // The Garage Sale pickup: the third thing has a shelf over a gap (as in the trailer).
+            var garage = solutions["garage"];
+            game.AutoStartLevel(LevelIndex("garage"));
+            yield return Wait(2.5f);
+            for (int i = 0; i < 2; i++)
+            {
+                var (itemId, cells) = garage[i];
+                var item = game.Items.First(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+            }
+            yield return Wait(0.6f);
+            {
+                var (itemId, cells) = garage[2];
+                var item = game.Items.First(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                game.AutoHold(item);
+                item.SetOrientation(FindOrientation(item.Def.Shape, cells));
+                var min = cells.Aggregate(Vector3Int.Min);
+                var heights = game.HeldRestingHeights(min.x, min.z);
+                Check(heights.Count >= 2, "tip: the garage's third item has a shelf to choose");
+                // Sweep the trunk at a few heights until the aim lands on a column with a shelf.
+                var size = game.TrunkSize;
+                for (int y = size.y; y >= 0 && game.ActiveTip != "shelf"; y--)
+                for (int x = 0; x < size.x && game.ActiveTip != "shelf"; x++)
+                for (int z = 0; z < size.z && game.ActiveTip != "shelf"; z++)
+                {
+                    yield return MoveMouse(trunk().TransformPoint(new Vector3(x + 0.5f, y, z + 0.5f)));
+                    yield return Wait(0.12f);
+                }
+                if (game.ActiveTip != "shelf") yield return WaitForTip("shelf", 1f);
+                Check(game.ActiveTip == "shelf", "tip: a column with a gap underneath explains shelves");
+                yield return Wait(0.6f);
+                yield return Shot("tip-shelf");
+                yield return Press(Key.W);
+                yield return Wait(0.6f);
+                Check(game.ActiveTip != "shelf", "tip: W retires the shelf tip");
+                yield return Press(Key.Escape);
+            }
+            yield return WaitForTip("orbit", 20f);
+            Check(game.ActiveTip == "orbit", "tip: when nothing else is pending, it mentions the camera");
+            yield return Wait(0.6f);
+            yield return Shot("tip-orbit");
+
+            // Seen once, never again: a restart and a new trip show nothing.
+            game.AutoStartLevel(LevelIndex("garage"));
+            yield return Wait(3f);
+            game.AutoStartLevel(1);
+            yield return Wait(3f);
+            Check(game.ActiveTip == null, "tip: nothing repeats after a restart or on the next trip");
+            var counts = game.TipCounts;
+            var expected = new[] { "pickup", "aim", "turn", "shelf", "fragile", "undo", "orbit" };
+            Check(expected.All(t => counts.TryGetValue(t, out var n) && n == 1) && counts.Count == expected.Length,
+                "tip: each of the seven tips showed exactly once (" + string.Join(", ", counts.Select(kv => kv.Key + " " + kv.Value)) + ")");
+        }
+
+        static int LevelIndex(string id)
+        {
+            for (int i = 0; i < GameDatabase.Levels.Count; i++)
+                if (GameDatabase.Levels[i].Id == id) return i;
+            return -1;
         }
 
         static bool AnyText(string fragment) =>

@@ -39,6 +39,19 @@ namespace PackTheTrunk
 
         public void AutoShowMenuAlbum() => ShowAlbum(false);
 
+        /// <summary>The tip on screen right now (lower-case name), or null.</summary>
+        public string ActiveTip => activeTip?.ToString().ToLowerInvariant();
+
+        /// <summary>How many times each tip has been shown since the last <see cref="AutoResetTips"/>.</summary>
+        public IReadOnlyDictionary<string, int> TipCounts => tipCounts;
+
+        public void AutoResetTips()
+        {
+            ResetTips();
+            tipCounts.Clear();
+            placementsThisSession = 0;
+        }
+
         /// <summary>The live placement target while holding an item.</summary>
         public bool CurrentTarget(out Vector3Int pos, out bool valid)
         {

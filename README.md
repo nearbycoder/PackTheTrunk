@@ -62,7 +62,7 @@ way.)
 | **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
 | **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
 | **`Z`** / **`Backspace`** | Undo |
-| **`Space`** / **`Enter`** | Close the trunk once the essentials are packed |
+| **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
 | **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
 | **`M`** | Music on / off |
 | **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
@@ -70,6 +70,9 @@ way.)
 
 Mouse and keyboard only for now: there's no gamepad or touch support yet. The full list is also
 in **Settings → Controls**, and key hints run along the bottom of the screen while you pack.
+On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
+aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →
+Gameplay turns them off, and turning them back on shows them all again.
 
 ### The rules
 
@@ -143,7 +146,7 @@ Also in the box:
   and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
   quality presets, render scale, anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient
   occlusion, ink outlines, depth of field, bloom, camera speed, screen shake, key hints,
-  placement colours and story text speed.
+  Grandpa's tips, placement colours and story text speed.
 - **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
   glass), spatial panning, music that crossfades between screens, muffles behind the story texts
   and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.
@@ -353,7 +356,10 @@ autopilot passes every trip. Still rough or missing:
   OpenGL Core by default; Vulkan works with `-force-vulkan`.
 - **Editor on Arch-based distros.** The Unity editor needs `libxml2.so.2`; install
   `libxml2-legacy` (or point `LD_LIBRARY_PATH` at a copy, as `Tools/unity.sh` does).
-- The showcase recorder segfaulted once mid-capture and succeeded on a re-run; the recorders now
-  retry once. The cause wasn't found.
+- **Rare player crash on Wayland.** The player has segfaulted a couple of times mid-run (once while
+  recording, once in the autopilot). The crash log from the autopilot one shows it on the main
+  thread inside `wl_display_dispatch_queue_pending`, which is Unity's native Wayland backend handling
+  compositor events, not game code. It hasn't been reproduced on demand. The recorders and
+  `autopilot.sh` keep the log and retry once.
 - No licence has been chosen for the project's own code and content yet. Third-party assets keep
   the licences listed above.

@@ -162,6 +162,7 @@ namespace PackTheTrunk
             UpdateNowPlaying();
             UpdateTitle();
             UpdateHudMotion();
+            UpdateTip();
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
@@ -790,6 +791,7 @@ namespace PackTheTrunk
             toastGroup.blocksRaycasts = false;
             toast = UiTheme.Label("Text", toastCard, "", UiTheme.Body, 27, Color.white, TextAnchor.MiddleCenter);
             toast.rectTransform.Fill(10);
+            BuildTip();
 
             var keys = keyHints = UiKit.Rect("Keys", hud).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(44, 22), new Vector2(1380, 44));
             UiMotion.Intro(keys, new Vector2(0, -90), 0.25f, 1f, 0f, 0.5f, false);
@@ -962,6 +964,56 @@ namespace PackTheTrunk
         }
 
         public void SetHover(string text) => hoverText.text = text ?? "";
+
+        // ------------------------------------------------------------------ Grandpa's tips
+
+        RectTransform tipHolder;
+        CanvasGroup tipGroup;
+        Text tipText;
+        bool tipShown;
+
+        void BuildTip()
+        {
+            var card = UiTheme.Card("Tip", hud, UiTheme.Paper, 1.2f);
+            tipHolder = (RectTransform)card.parent;
+            // Top, in the gap between the trip tag and the packing list (sized to fit in ShowTip).
+            tipHolder.Pin(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(TipLeft, TipTop), new Vector2(690, 136));
+            tipGroup = tipHolder.gameObject.AddComponent<CanvasGroup>();
+            tipGroup.blocksRaycasts = false;
+            tipGroup.interactable = false;
+            tipGroup.alpha = 0f;
+            UiTheme.Tape(card, new Vector2(0.5f, 1f), new Vector2(0, -4), -3f, 120f);
+            var header = UiTheme.Label("Header", card, "GRANDPA'S TIP", UiTheme.Display, 20, UiTheme.Accent, TextAnchor.UpperLeft);
+            header.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(30, -50), new Vector2(-24, -20));
+            tipText = UiTheme.Label("Text", card, "", UiTheme.Hand, 30, UiTheme.Ink, TextAnchor.UpperLeft);
+            tipText.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(30, 10), new Vector2(-24, -48));
+            tipHolder.gameObject.SetActive(false);
+        }
+
+        public bool TipVisible => tipShown;
+
+        const float TipLeft = 744f, TipTop = -128f, TipRightMargin = 490f;
+
+        public void ShowTip(string text)
+        {
+            // Narrower screens (16:10, 4:3) leave less room between the tag and the list: wrap taller.
+            float width = Mathf.Clamp(root.rect.width - TipLeft - TipRightMargin, 420f, 690f);
+            tipHolder.sizeDelta = new Vector2(width, width < 600f ? 176f : 136f);
+            tipText.text = text;
+            tipShown = true;
+            tipHolder.gameObject.SetActive(true);
+        }
+
+        public void HideTip() => tipShown = false;
+
+        void UpdateTip()
+        {
+            if (tipHolder == null || !tipHolder.gameObject.activeSelf) return;
+            tipGroup.alpha = Mathf.MoveTowards(tipGroup.alpha, tipShown ? 1f : 0f, UiTime.Delta * (tipShown ? 5f : 3.5f));
+            // Drops in from above as it fades in, lifts away as it fades out.
+            tipHolder.anchoredPosition = new Vector2(TipLeft, TipTop + 40f * (1f - Ease.OutCubic(tipGroup.alpha)));
+            if (!tipShown && tipGroup.alpha <= 0f) tipHolder.gameObject.SetActive(false);
+        }
 
         public void Toast(string message, float seconds = 2.2f)
         {

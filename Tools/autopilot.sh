@@ -18,7 +18,14 @@ PY
 SAVE="$HOME/.config/unity3d/Nearby Games/Pack The Trunk"
 save_hash() { [ -d "$SAVE" ] && (cd "$SAVE" && find . -path ./Unity -prune -o -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum || echo none; }
 BEFORE="$(save_hash)"
-timeout 900 "$ROOT/Tools/play.sh" -logFile "$OUT/player.log" -pttAutopilot "$OUT" -pttSolutions "$OUT/solutions.txt" ${PTT_QUICK:+-pttQuick} > /dev/null 2>&1 || true
+# Unity's native Wayland backend has (rarely) segfaulted inside wl_display_dispatch_queue_pending
+# mid-run; that is a player crash, not a test failure, so keep the log and run once more.
+for attempt in 1 2; do
+  timeout 900 "$ROOT/Tools/play.sh" -logFile "$OUT/player.log" -pttAutopilot "$OUT" -pttSolutions "$OUT/solutions.txt" ${PTT_QUICK:+-pttQuick} > /dev/null 2>&1 || true
+  grep -q "Caught fatal signal" "$OUT/player.log" || break
+  cp "$OUT/player.log" "$OUT/player-crash-$attempt.log"
+  echo "[AutoPilot] player crashed (native signal; log: $OUT/player-crash-$attempt.log), running again" >&2
+done
 [ "$(save_hash)" = "$BEFORE" ] && echo "[AutoPilot] PASS the player's own save is untouched" >> "$OUT/player.log" \
   || echo "[AutoPilot] FAIL the player's own save changed during the run" >> "$OUT/player.log"
 grep -E "\[AutoPilot\] (PASS|FAIL|done)|Exception" "$OUT/player.log"

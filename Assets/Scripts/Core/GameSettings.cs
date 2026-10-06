@@ -51,6 +51,7 @@ namespace PackTheTrunk
         public static bool InvertOrbit { get => B("invert", false); set => Set("invert", value); }
         public static bool ScreenShake { get => B("shake", true); set => Set("shake", value); }
         public static bool KeyHints { get => B("hints", true); set => Set("hints", value); }
+        public static bool Tips { get => B("tips", true); set => Set("tips", value); }
         public static readonly string[] PlacementPalettes = { "Green / red", "Blue / orange" };
         public static int PlacementPalette { get => I("ghostpal", 0); set => Set("ghostpal", value); }
         public static readonly string[] TextSpeeds = { "Relaxed", "Normal", "Quick" };
@@ -140,7 +141,7 @@ namespace PackTheTrunk
             foreach (var key in new[]
             {
                 "master", "music", "effects", "ambience", "bgmute", "vsync", "framecap", "fov", "uiscale", "preset", "renderscale",
-                "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "ghostpal", "textspeed",
+                "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "tips", "ghostpal", "textspeed",
             })
                 Prefs.DeleteKey(Prefix + key);
             Commit();
