@@ -141,6 +141,38 @@ namespace PackTheTrunk
 
         public void SetColliderEnabled(bool enabled) => meshCollider.enabled = enabled;
 
+        Renderer[] renderers;
+        Material[][] savedMaterials;
+
+        /// <summary>Drawn as a faint see-through silhouette (no outline, no shadow) so you can see past it.</summary>
+        public bool SeeThrough { get; private set; }
+
+        public void SetSeeThrough(bool on)
+        {
+            if (SeeThrough == on) return;
+            SeeThrough = on;
+            renderers ??= visual.GetComponentsInChildren<Renderer>(true);
+            if (on)
+            {
+                // Tinted with the item's own colour, so you can still tell what's what.
+                var c = Def.Colors.Length > 0 ? Def.Colors[0] : Color.white;
+                var mat = MaterialLibrary.Ghost(new Color(Mathf.Lerp(c.r, 1f, 0.35f), Mathf.Lerp(c.g, 1f, 0.35f), Mathf.Lerp(c.b, 1f, 0.35f), 0.16f));
+                savedMaterials = new Material[renderers.Length][];
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    savedMaterials[i] = renderers[i].sharedMaterials;
+                    var ghosted = new Material[savedMaterials[i].Length];
+                    for (int m = 0; m < ghosted.Length; m++) ghosted[m] = mat;
+                    renderers[i].sharedMaterials = ghosted;
+                }
+            }
+            else if (savedMaterials != null)
+            {
+                for (int i = 0; i < renderers.Length; i++) renderers[i].sharedMaterials = savedMaterials[i];
+                savedMaterials = null;
+            }
+        }
+
         /// <summary>Still dropping onto the blanket at the start of a trip.</summary>
         public bool IsFalling => falling;
 

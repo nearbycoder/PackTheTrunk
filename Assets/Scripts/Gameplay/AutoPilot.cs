@@ -197,6 +197,7 @@ namespace PackTheTrunk
             yield return EarlyCloseChecks(solutions);
             yield return TipChecks(solutions);
             yield return HintChecks();
+            yield return SeeThroughChecks();
             // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
             yield return GamepadChecks();
 
@@ -491,6 +492,100 @@ namespace PackTheTrunk
             yield return FollowHints();
             Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
                 $"hint: from the wrong start, hints still lead to 100% ({followSteps} hints{(followStuck != null ? ", stuck: " + followStuck : "")})");
+        }
+
+        /// <summary>
+        /// Seeing into the trunk, on the Garage Sale pickup where the third item has a shelf over a gap:
+        /// tucked into the gap, whatever hides the ghost goes see-through (and comes back when the ghost
+        /// moves up on top); holding Tab turns everything packed see-through and aims through it.
+        /// </summary>
+        IEnumerator SeeThroughChecks()
+        {
+            // Build a covered gap on First Snow (a 3-tall SUV): a small thing on the floor one row in, the
+            // skis resting on it and sticking out over the floor, another small thing in front of the gap,
+            // then hold a third small thing.
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("snow"));
+            yield return Wait(2.5f);
+            var smalls = game.Items.Where(i => i.Def.Shape.Voxels.Length == 1 && !i.Def.Fragile).ToList();
+            PackItem plank = null;
+            Quaternion plankTurn = Quaternion.identity;
+            foreach (var candidate in game.Items.Where(i => i.Def.Shape.Voxels.Length >= 2 && !i.Def.Fragile))
+            {
+                var flat = candidate.Def.Shape.Orientations().FirstOrDefault(o => o.Shape.Size.y == 1 && o.Shape.Size.z == 1 && o.Shape.Size.x >= 2);
+                if (flat.Shape == null) continue;
+                plank = candidate;
+                plankTurn = flat.Rotation;
+                break;
+            }
+            if (smalls.Count < 3 || plank == null) { Check(false, "see-through: First Snow has the pieces for an overhang"); yield break; }
+            // Find a spot clear of the wheel wells: support at (x, 0, z), skis from (x, 1, z) along +x,
+            // the gap at (x + 1, 0, z) and the blocker in front of it at (x + 1, 0, z - 1).
+            bool built = false;
+            var gap = Vector3Int.zero;
+            for (int z = 1; z < game.TrunkSize.z && !built; z++)
+            for (int x = 0; x + 1 < game.TrunkSize.x && !built; x++)
+            {
+                if (!game.AutoPlace(smalls[0], Quaternion.identity, new Vector3Int(x, 0, z))) continue;
+                if (game.AutoPlace(plank, plankTurn, new Vector3Int(x, 1, z)))
+                {
+                    if (game.AutoPlace(smalls[1], Quaternion.identity, new Vector3Int(x + 1, 0, z - 1)))
+                    {
+                        built = true;
+                        gap = new Vector3Int(x + 1, 0, z);
+                        break;
+                    }
+                    game.AutoPutBackToPile(plank);
+                }
+                game.AutoPutBackToPile(smalls[0]);
+            }
+            Check(built, $"see-through: built a covered gap at {gap} ({plank.Def.Name} over it, {smalls[1].Def.Name} in front)");
+            if (!built) yield break;
+            yield return Wait(0.8f);
+            var item = smalls[2];
+            game.AutoHold(item);
+            var trunk = game.CurrentVehicle.transform;
+
+            // Aim at the top of the plank over the gap, then step down into the gap.
+            yield return MoveMouse(trunk.TransformPoint(new Vector3(gap.x + 0.5f, 2f, gap.z + 0.5f)));
+            yield return Wait(0.3f);
+            game.CurrentTarget(out var pos, out _);
+            for (int i = 0; i < 4 && pos.y > 0; i++)
+            {
+                yield return Press(Key.S);
+                yield return Wait(0.2f);
+                game.CurrentTarget(out pos, out _);
+            }
+            yield return Wait(0.3f);
+            Check(pos == gap && plank.SeeThrough && game.Items.Where(i => i.SeeThrough).All(i => i.State == ItemState.Packed),
+                $"see-through: tucked under the {plank.Def.Name} ({pos}), it goes see-through");
+            yield return Shot("see-through-gap");
+            yield return Press(Key.W);
+            yield return Press(Key.W);
+            yield return Wait(0.3f);
+            game.CurrentTarget(out pos, out _);
+            Check(pos.y > 1 && !plank.SeeThrough, $"see-through: back on top ({pos}), the {plank.Def.Name} comes back");
+
+            // X-ray: everything packed is see-through, and aiming at the floor passes through the plank.
+            var floor = trunk.TransformPoint(new Vector3(gap.x + 0.5f, 0.02f, gap.z + 0.5f));
+            yield return MoveMouse(floor);
+            yield return Wait(0.3f);
+            game.CurrentTarget(out var without, out _);
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(Key.Tab));
+            yield return Wait(0.4f);
+            yield return MoveMouse(floor);
+            yield return Wait(0.3f);
+            game.CurrentTarget(out var with, out _);
+            Check(game.XRayActive && game.Items.Where(i => i.State == ItemState.Packed).All(i => i.SeeThrough),
+                "see-through: holding Tab shows every packed item see-through");
+            Check(with == gap && without != gap, $"see-through: with Tab the aim passes through to the gap ({without} -> {with})");
+            yield return Shot("see-through-xray");
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
+            yield return Wait(0.3f);
+            yield return Press(Key.Escape);
+            yield return Wait(0.4f);
+            Check(!game.XRayActive && game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough),
+                "see-through: letting go of Tab and putting the item back restores everything");
         }
 
         /// <summary>Do exactly what Grandpa says (undoing when he says so) until everything is packed.</summary>

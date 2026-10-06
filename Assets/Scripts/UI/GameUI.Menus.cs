@@ -226,7 +226,7 @@ namespace PackTheTrunk
             // How-to card on the right.
             var card = UiTheme.Card("How To", pause, UiTheme.Paper, 2f);
             var holder = (RectTransform)card.parent;
-            holder.Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-120, 0), new Vector2(640, 700));
+            holder.Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-120, 0), new Vector2(640, 780));
             UiTheme.Tape(card, new Vector2(0.5f, 1f), new Vector2(0, -4), -2f, 170f);
             UiMotion.Intro(holder, new Vector2(500, 0), 0.1f, 0.9f, 8f, 0.6f);
             var h = UiTheme.Label("Header", card, "HOW TO PACK", UiTheme.Display, 44, UiTheme.Ink, TextAnchor.UpperLeft);
@@ -257,6 +257,7 @@ namespace PackTheTrunk
             ("R  T  F", "turn · tip · roll (hold SHIFT to reverse)"),
             ("WHEEL / W S", "choose a shelf when there's a gap"),
             ("Q  E / RIGHT-DRAG", "look around the car"),
+            ("TAB (hold)", "see through everything packed"),
             ("Z  ·  H", "undo · ask Grandpa for a hint"),
             ("SPACE", "close the trunk"),
             ("ESC", "put back · pause"),
@@ -269,6 +270,7 @@ namespace PackTheTrunk
             ("X  Y  RB", "turn · tip · roll (hold LB to reverse)"),
             ("D-PAD UP / DOWN", "choose a shelf"),
             ("R-STICK  ·  LT RT", "look around · zoom"),
+            ("L-STICK CLICK (hold)", "see through everything packed"),
             ("VIEW  ·  D-PAD LEFT", "undo · ask Grandpa"),
             ("D-PAD RIGHT", "close the trunk"),
             ("B  ·  MENU", "put back / back · pause"),

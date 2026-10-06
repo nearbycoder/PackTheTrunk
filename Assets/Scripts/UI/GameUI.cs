@@ -810,19 +810,20 @@ namespace PackTheTrunk
             var kbHints = UiKit.Rect("Keyboard", keys).Fill();
             var kh = UiKit.Horizontal(kbHints.gameObject, 22, TextAnchor.MiddleLeft);
             kh.childControlWidth = true;
-            UiTheme.KeyHint(kbHints, "CLICK", "pick up / drop");
+            UiTheme.KeyHint(kbHints, "CLICK", "grab / drop");
             UiTheme.KeyHint(kbHints, "R", "turn");
             UiTheme.KeyHint(kbHints, "T", "tip");
             UiTheme.KeyHint(kbHints, "F", "roll");
             UiTheme.KeyHint(kbHints, "WHEEL", "shelf");
-            UiTheme.KeyHint(kbHints, "ESC", "put back / pause");
+            UiTheme.KeyHint(kbHints, "ESC", "back / pause");
             UiTheme.KeyHint(kbHints, "Z", "undo");
             UiTheme.KeyHint(kbHints, "Q E", "orbit");
-            UiTheme.KeyHint(kbHints, "SPACE", "close trunk");
+            UiTheme.KeyHint(kbHints, "TAB", "x-ray");
+            UiTheme.KeyHint(kbHints, "SPACE", "close");
             var padHints = UiKit.Rect("Gamepad", keys).Fill();
             var ph = UiKit.Horizontal(padHints.gameObject, 18, TextAnchor.MiddleLeft);
             ph.childControlWidth = true;
-            UiTheme.KeyHint(padHints, "A", "pick up / drop");
+            UiTheme.KeyHint(padHints, "A", "grab / drop");
             UiTheme.KeyHint(padHints, "X", "turn");
             UiTheme.KeyHint(padHints, "Y", "tip");
             UiTheme.KeyHint(padHints, "RB", "roll");
@@ -830,6 +831,7 @@ namespace PackTheTrunk
             UiTheme.KeyHint(padHints, "B", "put back");
             UiTheme.KeyHint(padHints, "VIEW", "undo");
             UiTheme.KeyHint(padHints, "R-STICK", "look");
+            UiTheme.KeyHint(padHints, "L3", "x-ray");
             UiTheme.KeyHint(padHints, "D-PAD >", "close");
             padHintsRow = padHints;
             void ShowPadHints()

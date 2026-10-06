@@ -528,6 +528,7 @@ namespace PackTheTrunk
             level = GameDatabase.Levels[index];
             ClearTips();
             ClearHint();
+            ClearSeeThrough();
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             items.Clear();
             undo.Clear();
@@ -631,6 +632,7 @@ namespace PackTheTrunk
             if (mode != Mode.Playing || paused) return;
             UpdateTips();
             UpdateHint();
+            UpdateSeeThrough();
 
             var mouse = Mouse.current;
             var keyboard = Keyboard.current;
@@ -688,7 +690,7 @@ namespace PackTheTrunk
             if (held == null)
             {
                 PackItem hit = null;
-                if (!overUi && Physics.Raycast(ray, out var info, 300f))
+                if (!overUi && AimRaycast(ray, out var info))
                 {
                     hit = info.collider.GetComponentInParent<PackItem>();
                     if (hit != null && hit.State != ItemState.Pile && hit.State != ItemState.Packed) hit = null;
@@ -783,7 +785,7 @@ namespace PackTheTrunk
             Vector3Int cell = default;
             bool found = false;
 
-            if (Physics.Raycast(ray, out var hit, 300f))
+            if (AimRaycast(ray, out var hit))
             {
                 var item = hit.collider.GetComponentInParent<PackItem>();
                 bool trunk = hit.collider.GetComponentInParent<TrunkSurface>() != null || (item != null && item.State == ItemState.Packed);
@@ -1141,6 +1143,7 @@ namespace PackTheTrunk
             mode = Mode.Closing;
             ClearTips();
             ClearHint();
+            ClearSeeThrough();
             SetHovered(null);
             ghost.gameObject.SetActive(false);
             ui.HideHudForCutscene(true);

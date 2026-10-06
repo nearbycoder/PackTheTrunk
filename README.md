@@ -65,13 +65,14 @@ way.)
 | **`H`** or the **HINT** button | Ask Grandpa: a gold ghost shows where one thing goes |
 | **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
 | **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
+| **`Tab`** (hold) | X-ray: everything packed turns see-through, and you aim straight through it |
 | **`M`** | Music on / off |
 | **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
 | **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
 
 **Gamepad (new):** the left stick moves a cursor and **A** clicks, so every menu and button works
 by pointing. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
-way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, **D-pad right** closes the
+way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the **left stick** in is X-ray, **D-pad right** closes the
 trunk, **View** undoes, **B** puts back or backs out, **Menu** pauses (and moves on from story
 texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
 the tips switch to controller buttons as soon as you touch the pad, and back when you move the
@@ -80,6 +81,11 @@ controller or a Steam Deck yet. There's no touch support or key remapping.
 
 The full list is also in **Settings → Controls**, and key hints run along the bottom of the screen
 while you pack.
+**Seeing into the trunk.** While you hold something, anything packed that hides part of the
+ghost (say, when you tuck a thing into a gap under a shelf) turns into a faint see-through
+silhouette. Hold **`Tab`** (or click the left stick) to see through everything packed and aim at
+any spot underneath or behind it.
+
 Stuck? **Ask Grandpa** (`H`) shows where one thing goes, taken from a complete 100% packing of
 the trip. Pick the hinted item up and it turns itself to match. If something already in the
 trunk is somewhere that packing doesn't have it, he tells you to move it (or to undo). Hints are

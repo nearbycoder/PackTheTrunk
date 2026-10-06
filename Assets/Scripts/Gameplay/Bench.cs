@@ -55,6 +55,31 @@ namespace PackTheTrunk
                 .OrderByDescending(i => GameDatabase.Levels[i].Required.Count + GameDatabase.Levels[i].Bonus.Count).First();
             game.AutoStartLevel(biggest);
             yield return Hold($"packing ({GameDatabase.Levels[biggest].Id})", 4f);
+            // Half-packed (from the shipped solution) and holding the next thing over the trunk: the
+            // ghost, the see-through check and the fragile stamps all run every frame.
+            var solution = Solutions.For(GameDatabase.Levels[biggest]);
+            if (solution.Count > 0)
+            {
+                var spots = solution[0];
+                for (int i = 0; i < spots.Count / 2; i++)
+                {
+                    var spot = spots[i];
+                    var piece = game.Items.FirstOrDefault(it => it.Def.Id == spot.Def.Id && it.State == ItemState.Pile);
+                    if (piece != null) game.AutoPlace(piece, spot.Rotation, spot.Min);
+                }
+                var next = spots[spots.Count / 2];
+                var held = game.Items.FirstOrDefault(it => it.Def.Id == next.Def.Id && it.State == ItemState.Pile);
+                if (held != null)
+                {
+                    game.AutoHold(held);
+                    var aim = game.Camera.WorldToScreenPoint(game.CurrentVehicle.transform.TransformPoint(next.Min + new Vector3(0.5f, 0f, 0.5f)));
+                    UnityEngine.InputSystem.InputSystem.QueueStateEvent(UnityEngine.InputSystem.Mouse.current,
+                        new UnityEngine.InputSystem.LowLevel.MouseState { position = new Vector2(aim.x, aim.y) });
+                }
+                yield return Hold($"holding ({GameDatabase.Levels[biggest].Id}, half packed)", 4f);
+                Debug.Log($"[Bench] holding {held?.Def.Id}: target {(game.CurrentTarget(out var at, out var ok) ? at + (ok ? " (fits)" : " (won't fit)") : "none")}");
+                game.AutoPutBack();
+            }
             game.AutoShowMenuAlbum();
             yield return Hold("album", 4f);
             game.Ui.ShowCredits();

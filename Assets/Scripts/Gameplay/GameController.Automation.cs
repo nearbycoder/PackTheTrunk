@@ -46,6 +46,11 @@ namespace PackTheTrunk
 
         public PackItem HintItem => hintItem;
 
+        /// <summary>How many packed items are drawn see-through right now.</summary>
+        public int SeeThroughCount => seeThrough.Count;
+
+        public bool XRayActive => xray;
+
         /// <summary>Undo one step, as Z would; false if there's nothing to undo.</summary>
         public bool AutoUndo()
         {
