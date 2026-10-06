@@ -13,7 +13,8 @@ namespace PackTheTrunk
     /// </summary>
     public partial class GameController
     {
-        static readonly Color HintGhostColor = new Color(1f, 0.82f, 0.3f, 0.42f);
+        // The HINT button's orange, strong enough to read next to yellow and gold things.
+        static readonly Color HintGhostColor = new Color(1f, 0.48f, 0.24f, 0.6f);
 
         /// <summary>What Grandpa suggested.</summary>
         public struct Hint
@@ -32,6 +33,7 @@ namespace PackTheTrunk
         PackItem hintItem;
         Quaternion hintRotation;
         Vector3Int hintPos, hintFrom;
+        VoxelShape hintShape;
         bool hintFromTrunk;
         float hintUntil, hintBounce;
 
@@ -66,6 +68,7 @@ namespace PackTheTrunk
 
             EnsureHintGhost();
             var shape = hint.Item.Def.Shape.Rotated(hint.Rotation);
+            hintShape = shape;
             if (hintFilter.sharedMesh != null) Destroy(hintFilter.sharedMesh);
             hintFilter.sharedMesh = VoxelMeshBuilder.Build(shape, 1, Vector3.zero, -0.04f);
             hintGhost.SetPositionAndRotation(vehicle.transform.TransformPoint(hint.Pos), vehicle.transform.rotation);

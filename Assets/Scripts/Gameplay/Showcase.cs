@@ -61,6 +61,7 @@ namespace PackTheTrunk
             int s = Array.IndexOf(args, "-pttSolutions");
             if (s >= 0 && s + 1 < args.Length) showcase.solutionsPath = args[s + 1];
             showcase.trailer = Array.IndexOf(args, "-pttTrailer") >= 0;
+            showcase.stillsOnly = Array.IndexOf(args, "-pttStillsOnly") >= 0;
         }
 
         IEnumerator Start()

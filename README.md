@@ -62,7 +62,7 @@ way.)
 | **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
 | **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
 | **`Z`** / **`Backspace`** | Undo |
-| **`H`** or the **HINT** button | Ask Grandpa: a gold ghost shows where one thing goes |
+| **`H`** or the **HINT** button | Ask Grandpa: an orange ghost shows where one thing goes |
 | **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
 | **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
 | **`Tab`** (hold) | X-ray: everything packed turns see-through, and you aim straight through it |
@@ -203,6 +203,8 @@ Also in the box:
 | ![A grocery bag held over the birthday cake: the cake is fragile, nothing goes on top of it](docs/media/screenshots/05-fragile.jpg) | ![The Clown Car: there's already a clown sitting in the trunk, so the tuba won't fit there](docs/media/screenshots/06-clown-car.jpg) |
 | ![Everyone, Everything: a minivan nearly full, 23 of 25 things packed](docs/media/screenshots/07-everyone-everything.jpg) | ![The postcard: two stars, with the garden gnome and the box of cables left on the curb](docs/media/screenshots/08-postcard.jpg) |
 | ![The trip map, paged by chapter, with stars for every trip](docs/media/screenshots/09-trip-map.jpg) | ![The family album, with a polaroid of every trunk from 1998 to 2027](docs/media/screenshots/10-family-album.jpg) |
+| ![Ask Grandpa: an orange ghost in the SUV's trunk shows where the sleeping bag goes](docs/media/screenshots/11-ask-grandpa.jpg) | ![One of Grandpa's tips explaining the green ghost while the first suitcase is aimed into the sedan](docs/media/screenshots/12-grandpas-tip.jpg) |
+| ![X-ray: a nearly full minivan with every packed thing see-through and the toy box's ghost showing where it fits](docs/media/screenshots/13-x-ray.jpg) | |
 
 ## Play it
 

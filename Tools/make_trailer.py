@@ -498,6 +498,7 @@ STILLS = {  # capture still name -> README screenshot name
     "title": "01-title", "packing": "02-packing", "slam": "03-slam", "story": "04-story",
     "fragile": "05-fragile", "clown": "06-clown-car", "late": "07-everyone-everything", "postcard": "08-postcard",
     "map": "09-trip-map", "album": "10-family-album",
+    "hint": "11-ask-grandpa", "tip": "12-grandpas-tip", "xray": "13-x-ray",
 }
 
 
@@ -509,12 +510,18 @@ STILL_FRAMES = {"slam": ("close", 2.23)}
 def stills(cap_dirs, beats):
     dest = MEDIA / "screenshots"
     dest.mkdir(parents=True, exist_ok=True)
-    latest = {}  # later capture folders win
-    for cap_dir in cap_dirs:
+    latest, source = {}, {}  # later capture folders win
+    for index, cap_dir in enumerate(cap_dirs):
         for png in sorted((cap_dir / "stills").glob("*.png")):
-            latest[png.stem.split("-", 1)[1]] = png
+            name = png.stem.split("-", 1)[1]
+            latest[name], source[name] = png, index
+    # A frame from the footage replaces a still only if that footage is at least as new.
     for name, (beat, at) in STILL_FRAMES.items():
+        if beat not in beats:
+            continue
         cap_dir, start, _ = beats[beat]
+        if name in source and cap_dirs.index(cap_dir) < source[name]:
+            continue
         latest[name] = cap_dir / f"frame_{start + int(round(at * FPS)):05d}.jpg"
     for name, png in sorted(latest.items()):
         if name not in STILLS:
@@ -538,6 +545,8 @@ def main():
     caps = [Path(c).resolve() for c in args.capture]
     beats = {}  # name -> (capture folder, first frame, end frame); later folders win
     for cap in caps:
+        if not (cap / "beats.tsv").exists():  # a stills-only capture
+            continue
         for line in (cap / "beats.tsv").read_text().splitlines():
             name, a, b = line.split("\t")
             beats[name] = (cap, int(a), int(b))

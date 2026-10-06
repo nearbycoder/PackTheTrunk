@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 namespace PackTheTrunk
 {
@@ -18,6 +19,9 @@ namespace PackTheTrunk
     public partial class Showcase
     {
         bool trailer;
+
+        /// <summary>-pttStillsOnly: play the script but save only the stills (no video frames or audio).</summary>
+        bool stillsOnly;
         Canvas overlay;
         string pendingStill;
         int stillCount;
@@ -49,6 +53,7 @@ namespace PackTheTrunk
             {
                 ("intro", Intro), ("fragile", FragileSection), ("clown", ClownSection), ("arrivals", Arrivals),
                 ("album", MapAndAlbum), ("speed", Escalation), ("heights", Shelves), ("coldopen", ColdOpen),
+                ("features", FeatureStills),
             };
             foreach (var (name, section) in sections)
                 if (only == null || only.Contains(name))
@@ -163,7 +168,9 @@ namespace PackTheTrunk
             Beat("close");
             yield return ClickButton("Close", 0.6f, 0.25f);
             cursorShown = false;
-            yield return Hold(7.4f);
+            yield return Hold(2.23f);
+            yield return Still("slam");
+            yield return Hold(5.17f);
             yield return Still("postcard");
             yield return Hold(1.2f);
             Cut();
@@ -344,9 +351,96 @@ namespace PackTheTrunk
             yield return ClickButton("Close", 0.55f, 0.2f);
             cursorShown = false;
             yield return Hold(0.75f);
-            yield return Still("slam");
+            yield return Still("slam-wide");
             yield return Hold(7.4f);
             Cut();
+        }
+
+        /// <summary>
+        /// README stills for the newer features (no video): a Grandpa's tip on a new player's second
+        /// trip, Ask Grandpa's ghost on a half-packed SUV, and X-ray in a mostly packed minivan.
+        /// </summary>
+        IEnumerator FeatureStills()
+        {
+            // ---- Grandpa's tip while aiming the first suitcase (tips are normally off in captures).
+            GameController.CaptureTips = true;
+            game.AutoResetTips();
+            var weekend = EssentialsFirst("weekend");
+            game.AutoStartLevel(ids.IndexOf("weekend"));
+            cursorShown = true;
+            yield return Hold(3f);
+            var (firstId, firstCells) = weekend[0];
+            var first = game.Items.First(i => i.Def.Id == firstId && i.State == ItemState.Pile);
+            yield return MoveTo(PointOnItem(first), 0.5f);
+            yield return Click();
+            yield return Hold(0.4f);
+            if (game.Held != first) game.AutoHold(first);
+            first.SetOrientation(AutoPilot.FindOrientation(first.Def.Shape, firstCells));
+            yield return MoveTo(TrunkPoint(firstCells.Aggregate(Vector3Int.Min), first.Shape.Size), 0.6f);
+            yield return Hold(1.6f);
+            yield return Still("tip");
+            GameController.CaptureTips = false;
+            yield return Press(Key.Escape, false);
+            yield return Hold(0.4f);
+
+            // ---- Ask Grandpa on a half-packed Into the Woods.
+            var camping = solutions["camping"];
+            game.AutoStartLevel(ids.IndexOf("camping"));
+            cursorShown = false;
+            yield return Hold(2.8f);
+            for (int i = 0; i < camping.Count / 2; i++) Place(camping[i]);
+            yield return Hold(1.2f);
+            yield return Press(Key.H, false);
+            yield return Hold(0.2f);
+            FrameOn();
+            yield return Hold(2.0f);
+            yield return Still("hint");
+
+            // ---- X-ray: Everyone, Everything nearly packed, holding the next thing, Tab held down.
+            var reunion = solutions["reunion2"];
+            game.AutoStartLevel(ids.IndexOf("reunion2"));
+            yield return Hold(2.8f);
+            int packed = reunion.Count - 5;
+            for (int i = 0; i < packed; i++) Place(reunion[i]);
+            FrameOn();
+            yield return Hold(2.2f);
+            var (nextId, nextCells) = reunion[packed];
+            var next = game.Items.First(i => i.Def.Id == nextId && i.State == ItemState.Pile);
+            game.AutoHold(next);
+            next.SetOrientation(AutoPilot.FindOrientation(next.Def.Shape, nextCells));
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(Key.Tab));
+            yield return Hold(0.3f);
+            // Aim at the lowest open spot X-ray can reach (scan the floor of every column).
+            var size = game.TrunkSize;
+            int bestY = int.MaxValue;
+            for (int z = size.z - 1; z >= 0; z--)
+            for (int x = 0; x < size.x; x++)
+            {
+                var point = TrunkPoint(new Vector3Int(x, 0, z), next.Shape.Size);
+                if (game.PreviewTarget(point, out var at, out var ok) && ok && at.y < bestY)
+                {
+                    mouse = point;
+                    bestY = at.y;
+                }
+            }
+            Log(bestY < int.MaxValue ? $"x-ray still: aiming {next.Def.Id} at height {bestY}" : "x-ray still: no open spot found");
+            Push();
+            yield return Hold(1.0f);
+            yield return Still("xray");
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
+            yield return Hold(0.3f);
+            game.AutoPutBack();
+        }
+
+        /// <summary>
+        /// Screen point that makes the game aim something this big with its corner at <paramref name="cell"/>
+        /// (it centres what you hold on the cell under the cursor, rounding down).
+        /// </summary>
+        Vector2 TrunkPoint(Vector3Int cell, Vector3Int size)
+        {
+            var world = game.CurrentVehicle.transform.TransformPoint(new Vector3(cell.x + (size.x - 1) / 2 + 0.5f, cell.y, cell.z + (size.z - 1) / 2 + 0.5f));
+            var s = game.Camera.WorldToScreenPoint(world);
+            return new Vector2(s.x, s.y);
         }
 
         /// <summary>Glide the camera in on the trunk plus the named pile items (instead of the whole blanket).</summary>
@@ -367,6 +461,7 @@ namespace PackTheTrunk
 
         void Beat(string name)
         {
+            if (stillsOnly) return;
             if (beatName != null) Cut();
             beatName = name;
             beatStart = frame;

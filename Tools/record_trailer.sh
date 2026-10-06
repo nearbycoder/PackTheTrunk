@@ -10,6 +10,9 @@
 #   PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/trailer-pickups
 #       re-shoots just those sections (intro, fragile, clown, arrivals, album, speed, heights, coldopen);
 #       pass both folders to make_trailer.py and the newer takes win.
+#   PTT_STILLS_ONLY=1 Tools/record_trailer.sh Recordings/stills
+#       plays the same script but saves only the stills (no frames or audio): refreshes the README
+#       screenshots in a few minutes; then make_trailer.py <all folders> --only stills.
 # The capture plays on a sandboxed fresh save (Prefs.cs) and never touches yours; as a safety net
 # your save folder is still backed up first and restored after.
 set -euo pipefail
@@ -39,7 +42,7 @@ PY
 for attempt in 1 2; do
   rm -rf "$OUT"/frame_*.jpg "$OUT/stills" "$OUT/audio.wav" "$OUT/beats.tsv"
   timeout 3600 "$ROOT/Tools/play.sh" -screen-width 1920 -screen-height 1080 -logFile "$OUT/player.log" \
-    -pttShowcase "$OUT" -pttTrailer ${PTT_TRAILER_ONLY:+-pttTrailerOnly "$PTT_TRAILER_ONLY"} \
+    -pttShowcase "$OUT" -pttTrailer ${PTT_TRAILER_ONLY:+-pttTrailerOnly "$PTT_TRAILER_ONLY"} ${PTT_STILLS_ONLY:+-pttStillsOnly} \
     -pttSolutions "$BACKUP/solutions.txt" > /dev/null 2>&1 || true
   grep -q "\[Showcase\] done" "$OUT/player.log" && break
   cp "$OUT/player.log" "$OUT/player-attempt-$attempt.log" 2>/dev/null || true

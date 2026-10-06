@@ -32,7 +32,13 @@ namespace PackTheTrunk
                 foreach (var item in items)
                     if (IsPacked(item)) wantSeeThrough.Add(item);
             }
-            else if (held != null && hasTarget) AddGhostOccluders(held.Shape, targetPos);
+            else
+            {
+                if (held != null && hasTarget) AddGhostOccluders(held.Shape, targetPos, held);
+                // Grandpa's hint ghost can be tucked behind things too.
+                if (hintItem != null && hintShape != null && hintGhost != null && hintGhost.gameObject.activeSelf)
+                    AddGhostOccluders(hintShape, hintPos, hintItem);
+            }
 
             seeThroughScratch.Clear();
             foreach (var item in seeThrough)
@@ -46,8 +52,8 @@ namespace PackTheTrunk
                 if (seeThrough.Add(item)) item.SetSeeThrough(true);
         }
 
-        /// <summary>Packed items between the camera and any cell of the ghost.</summary>
-        void AddGhostOccluders(VoxelShape shape, Vector3Int pos)
+        /// <summary>Packed items (other than <paramref name="except"/>) between the camera and any cell of a ghost.</summary>
+        void AddGhostOccluders(VoxelShape shape, Vector3Int pos, PackItem except)
         {
             var eye = cam.transform.position;
             foreach (var v in shape.Voxels)
@@ -60,7 +66,7 @@ namespace PackTheTrunk
                 for (int i = 0; i < n; i++)
                 {
                     var item = rayHits[i].collider.GetComponentInParent<PackItem>();
-                    if (item != null && item != held && IsPacked(item)) wantSeeThrough.Add(item);
+                    if (item != null && item != except && IsPacked(item)) wantSeeThrough.Add(item);
                 }
             }
         }

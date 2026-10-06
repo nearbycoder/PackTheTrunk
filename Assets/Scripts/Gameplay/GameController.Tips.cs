@@ -34,7 +34,10 @@ namespace PackTheTrunk
         static readonly bool Capturing = System.Environment.GetCommandLineArgs()
             .Any(a => a == "-pttShowcase" || a == "-pttBench");
 
-        static bool TipsOn => GameSettings.Tips && !Capturing;
+        /// <summary>Let tips show during a capture (the README still of a tip).</summary>
+        public static bool CaptureTips;
+
+        static bool TipsOn => GameSettings.Tips && (!Capturing || CaptureTips);
 
         void QueueTip(Tip tip)
         {
