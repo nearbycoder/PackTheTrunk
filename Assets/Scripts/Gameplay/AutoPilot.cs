@@ -800,6 +800,18 @@ namespace PackTheTrunk
             yield return Wait(0.4f);
             Check(!game.XRayActive && game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough),
                 "see-through: letting go of Tab and putting the item back restores everything");
+
+            // Grandpa's hint ghost in the same gap, with empty hands: whatever hides it goes see-through
+            // too (round 2 only checked this by eye), and comes back once the hint is gone.
+            game.AutoShowHint(item, gap, Quaternion.identity);
+            yield return Wait(0.4f);
+            var faded = game.Items.Where(i => i.SeeThrough).ToList();
+            Check(game.Held == null && game.HintItem == item && plank.SeeThrough && faded.All(i => i.State == ItemState.Packed),
+                $"see-through: Grandpa's ghost in the gap makes what hides it see-through ({string.Join(", ", faded.Select(i => i.Def.Name))})");
+            yield return Shot("see-through-hint");
+            game.AutoClearHint();
+            yield return Wait(0.3f);
+            Check(game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough), "see-through: clearing the hint restores everything");
         }
 
         /// <summary>

@@ -46,6 +46,15 @@ namespace PackTheTrunk
 
         public PackItem HintItem => hintItem;
 
+        /// <summary>Show Grandpa's ghost for an item at an exact spot (as if he'd suggested it).</summary>
+        public void AutoShowHint(PackItem item, Vector3Int pos, Quaternion rotation)
+        {
+            ClearHint();
+            ShowHint(new Hint { Item = item, Pos = pos, Rotation = rotation, Message = "" });
+        }
+
+        public void AutoClearHint() => ClearHint();
+
         /// <summary>How many packed items are drawn see-through right now.</summary>
         public int SeeThroughCount => seeThrough.Count;
 

@@ -71,8 +71,12 @@ namespace PackTheTrunk
             }
             sfx.Confirm();
             ui.Toast(hint.Message, 3.4f);
-            if (hint.Item == null) return;
+            if (hint.Item != null) ShowHint(hint);
+        }
 
+        /// <summary>The orange ghost at the hinted spot, and the hinted item bouncing on the blanket.</summary>
+        void ShowHint(Hint hint)
+        {
             EnsureHintGhost();
             var shape = hint.Item.Def.Shape.Rotated(hint.Rotation);
             hintShape = shape;
