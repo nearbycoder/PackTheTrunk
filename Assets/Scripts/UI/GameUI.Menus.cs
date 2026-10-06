@@ -83,7 +83,7 @@ namespace PackTheTrunk
             pressKeyText.gameObject.AddComponent<Outline>().effectColor = new Color(0.1f, 0.07f, 0.16f, 0.8f);
             pressKeyGroup = pressKeyText.gameObject.AddComponent<CanvasGroup>();
 
-            var version = UiTheme.Label("Version", title, "v1.1  ·  Made with Unity and Blender", UiTheme.Body, 18, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerRight);
+            var version = UiTheme.Label("Version", title, $"v{Application.version}  ·  Made with Unity and Blender", UiTheme.Body, 18, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerRight);
             version.rectTransform.Pin(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-40, 26), new Vector2(700, 30));
             title.gameObject.SetActive(false);
         }

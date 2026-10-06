@@ -199,8 +199,8 @@ the development machine. Progress, settings and album photos are saved under
 
 ## Build from source
 
-**Requirements:** Unity **6000.6.2f1** (Unity 6.6) with Linux Build Support (and WebGL Build
-Support for the web target), Python 3 for the tools, ffmpeg for recordings and the trailer,
+**Requirements:** Unity **6000.6.2f1** (Unity 6.6) with Linux Build Support (plus Mac, Windows
+or WebGL Build Support for those targets), Python 3 for the tools, ffmpeg for recordings and the trailer,
 Blender **4.5** to regenerate models, and numpy + scipy to re-synthesize the stingers.
 
 ```sh
@@ -208,6 +208,8 @@ git clone https://github.com/nearbycoder/PackTheTrunk.git
 cd PackTheTrunk
 Tools/unity.sh               # open in the editor, then press Play
 Tools/unity.sh build-linux   # batch build: Builds/Linux/PackTheTrunk.x86_64
+Tools/unity.sh build-mac     # batch build: Builds/macOS/PackTheTrunk.app (universal, unsigned; not run on a Mac yet)
+Tools/unity.sh build-windows # batch build: Builds/Windows (needs Windows Build Support; never built yet)
 Tools/unity.sh build-webgl   # batch build: Builds/WebGL (not tested or published yet)
 Tools/play.sh                # run the Linux build
 ```
@@ -254,6 +256,7 @@ Tools/record.sh [name]          # gameplay video with captions -> Recordings/<na
 Tools/record_trailer.sh         # scripted trailer footage + clean stills -> Recordings/trailer-capture
 Tools/make_trailer.py           # cut the trailer, poster, teaser and screenshots -> docs/media
 Tools/package_release.sh 0.1.0  # zip the Linux build for a release -> Builds/PackTheTrunk-v0.1.0-linux-x86_64.zip
+Tools/package_release.sh 0.1.0 mac  # zip the macOS app (with Gatekeeper instructions) -> ...-macos-universal.zip
 ```
 
 Both recorders run the real game at a locked 30 fps (`Time.captureFramerate`) and capture its
@@ -358,8 +361,12 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 Version **0.1.0**: all 33 trips, the story, the album, menus and settings are complete, and the
 autopilot passes every trip. Still rough or missing:
 
-- **Linux only.** The release ships a Linux x86_64 build. Unity can target Windows, macOS and
-  WebGL from this project, but those builds haven't been made or tested yet.
+- **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
+  (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
+  `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
+  `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
+  and isn't published**. Windows (`build-windows`) needs Unity's Windows Build Support module,
+  which isn't installed here, and WebGL hasn't been built or tested.
 - **Mouse and keyboard only.** No gamepad, touch or remappable controls yet.
 - **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
   under XWayland, so the launchers force Unity's native Wayland backend. The player picks
