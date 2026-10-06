@@ -5,7 +5,11 @@ completely (required + bonus) under the in-game rules:
   * every item rests on something (floor, blocked cell or another item)
   * nothing may sit directly on top of a fragile item
 
-Usage: python3 Tools/solve_levels.py [level_id ...]
+Usage: python3 Tools/solve_levels.py [level_id ...] [--dump <file>]
+  --dump x.json   every solution as JSON (the autopilot and the recorders read this)
+  --dump x.txt    the same as tab-separated lines (level, item, x,y,z;...), the format the game
+                  ships for Grandpa's hints:
+                  python3 Tools/solve_levels.py --dump Assets/Resources/PackTheTrunkSolutions.txt
 """
 import json
 import sys
@@ -206,7 +210,11 @@ def main():
             dumped[level["id"]] = [{"id": k, "cells": [list(c) for c in cells]} for k, cells in sol[0]]
         else:
             failed = True
-    if dump:
+    if dump and dump.endswith(".txt"):
+        Path(dump).write_text("".join(
+            f"{level}\t{p['id']}\t" + ";".join(",".join(map(str, c)) for c in p["cells"]) + "\n"
+            for level, placements in dumped.items() for p in placements))
+    elif dump:
         Path(dump).write_text(json.dumps(dumped))
     sys.exit(1 if failed else 0)
 

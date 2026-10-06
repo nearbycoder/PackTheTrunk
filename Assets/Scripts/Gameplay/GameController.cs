@@ -124,6 +124,7 @@ namespace PackTheTrunk
                 else Play();
             };
             ui.UndoPressed += () => { if (mode == Mode.Playing) Undo(); };
+            ui.HintPressed += AskGrandpa;
             ui.RestartPressed += () => ui.Transition(() => StartLevel(levelIndex));
             ui.MenuPressed += () => ui.Transition(ShowMenu);
             ui.ClosePressed += () => { if (mode == Mode.Playing && CanClose()) StartCoroutine(CloseTrunk()); };
@@ -445,6 +446,7 @@ namespace PackTheTrunk
             music.Play(level.Music);
             music.SetMuffled(false);
             OnTripStartTips();
+            ui.SetHintAvailable(HintsAvailable);
         }
 
         // ------------------------------------------------------------------ Arrival
@@ -524,6 +526,7 @@ namespace PackTheTrunk
             levelIndex = index;
             level = GameDatabase.Levels[index];
             ClearTips();
+            ClearHint();
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             items.Clear();
             undo.Clear();
@@ -621,6 +624,7 @@ namespace PackTheTrunk
             }
             if (mode != Mode.Playing || paused) return;
             UpdateTips();
+            UpdateHint();
 
             var mouse = Mouse.current;
             var keyboard = Keyboard.current;
@@ -631,6 +635,7 @@ namespace PackTheTrunk
             if (keyboard != null)
             {
                 if (keyboard.zKey.wasPressedThisFrame || keyboard.uKey.wasPressedThisFrame || keyboard.backspaceKey.wasPressedThisFrame) Undo();
+                if (keyboard.hKey.wasPressedThisFrame) AskGrandpa();
                 if (held != null)
                 {
                     bool shift = keyboard.shiftKey.isPressed;
@@ -914,6 +919,7 @@ namespace PackTheTrunk
             SetHovered(null);
             held = item;
             item.State = ItemState.Held;
+            OnPickedUpHint(item);
             item.SetColliderEnabled(false);
             item.Squash(0.5f);
             Fx.Twinkle(item.transform.position + item.Shape.Center);
@@ -1106,6 +1112,7 @@ namespace PackTheTrunk
             if (held != null) PutBack();
             mode = Mode.Closing;
             ClearTips();
+            ClearHint();
             SetHovered(null);
             ghost.gameObject.SetActive(false);
             ui.HideHudForCutscene(true);

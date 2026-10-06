@@ -198,6 +198,7 @@ namespace PackTheTrunk
 
             yield return EarlyCloseChecks(solutions);
             yield return TipChecks(solutions);
+            yield return HintChecks();
 
             // The finale: Grandma's note, then the family album.
             PerfProbe.Begin("ending + album");
@@ -416,6 +417,91 @@ namespace PackTheTrunk
                 "tip: each of the seven tips showed exactly once (" + string.Join(", ", counts.Select(kv => kv.Key + " " + kv.Value)) + ")");
         }
 
+        /// <summary>
+        /// Grandpa's hints: press H for real (ghost + toast), check the hinted item picks up turned the
+        /// right way, then pack trips using nothing but hints, from empty and from a deliberately wrong start.
+        /// </summary>
+        IEnumerator HintChecks()
+        {
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("weekend"));
+            yield return Wait(2.5f);
+            Check(Visible("Hint"), "hint: the HINT button is there");
+            yield return Press(Key.H);
+            yield return Wait(0.8f);
+            var hinted = game.HintItem;
+            Check(hinted != null && hinted.State == ItemState.Pile, "hint: H points at something on the blanket");
+            yield return Shot("hint-ghost");
+            if (hinted != null)
+            {
+                var expected = game.AutoFindHint();
+                yield return MoveMouse(hinted.transform.position + (Vector3)hinted.Shape.Center);
+                yield return Click();
+                yield return Wait(0.3f);
+                Check(game.Held == hinted && Quaternion.Angle(hinted.Orientation, expected.Rotation) < 1f,
+                    "hint: picking up the hinted item turns it like the ghost");
+                yield return Press(Key.Escape);
+                yield return Wait(0.3f);
+            }
+
+            // Hints alone, from an empty trunk, for every trip in this run.
+            for (int level = 0; level < GameDatabase.Levels.Count; level++)
+            {
+                if (quick && level != 0 && level != 5 && level != GameDatabase.Levels.Count - 1 && GameDatabase.Levels[level].Id != "weekend") continue;
+                game.AutoStartLevel(level);
+                yield return Wait(0.3f);
+                int steps = FollowHints(out string stuck);
+                var id = GameDatabase.Levels[level].Id;
+                Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
+                    $"hint: following only hints packs {id} 100% ({steps} hints{(stuck != null ? ", stuck: " + stuck : "")})");
+                yield return Wait(0.2f);
+            }
+
+            // A wrong start: the big suitcase lying across the front of the sedan, where no solution has it.
+            game.AutoStartLevel(LevelIndex("weekend"));
+            yield return Wait(0.5f);
+            var suitcase = game.Items.First(i => i.Def.Id == "suitcase_big");
+            bool misplaced = false;
+            foreach (var (rotation, shape) in suitcase.Def.Shape.Orientations())
+            {
+                for (int x = 0; x + shape.Size.x <= game.TrunkSize.x && !misplaced; x++)
+                for (int z = 0; z + shape.Size.z <= game.TrunkSize.z && !misplaced; z++)
+                {
+                    if (!game.AutoPlace(suitcase, rotation, new Vector3Int(x, 0, z))) continue;
+                    var h = game.AutoFindHint();
+                    if (h.Move || h.Item == null) misplaced = true;
+                    else { game.AutoPutBackToPile(suitcase); }
+                }
+                if (misplaced) break;
+            }
+            Check(misplaced, "hint: a suitcase in a spot no solution uses gets a 'move it' or 'undo' hint");
+            yield return Wait(0.6f);
+            yield return Press(Key.H);
+            yield return Wait(0.8f);
+            yield return Shot("hint-move");
+            int fixSteps = FollowHints(out string fixStuck);
+            Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
+                $"hint: from the wrong start, hints still lead to 100% ({fixSteps} hints{(fixStuck != null ? ", stuck: " + fixStuck : "")})");
+        }
+
+        /// <summary>Do exactly what Grandpa says (undoing when he says so) until everything is packed.</summary>
+        int FollowHints(out string stuck)
+        {
+            stuck = null;
+            int steps = 0;
+            for (; steps < 120 && !game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping); steps++)
+            {
+                var hint = game.AutoFindHint();
+                if (hint.Item == null)
+                {
+                    if (!game.AutoUndo()) { stuck = hint.Message; break; }
+                    continue;
+                }
+                if (!game.AutoPlace(hint.Item, hint.Rotation, hint.Pos)) { stuck = $"could not place {hint.Item.Def.Id} at {hint.Pos}"; break; }
+            }
+            return steps;
+        }
+
         static int LevelIndex(string id)
         {
             for (int i = 0; i < GameDatabase.Levels.Count; i++)
@@ -449,24 +535,10 @@ namespace PackTheTrunk
 
         Dictionary<string, List<(string, List<Vector3Int>)>> LoadSolutions() => LoadSolutions(solutionsPath);
 
-        internal static Dictionary<string, List<(string, List<Vector3Int>)>> LoadSolutions(string solutionsPath)
-        {
-            var result = new Dictionary<string, List<(string, List<Vector3Int>)>>();
-            if (string.IsNullOrEmpty(solutionsPath) || !File.Exists(solutionsPath)) return result;
-            foreach (var line in File.ReadAllLines(solutionsPath))
-            {
-                var parts = line.Split('\t');
-                if (parts.Length != 3) continue;
-                var cells = parts[2].Split(';').Select(c =>
-                {
-                    var n = c.Split(',').Select(int.Parse).ToArray();
-                    return new Vector3Int(n[0], n[1], n[2]);
-                }).ToList();
-                if (!result.TryGetValue(parts[0], out var list)) result[parts[0]] = list = new List<(string, List<Vector3Int>)>();
-                list.Add((parts[1], cells));
-            }
-            return result;
-        }
+        internal static Dictionary<string, List<(string, List<Vector3Int>)>> LoadSolutions(string solutionsPath) =>
+            string.IsNullOrEmpty(solutionsPath) || !File.Exists(solutionsPath)
+                ? new Dictionary<string, List<(string, List<Vector3Int>)>>()
+                : Solutions.Parse(File.ReadAllText(solutionsPath));
 
         static UnityEngine.UI.Button FindButton(string name) =>
             FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Exclude).FirstOrDefault(b => b.name == name);

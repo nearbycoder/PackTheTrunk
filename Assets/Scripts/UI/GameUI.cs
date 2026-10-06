@@ -16,6 +16,11 @@ namespace PackTheTrunk
     public partial class GameUI : MonoBehaviour
     {
         public event Action<int> LevelChosen;
+        public event Action HintPressed;
+        Button hintButton;
+
+        /// <summary>The HINT button only shows on trips that have a usable solution.</summary>
+        public void SetHintAvailable(bool available) => hintButton.gameObject.SetActive(available);
         public event Action UndoPressed, RestartPressed, MenuPressed, ClosePressed, NextPressed, PutBackPressed, QuitPressed;
         public event Action StartPressed;
         public event Action<PackItem> ItemRowClicked;
@@ -721,8 +726,10 @@ namespace PackTheTrunk
             tagBlurb = UiTheme.Label("Blurb", tag, "", UiTheme.Hand, 27, new Color(0.25f, 0.18f, 0.12f), TextAnchor.UpperLeft);
             tagBlurb.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(70, 10), new Vector2(-20, -104));
 
-            var buttons = UiKit.Rect("Buttons", hud).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -36), new Vector2(430, 60));
+            var buttons = UiKit.Rect("Buttons", hud).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -36), new Vector2(546, 60));
             UiKit.Horizontal(buttons.gameObject, 12, TextAnchor.MiddleRight).childForceExpandWidth = true;
+            hintButton = UiTheme.Pill("Hint", buttons, "HINT", UiTheme.Accent, 24, () => HintPressed?.Invoke());
+            UiKit.Size(hintButton, 104, 56);
             UiKit.Size(UiTheme.Pill("Undo", buttons, "UNDO", UiTheme.Teal, 24, () => UndoPressed?.Invoke()), 130, 56);
             UiKit.Size(UiTheme.Pill("Restart", buttons, "RESTART", UiTheme.Night, 24, () => RestartPressed?.Invoke()), 150, 56);
             UiKit.Size(UiTheme.Pill("Pause", buttons, "MENU", UiTheme.Night, 24, () => PausePressed?.Invoke()), 110, 56);

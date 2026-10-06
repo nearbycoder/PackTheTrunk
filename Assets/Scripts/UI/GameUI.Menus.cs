@@ -247,7 +247,7 @@ namespace PackTheTrunk
             ("R  T  F", "turn · tip · roll (hold SHIFT to reverse)"),
             ("WHEEL / W S", "choose a shelf when there's a gap"),
             ("Q  E / RIGHT-DRAG", "look around the car"),
-            ("Z", "undo"),
+            ("Z  ·  H", "undo · ask Grandpa for a hint"),
             ("SPACE", "close the trunk"),
             ("ESC", "put back · pause"),
             ("M", "music on / off"),

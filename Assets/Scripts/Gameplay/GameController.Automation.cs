@@ -39,6 +39,30 @@ namespace PackTheTrunk
 
         public void AutoShowMenuAlbum() => ShowAlbum(false);
 
+        /// <summary>What Grandpa would suggest right now (without showing it).</summary>
+        public Hint AutoFindHint() => FindHint();
+
+        public void AutoAskGrandpa() => AskGrandpa();
+
+        public PackItem HintItem => hintItem;
+
+        /// <summary>Undo one step, as Z would; false if there's nothing to undo.</summary>
+        public bool AutoUndo()
+        {
+            if (undo.Count == 0) return false;
+            Undo();
+            return true;
+        }
+
+        /// <summary>Take an item out of the trunk and back to the blanket (as undoing its drop would).</summary>
+        public void AutoPutBackToPile(PackItem item)
+        {
+            if (item.State != ItemState.Packed && item.State != ItemState.Dropping) return;
+            grid.Remove(item);
+            item.SetColliderEnabled(true);
+            ReturnToPile(item);
+        }
+
         /// <summary>The tip on screen right now (lower-case name), or null.</summary>
         public string ActiveTip => activeTip?.ToString().ToLowerInvariant();
 
