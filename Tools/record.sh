@@ -6,8 +6,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NAME="${1:-pack-the-trunk-gameplay}"
-WORK="$(mktemp -d /tmp/ptt-record.XXXX)"
 mkdir -p "$ROOT/Recordings"
+# Lossless 1080p frames run to gigabytes: keep them on disk under Recordings/, not the /tmp RAM disk.
+WORK="$(mktemp -d "$ROOT/Recordings/.record-work.XXXX")"
 
 python3 "$ROOT/Tools/solve_levels.py" --dump "$WORK/solutions.json" > /dev/null
 python3 - "$WORK" <<'PY'
@@ -24,9 +25,9 @@ for attempt in 1 2; do
   rm -rf "$WORK/frames"
   timeout 2400 "$ROOT/Tools/play.sh" -screen-width 1920 -screen-height 1080 -logFile "$WORK/player.log" \
     -pttShowcase "$WORK/frames" -pttSolutions "$WORK/solutions.txt" > /dev/null 2>&1 || true
-  cp "$WORK/player.log" "/tmp/ptt-record-player-$attempt.log" 2>/dev/null || true
+  cp "$WORK/player.log" "$ROOT/Recordings/record-player-$attempt.log" 2>/dev/null || true
   grep -q "\[Showcase\] done" "$WORK/player.log" && break
-  echo "recording attempt $attempt did not finish (log kept in /tmp/ptt-record-player-$attempt.log)" >&2
+  echo "recording attempt $attempt did not finish (log kept in Recordings/record-player-$attempt.log)" >&2
 done
 grep -E "\[Showcase\]|Exception" "$WORK/player.log" || true
 

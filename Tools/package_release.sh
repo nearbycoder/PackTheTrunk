@@ -7,7 +7,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="${1:?usage: $0 <version> [linux|mac]}"
 PLATFORM="${2:-linux}"
-STAGE="$(mktemp -d)"
+mkdir -p "$ROOT/Builds"
+STAGE="$(mktemp -d "$ROOT/Builds/.stage.XXXX")"
 trap 'rm -rf "$STAGE"' EXIT
 DIR="$STAGE/PackTheTrunk"
 mkdir -p "$DIR"
