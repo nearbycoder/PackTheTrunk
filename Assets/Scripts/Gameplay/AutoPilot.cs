@@ -183,12 +183,15 @@ namespace PackTheTrunk
                 Check(ok == placements.Count, $"{def.Id}: packed {ok}/{placements.Count}");
                 yield return Shot(def.Id + "-packed");
 
+                int meterAtClose = game.Ui.MeterStars;
                 PerfProbe.Begin("close + drive-off");
                 yield return Press(Key.Space);
                 for (float t = 0f; t < 9f && !game.IsShowingResults; t += Time.unscaledDeltaTime) yield return null;
                 PerfProbe.Begin("results");
                 yield return Wait(1.2f);
                 Check(game.IsShowingResults, $"{def.Id}: closing the trunk shows the postcard");
+                tripsClosed++;
+                if (meterAtClose != game.LastStars) meterMismatches.Add($"{def.Id} meter {meterAtClose} postcard {game.LastStars}");
                 if (level == 0 || level == GameDatabase.Levels.Count - 1 || level % 8 == 4) yield return Shot(def.Id + "-results");
                 if (level == 0) Check(!AnyText("gnome"), "the wagon's perfect postcard doesn't mention a gnome (there isn't one)");
 
@@ -208,10 +211,12 @@ namespace PackTheTrunk
                 }
             }
 
+            Check(meterMismatches.Count == 0, $"stars: the meter matched the postcard on all {tripsClosed} trips" + (meterMismatches.Count > 0 ? " (" + string.Join(", ", meterMismatches) + ")" : ""));
             yield return EarlyCloseChecks(solutions);
             yield return TipChecks(solutions);
             yield return HintChecks();
             yield return RestartChecks(solutions);
+            yield return StarMeterChecks(solutions);
             yield return SeeThroughChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
@@ -252,6 +257,7 @@ namespace PackTheTrunk
                 yield return Wait(0.03f);
             }
             yield return Wait(0.8f);
+            int meter = game.Ui.MeterStars;
             yield return Press(Key.Space);
             yield return Wait(0.6f);
             Check(game.IsPlaying && !game.IsShowingResults, "one Space with extras that still fit doesn't close the trunk");
@@ -259,6 +265,7 @@ namespace PackTheTrunk
             yield return Press(Key.Space);
             for (float t = 0f; t < 9f && !game.IsShowingResults; t += Time.unscaledDeltaTime) yield return null;
             Check(game.IsShowingResults, "a second Space closes it anyway");
+            Check(meter == 1 && game.LastStars == 1, $"stars: essentials only, the meter showed {meter} and the postcard {game.LastStars}");
             yield return Wait(2f);
             string after = File.Exists(photo) ? Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes(photo))) : null;
             Check(before != null && after == before && Prefs.GetInt("ptt.stars.wagon") == 3, "a 1-star replay keeps the 3-star photo and stars");
@@ -511,6 +518,57 @@ namespace PackTheTrunk
                 $"hint: from the wrong start, hints still lead to 100% ({followSteps} hints{(followStuck != null ? ", stuck: " + followStuck : "")})");
         }
 
+        readonly List<string> meterMismatches = new List<string>();
+        int tripsClosed;
+
+        /// <summary>
+        /// The star meter on Grandma's Big Move (11 essentials, 5 extras, so "half" rounds up to 3): empty
+        /// until the essentials are in, then it follows the extras, and the drop that earns a star says so.
+        /// </summary>
+        IEnumerator StarMeterChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("grandma"));
+            yield return Wait(2.5f);
+            Check(game.Ui.MeterStars == 0, "stars: the meter starts empty");
+            var placed = new List<(PackItem Item, Quaternion Rot, Vector3Int Pos)>();
+            foreach (var (itemId, cells) in solutions["grandma"])
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item == null) continue;
+                var rot = FindOrientation(item.Def.Shape, cells);
+                var min = cells.Aggregate(Vector3Int.Min);
+                if (game.AutoPlace(item, rot, min)) placed.Add((item, rot, min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.9f);
+            Check(game.Ui.MeterStars == 3 && AnyText("Three stars"), "stars: packing everything fills the meter and says three stars");
+
+            var extras = placed.Where(p => p.Item.IsBonus).ToList();
+            var readings = new List<int>();
+            foreach (var p in Enumerable.Reverse(extras))
+            {
+                game.AutoPutBackToPile(p.Item);
+                readings.Add(game.Ui.MeterStars);
+            }
+            yield return Wait(0.6f);
+            string read = string.Join(",", readings);
+            Check(extras.Count == 5 && read == "2,2,1,1,1", $"stars: taking the 5 extras out one by one reads {read} (3 of 5 still makes two)");
+
+            for (int k = 0; k < 3; k++)
+            {
+                game.AutoPlace(extras[k].Item, extras[k].Rot, extras[k].Pos);
+                yield return Wait(k < 2 ? 0.4f : 0.9f);
+            }
+            Check(game.Ui.MeterStars == 2 && AnyText("Two stars if you close now"), "stars: the third extra back in earns two stars, and the toast says what makes three");
+            yield return Shot("star-meter-two");
+
+            var essential = placed.Last(p => !p.Item.IsBonus).Item;
+            game.AutoPutBackToPile(essential);
+            yield return Wait(0.3f);
+            Check(game.Ui.MeterStars == 0, $"stars: taking out an essential ({essential.Def.Name}) empties the meter");
+        }
+
         /// <summary>
         /// RESTART (the HUD button and the pause menu's) unpacks in place as one undo step: everything goes
         /// back on the blanket, and Z puts every item back in the same cell, turned the same way.
@@ -704,7 +762,10 @@ namespace PackTheTrunk
                 if (stacked > 0) problems.Add($"{stacked} list rows overlap the one above");
                 if (overflow > 1f) problems.Add($"list text is {overflow:0} units taller than its {smallest:0}-unit rows");
                 if (smallest < 19.5f) problems.Add($"list rows squashed to {smallest:0} units");
-                Check(problems.Count == 0, $"layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? $"{names.Count} HUD pieces, {rows.Count} list rows of {smallest:0} units{(game.Ui.ListScrolls ? " (scrolling)" : "")}, all clear" : string.Join("; ", problems)));
+                float countsOver = game.Ui.CountsOverflow(), meterGap = game.Ui.MeterGapToHeading();
+                if (countsOver > 0f) problems.Add($"the counts line is {countsOver:0} units too wide for one line");
+                if (meterGap < 4f) problems.Add($"the star meter is {-meterGap:0} units into the heading");
+                Check(problems.Count == 0, $"layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? $"{names.Count} HUD pieces, {rows.Count} list rows of {smallest:0} units{(game.Ui.ListScrolls ? " (scrolling)" : "")}, counts line {-countsOver:0} units spare, star meter {meterGap:0} clear of the heading, all clear" : string.Join("; ", problems)));
                 yield return Shot($"layout-{size}-{scale * 100:0}");
             }
             GameSettings.UiScale = 1f;

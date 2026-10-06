@@ -105,7 +105,9 @@ Gameplay turns them off, and turning them back on shows them all again.
 - Everything has to rest on something. Nothing floats.
 - **Fragile** things (eggs, cakes, the garden gnome, the lava lamp…) can't have anything on top.
   They wear a red FRAGILE stamp while they wait on the blanket.
-- Stars: ★ every essential packed, ★★ at least half the extras, ★★★ everything.
+- Stars: ★ every essential packed, ★★ at least half the extras, ★★★ everything. The three stars
+  beside PACKING LIST show what closing the trunk right now would earn, and the drop that earns
+  a star tells you what the next one needs.
 
 ## Features
 

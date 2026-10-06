@@ -53,6 +53,9 @@ namespace PackTheTrunk
 
         public int UndoDepth => undo.Count;
 
+        /// <summary>The stars on the last postcard.</summary>
+        public int LastStars { get; private set; }
+
         public int FreeCells => grid.FreeCellCount();
 
         /// <summary>Undo one step, as Z would; false if there's nothing to undo.</summary>
@@ -70,6 +73,7 @@ namespace PackTheTrunk
             grid.Remove(item);
             item.SetColliderEnabled(true);
             ReturnToPile(item);
+            RefreshHud();
         }
 
         /// <summary>The tip on screen right now (lower-case name), or null.</summary>

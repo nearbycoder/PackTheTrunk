@@ -537,6 +537,7 @@ namespace PackTheTrunk
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             items.Clear();
             undo.Clear();
+            starsAnnounced = 0;
             held = null;
             hovered = null;
             pendingSnapshot = null;
@@ -1032,8 +1033,7 @@ namespace PackTheTrunk
                 Fx.Land(landAt, size);
                 if (item.Def.Volume >= 8) rig.Shake(0.05f, 0.15f);
                 RefreshHud();
-                if (AllPacked()) ui.Toast("Everything fits! Close the trunk.", 3f);
-                else if (CanClose() && RequiredJustFinished()) ui.Toast("Essentials packed! Squeeze in extras for more stars, or close it up.", 3.2f);
+                AnnounceStars();
             });
             RefreshHud();
         }
@@ -1069,7 +1069,41 @@ namespace PackTheTrunk
             return false;
         }
 
-        bool RequiredJustFinished() => items.Count(i => !i.IsBonus) > 0 && items.Where(i => i.IsBonus).All(i => i.State == ItemState.Pile);
+        /// <summary>Stars for a trip: one for every essential, two for at least half the extras, three for all of them.</summary>
+        public static int StarRating(bool essentialsDone, int bonusDone, int bonus) =>
+            !essentialsDone ? 0 : 1 + (bonusDone * 2 >= bonus ? 1 : 0) + (bonusDone == bonus ? 1 : 0);
+
+        int CurrentStars()
+        {
+            bool essentials = true;
+            int bonus = 0, bonusDone = 0;
+            foreach (var item in items)
+            {
+                bool packed = IsPacked(item);
+                if (item.IsBonus) { bonus++; if (packed) bonusDone++; }
+                else if (!packed) essentials = false;
+            }
+            return StarRating(essentials, bonusDone, bonus);
+        }
+
+        // The highest star count already announced by a toast (lowered when undo takes stars away).
+        int starsAnnounced;
+
+        /// <summary>When a drop earns a star, say so and say what the next one needs.</summary>
+        void AnnounceStars()
+        {
+            int now = CurrentStars();
+            if (now <= starsAnnounced) return;
+            starsAnnounced = now;
+            if (now == 3) ui.Toast("Everything fits! Three stars. Close the trunk.", 3f);
+            else if (now == 2) ui.Toast("Two stars if you close now. Every extra makes three.", 3.2f);
+            else
+            {
+                int bonus = items.Count(i => i.IsBonus);
+                int more = (bonus + 1) / 2 - items.Count(i => i.IsBonus && IsPacked(i));
+                ui.Toast($"Essentials packed: one star if you close now. {more} more extra{(more == 1 ? "" : "s")} for two.", 3.4f);
+            }
+        }
 
         void Undo()
         {
@@ -1085,6 +1119,7 @@ namespace PackTheTrunk
                 return;
             }
             Restore(undo.Pop());
+            starsAnnounced = CurrentStars();
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
         }
@@ -1168,6 +1203,7 @@ namespace PackTheTrunk
         void RefreshHud()
         {
             if (mode != Mode.Playing) return;
+            starsAnnounced = Mathf.Min(starsAnnounced, CurrentStars());
             ui.RefreshHud(items, held, CanClose(), AllPacked(), grid.FreeCellCount());
         }
 
@@ -1189,7 +1225,8 @@ namespace PackTheTrunk
             int req = items.Count(i => !i.IsBonus);
             int bonus = items.Count(i => i.IsBonus);
             int bonusDone = packed.Count(i => i.IsBonus);
-            int stars = 1 + (bonusDone * 2 >= bonus ? 1 : 0) + (bonusDone == bonus ? 1 : 0);
+            int stars = StarRating(true, bonusDone, bonus);
+            LastStars = stars;
             string key = "ptt.stars." + level.Id;
             int best = Prefs.GetInt(key, 0);
             // The album keeps the best trunk: a quick replay for fewer stars doesn't replace the photo.

@@ -240,6 +240,11 @@ namespace PackTheTrunk
         Text moreBelow, moreAbove;
         bool listScrolls;
         Text countsText, spaceText;
+        Image[] meterStars;
+        RectTransform meterRect;
+        int countsReq, countsBonus;
+        int meterShown;
+        static readonly Color MeterUnlit = new Color(0.4f, 0.32f, 0.25f, 0.32f);
         RectTransform spaceFill;
         Button closeButton;
         Text closeLabel;
@@ -924,6 +929,11 @@ namespace PackTheTrunk
             margin.raycastTarget = false;
             var header = UiTheme.Label("Header", list, "PACKING LIST", UiTheme.Display, 34, UiTheme.Ink, TextAnchor.MiddleLeft);
             header.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(82, -78), new Vector2(-20, -26));
+            // Beside the heading: the stars closing the trunk right now would earn.
+            meterRect = UiKit.Rect("Star Meter", list).Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-124, -76), new Vector2(-24, -32));
+            UiKit.Horizontal(meterRect.gameObject, 3, TextAnchor.MiddleRight);
+            meterStars = new Image[3];
+            for (int i = 0; i < 3; i++) meterStars[i] = UiKit.StarImage(meterRect, false, 30);
             listFrom = UiTheme.Label("From", list, "", UiTheme.Hand, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
             listFrom.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(84, -108), new Vector2(-26, -76));
 
@@ -1052,6 +1062,12 @@ namespace PackTheTrunk
             toastTimer = 0f;
             totalSpace = Mathf.Max(1, level.FreeCells);
             spaceShown = spaceTarget = 0f;
+            meterShown = 0;
+            foreach (var star in meterStars)
+            {
+                star.color = MeterUnlit;
+                star.transform.localScale = Vector3.one;
+            }
             keyHints.gameObject.SetActive(GameSettings.KeyHints);
             BuildFragileTags(items);
             BuildListRows(items);
@@ -1189,9 +1205,10 @@ namespace PackTheTrunk
                 row.Stamps.gameObject.SetActive(!packed);
             }
 
-            string good = UiKit.Hex(UiTheme.Good), gold = UiKit.Hex(new Color(0.8f, 0.55f, 0.05f));
-            countsText.text = $"Essentials <b><color={(reqDone == req ? good : UiKit.Hex(UiTheme.Ink))}>{reqDone}/{req}</color></b>      " +
-                              $"Extras <b><color={gold}>{bonusDone}/{bonus}</color></b>";
+            countsReq = req;
+            countsBonus = bonus;
+            countsText.text = CountsLine(reqDone, req, bonusDone, bonus);
+            SetMeter(GameController.StarRating(reqDone == req, bonusDone, bonus));
             spaceTarget = Mathf.Clamp01(1f - freeCells / (float)totalSpace);
             spaceText.text = freeCells == 0 ? "not a single inch to spare!" : $"{freeCells} space{(freeCells == 1 ? "" : "s")} left in the trunk";
 
@@ -1199,6 +1216,56 @@ namespace PackTheTrunk
             closeLabel.text = canClose ? (allPacked ? "EVERYTHING FITS!" : "CLOSE THE TRUNK") : "PACK THE ESSENTIALS";
             closeFace.color = canClose ? (allPacked ? UiTheme.Good : UiTheme.Accent) : new Color(0.7f, 0.66f, 0.6f);
             pulseClose = canClose;
+        }
+
+        static readonly string CountsGood = UiKit.Hex(UiTheme.Good), CountsInk = UiKit.Hex(UiTheme.Ink), CountsGold = UiKit.Hex(new Color(0.8f, 0.55f, 0.05f));
+
+        static string CountsLine(int reqDone, int req, int bonusDone, int bonus) =>
+            $"Essentials <b><color={(reqDone == req ? CountsGood : CountsInk)}>{reqDone}/{req}</color></b>      " +
+            $"Extras <b><color={CountsGold}>{bonusDone}/{bonus}</color></b>";
+
+        /// <summary>How far the widest counts line this trip can show runs past its one line, in canvas units (layout self-test).</summary>
+        public float CountsOverflow()
+        {
+            string saved = countsText.text;
+            countsText.text = CountsLine(countsReq, countsReq, countsBonus, countsBonus);
+            float over = countsText.preferredWidth - countsText.rectTransform.rect.width;
+            countsText.text = saved;
+            return over;
+        }
+
+        /// <summary>Space between the end of the PACKING LIST heading and the star meter, in canvas units (layout self-test).</summary>
+        public float MeterGapToHeading()
+        {
+            var header = meterRect.parent.Find("Header") as RectTransform;
+            var text = header.GetComponent<Text>();
+            float headingRight = header.offsetMin.x + text.preferredWidth;
+            float meterLeft = ((RectTransform)meterRect.parent).rect.width + meterRect.offsetMin.x;
+            return meterLeft - headingRight;
+        }
+
+        /// <summary>Stars the meter shows: what closing the trunk now would earn.</summary>
+        public int MeterStars => meterShown;
+
+        void SetMeter(int stars)
+        {
+            if (stars == meterShown) return;
+            for (int i = 0; i < meterStars.Length; i++)
+            {
+                meterStars[i].color = i < stars ? UiTheme.Gold : MeterUnlit;
+                if (i < meterShown || i >= stars) continue;
+                // A newly earned star pops (and chimes when it's the one a drop just earned).
+                var rt = meterStars[i].rectTransform;
+                if (stars == meterShown + 1) Sfx.Instance?.Star(i);
+                UiMotion.Run(this, 0.4f, t =>
+                {
+                    if (rt == null) return;
+                    float k = Ease.OutBack(t, 3f);
+                    rt.localScale = Vector3.one * Mathf.LerpUnclamped(0.3f, 1f, k);
+                    rt.localRotation = Quaternion.Euler(0, 0, (1f - t) * 50f);
+                });
+            }
+            meterShown = stars;
         }
 
         void AnimateCheck(ItemRow row)
