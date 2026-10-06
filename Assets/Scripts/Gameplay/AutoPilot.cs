@@ -198,6 +198,7 @@ namespace PackTheTrunk
             yield return TipChecks(solutions);
             yield return HintChecks();
             yield return SeeThroughChecks();
+            yield return RebindChecks();
             // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
             yield return GamepadChecks();
 
@@ -587,6 +588,89 @@ namespace PackTheTrunk
             Check(!game.XRayActive && game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough),
                 "see-through: letting go of Tab and putting the item back restores everything");
         }
+
+        IEnumerator OpenControls()
+        {
+            yield return Press(Key.Escape);
+            yield return Wait(1f);
+            yield return ClickUi("Pause Settings");
+            yield return Wait(1f);
+            yield return ClickUi("Tab CONTROLS");
+            yield return Wait(0.8f);
+        }
+
+        IEnumerator CloseControlsAndResume()
+        {
+            yield return Press(Key.Escape);
+            yield return Wait(0.6f);
+            yield return Press(Key.Escape);
+            yield return Wait(0.8f);
+        }
+
+        /// <summary>
+        /// Remap keys through Settings → Controls like a player: turn → G, Escape cancels a rebind,
+        /// G then turns (and R doesn't), binding G to undo swaps the two, and Defaults restores all.
+        /// </summary>
+        IEnumerator RebindChecks()
+        {
+            PerfProbe.Begin("menus");
+            game.AutoStartLevel(LevelIndex("weekend"));
+            yield return Wait(2.5f);
+            yield return OpenControls();
+            Check(Visible("Bind Turn"), "remap: Settings → Controls lists the keys");
+            yield return ClickUi("Bind Turn");
+            yield return Wait(0.3f);
+            Check(game.Ui.IsRebinding, "remap: clicking a key waits for a new one");
+            yield return Press(Key.G);
+            yield return Wait(0.3f);
+            Check(Bindings.KeyFor(Bindings.Action.Turn) == Key.G && !game.Ui.IsRebinding, "remap: pressing G binds turn to G");
+            yield return Shot("controls-rebound");
+            yield return ClickUi("Bind Undo");
+            yield return Wait(0.3f);
+            yield return Press(Key.Escape);
+            yield return Wait(0.5f);
+            Check(!game.Ui.IsRebinding && Bindings.KeyFor(Bindings.Action.Undo) == Key.Z && Visible("Settings Back"),
+                "remap: Escape cancels a rebind and leaves Settings open");
+            yield return CloseControlsAndResume();
+            Check(game.IsPlaying && !game.IsPaused, "remap: back to packing");
+
+            var item = game.Items.First(i => i.State == ItemState.Pile && i.Def.Shape.Orientations().Count > 1);
+            game.AutoHold(item);
+            yield return Wait(0.3f);
+            var before = item.Orientation;
+            yield return Press(Key.R);
+            yield return Wait(0.3f);
+            bool rIgnored = item.Orientation == before;
+            yield return Press(Key.G);
+            yield return Wait(0.3f);
+            Check(rIgnored && item.Orientation != before, "remap: G turns the held item and R no longer does");
+            var hintKeys = game.Ui.KeyboardHintKeys();
+            Check(hintKeys.Contains("G") && !hintKeys.Contains("R"), "remap: the key hints show G (" + string.Join(" ", hintKeys) + ")");
+            yield return Press(Key.Escape);
+            yield return Wait(0.4f);
+
+            yield return OpenControls();
+            yield return ClickUi("Bind Undo");
+            yield return Wait(0.3f);
+            yield return Press(Key.G);
+            yield return Wait(0.3f);
+            Check(Bindings.KeyFor(Bindings.Action.Undo) == Key.G && Bindings.KeyFor(Bindings.Action.Turn) == Key.Z,
+                "remap: binding G to undo swaps it with turn (turn is now Z)");
+            yield return ClickUi("Settings Defaults");
+            yield return Wait(0.6f);
+            yield return ClickUi("Confirm Yes");
+            yield return Wait(0.8f);
+            Check(Bindings.All.All(a => Bindings.KeyFor(a) == DefaultKey(a)), "remap: Defaults restores every key");
+            yield return CloseControlsAndResume();
+        }
+
+        static Key DefaultKey(Bindings.Action a) => a switch
+        {
+            Bindings.Action.Turn => Key.R, Bindings.Action.Tip => Key.T, Bindings.Action.Roll => Key.F,
+            Bindings.Action.ShelfUp => Key.W, Bindings.Action.ShelfDown => Key.S, Bindings.Action.Undo => Key.Z,
+            Bindings.Action.Hint => Key.H, Bindings.Action.XRay => Key.Tab, Bindings.Action.LookLeft => Key.Q,
+            Bindings.Action.LookRight => Key.E, Bindings.Action.Close => Key.Space, _ => Key.M,
+        };
 
         /// <summary>Do exactly what Grandpa says (undoing when he says so) until everything is packed.</summary>
         int followSteps;

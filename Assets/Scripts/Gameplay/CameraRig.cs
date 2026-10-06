@@ -170,8 +170,8 @@ namespace PackTheTrunk
 
             if (keyboard != null)
             {
-                if (keyboard.qKey.isPressed) targetYaw += 90f * speed * UiTime.Delta;
-                if (keyboard.eKey.isPressed) targetYaw -= 90f * speed * UiTime.Delta;
+                if (Bindings.Held(Bindings.Action.LookLeft)) targetYaw += 90f * speed * UiTime.Delta;
+                if (Bindings.Held(Bindings.Action.LookRight)) targetYaw -= 90f * speed * UiTime.Delta;
             }
             var pad = InputEnabled ? Gamepad.current : null;
             if (pad != null)

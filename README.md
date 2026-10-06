@@ -77,10 +77,12 @@ trunk, **View** undoes, **B** puts back or backs out, **Menu** pauses (and moves
 texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
 the tips switch to controller buttons as soon as you touch the pad, and back when you move the
 mouse. It has only been tested with a simulated gamepad in the autopilot, not on a physical
-controller or a Steam Deck yet. There's no touch support or key remapping.
+controller or a Steam Deck yet. There's no touch support, and gamepad buttons can't be remapped.
 
-The full list is also in **Settings → Controls**, and key hints run along the bottom of the screen
-while you pack.
+Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
+click a key and press the new one. A key that's already taken swaps with it, and **Defaults**
+puts everything back. The key hints, the pause card and Grandpa's tips all show your keys. Key
+hints run along the bottom of the screen while you pack.
 **Seeing into the trunk.** While you hold something, anything packed that hides part of the
 ghost (say, when you tuck a thing into a gap under a shelf) turns into a faint see-through
 silhouette. Hold **`Tab`** (or click the left stick) to see through everything packed and aim at
@@ -384,8 +386,8 @@ autopilot passes every trip. Still rough or missing:
   which isn't installed here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
   checks (pointing, every packing action, undo, hint, pause, menu clicks, handing back to the
-  mouse), but no physical controller or Steam Deck has tried it yet. No touch or remappable
-  controls.
+  mouse), but no physical controller or Steam Deck has tried it yet. No touch support; keyboard
+  keys can be remapped, gamepad buttons can't.
 - **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
   under XWayland, so the launchers force Unity's native Wayland backend. The player picks
   OpenGL Core by default; Vulkan works with `-force-vulkan`.

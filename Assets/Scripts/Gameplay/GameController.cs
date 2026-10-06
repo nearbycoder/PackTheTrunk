@@ -608,7 +608,7 @@ namespace PackTheTrunk
             if (ui.InTransition) return;
             ui.UpdateFragileTags(mode == Mode.Playing && !paused);
             var kb = Keyboard.current;
-            if (kb != null && kb.mKey.wasPressedThisFrame && !ui.IsTitleWaiting)
+            if (Bindings.Pressed(Bindings.Action.Music) && !ui.IsTitleWaiting && !ui.IsRebinding)
             {
                 music.ToggleMute();
                 ui.Toast(music.Muted ? "Music off" : "Music on", 1.2f);
@@ -664,18 +664,18 @@ namespace PackTheTrunk
 
             if (keyboard != null)
             {
-                if (keyboard.zKey.wasPressedThisFrame || keyboard.uKey.wasPressedThisFrame || keyboard.backspaceKey.wasPressedThisFrame) Undo();
-                if (keyboard.hKey.wasPressedThisFrame) AskGrandpa();
+                if (Bindings.Pressed(Bindings.Action.Undo)) Undo();
+                if (Bindings.Pressed(Bindings.Action.Hint)) AskGrandpa();
                 if (held != null)
                 {
                     bool shift = keyboard.shiftKey.isPressed;
-                    if (keyboard.rKey.wasPressedThisFrame) Rotate(Vector3.up, shift);
-                    if (keyboard.tKey.wasPressedThisFrame) Rotate(rig.SnappedRight(), shift);
-                    if (keyboard.fKey.wasPressedThisFrame) Rotate(rig.SnappedForward(), shift);
-                    if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame) { heightBias++; tipShelfPicked = true; }
-                    if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame) { heightBias--; tipShelfPicked = true; }
+                    if (Bindings.Pressed(Bindings.Action.Turn)) Rotate(Vector3.up, shift);
+                    if (Bindings.Pressed(Bindings.Action.Tip)) Rotate(rig.SnappedRight(), shift);
+                    if (Bindings.Pressed(Bindings.Action.Roll)) Rotate(rig.SnappedForward(), shift);
+                    if (Bindings.Pressed(Bindings.Action.ShelfUp)) { heightBias++; tipShelfPicked = true; }
+                    if (Bindings.Pressed(Bindings.Action.ShelfDown)) { heightBias--; tipShelfPicked = true; }
                 }
-                if ((keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) && CanClose() && ConfirmKeyClose())
+                if (Bindings.Pressed(Bindings.Action.Close) && CanClose() && ConfirmKeyClose())
                 {
                     StartCoroutine(CloseTrunk());
                     return;
@@ -1046,7 +1046,7 @@ namespace PackTheTrunk
             closeArmedUntil = Time.unscaledTime + 2.2f;
             int left = items.Count(i => i.IsBonus && !IsPacked(i));
             sfx.Error();
-            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {(GamepadCursor.Active ? "D-PAD RIGHT" : "SPACE")} again to close anyway.", 2.2f);
+            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {(GamepadCursor.Active ? "D-PAD RIGHT" : Bindings.Label(Bindings.Action.Close))} again to close anyway.", 2.2f);
             return false;
         }
 

@@ -19,7 +19,7 @@ namespace PackTheTrunk
         bool xray;
 
         bool XRayHeld =>
-            (Keyboard.current != null && Keyboard.current.tabKey.isPressed) ||
+            Bindings.Held(Bindings.Action.XRay) ||
             (Gamepad.current != null && Gamepad.current.leftStickButton.isPressed);
 
         /// <summary>Called each playing frame (before aiming): work out what should be see-through.</summary>

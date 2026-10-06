@@ -17,6 +17,38 @@ namespace PackTheTrunk
     {
         public event Action<int> LevelChosen;
         public event Action HintPressed;
+        RectTransform keyboardHintsRow;
+
+        /// <summary>The keyboard key hints, from the current bindings (rebuilt when they change).</summary>
+        void BuildKeyboardHints()
+        {
+            if (keyboardHintsRow == null) return;
+            UiKit.Clear(keyboardHintsRow);
+            string L(Bindings.Action a) => Bindings.Label(a);
+            UiTheme.KeyHint(keyboardHintsRow, "CLICK", "grab / drop");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Turn), "turn");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Tip), "tip");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Roll), "roll");
+            UiTheme.KeyHint(keyboardHintsRow, "WHEEL", "shelf");
+            UiTheme.KeyHint(keyboardHintsRow, "ESC", "back / pause");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Undo), "undo");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.LookLeft) + " " + L(Bindings.Action.LookRight), "orbit");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.XRay), "x-ray");
+            UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.Close), "close");
+        }
+
+        /// <summary>The key caps currently shown in the keyboard hint strip (for the self-test).</summary>
+        public List<string> KeyboardHintKeys()
+        {
+            var keys = new List<string>();
+            if (keyboardHintsRow == null) return keys;
+            foreach (Transform row in keyboardHintsRow)
+            {
+                var cap = row.Find("Cap/Key");
+                if (cap != null) keys.Add(cap.GetComponent<Text>().text);
+            }
+            return keys;
+        }
         RectTransform padHintsRow;
 
         /// <summary>The key-hint strip is showing controller buttons.</summary>
@@ -174,7 +206,8 @@ namespace PackTheTrunk
             UpdateTip();
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            if ((kb != null && kb.escapeKey.wasPressedThisFrame) || Pad.Down(p => p.buttonEast))
+            bool escUsed = UpdateRebind();
+            if (!escUsed && !IsRebinding && ((kb != null && kb.escapeKey.wasPressedThisFrame) || Pad.Down(p => p.buttonEast)))
             {
                 if (confirm.gameObject.activeSelf) { CloseConfirm(false); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
                 else if (settings.gameObject.activeSelf) { HideSettings(); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
@@ -810,16 +843,9 @@ namespace PackTheTrunk
             var kbHints = UiKit.Rect("Keyboard", keys).Fill();
             var kh = UiKit.Horizontal(kbHints.gameObject, 22, TextAnchor.MiddleLeft);
             kh.childControlWidth = true;
-            UiTheme.KeyHint(kbHints, "CLICK", "grab / drop");
-            UiTheme.KeyHint(kbHints, "R", "turn");
-            UiTheme.KeyHint(kbHints, "T", "tip");
-            UiTheme.KeyHint(kbHints, "F", "roll");
-            UiTheme.KeyHint(kbHints, "WHEEL", "shelf");
-            UiTheme.KeyHint(kbHints, "ESC", "back / pause");
-            UiTheme.KeyHint(kbHints, "Z", "undo");
-            UiTheme.KeyHint(kbHints, "Q E", "orbit");
-            UiTheme.KeyHint(kbHints, "TAB", "x-ray");
-            UiTheme.KeyHint(kbHints, "SPACE", "close");
+            keyboardHintsRow = kbHints;
+            BuildKeyboardHints();
+            Bindings.Changed += BuildKeyboardHints;
             var padHints = UiKit.Rect("Gamepad", keys).Fill();
             var ph = UiKit.Horizontal(padHints.gameObject, 18, TextAnchor.MiddleLeft);
             ph.childControlWidth = true;

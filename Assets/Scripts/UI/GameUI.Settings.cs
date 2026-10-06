@@ -169,7 +169,7 @@ namespace PackTheTrunk
 
         void BuildGameplayTab()
         {
-            SliderRow("Camera speed", "How fast Q / E and right-drag swing the camera.", () => GameSettings.OrbitSpeed, v => GameSettings.OrbitSpeed = Mathf.Round(v * 10f) / 10f,
+            SliderRow("Camera speed", $"How fast {Bindings.Label(Bindings.Action.LookLeft)} / {Bindings.Label(Bindings.Action.LookRight)} and right-drag swing the camera.", () => GameSettings.OrbitSpeed, v => GameSettings.OrbitSpeed = Mathf.Round(v * 10f) / 10f,
                 0.4f, 2f, v => $"{v:0.0}×");
             ToggleRow("Invert camera tilt", "Flip up and down when dragging the camera.", () => GameSettings.InvertOrbit, v => GameSettings.InvertOrbit = v);
             ToggleRow("Screen shake", "A little bump when the trunk slams shut.", () => GameSettings.ScreenShake, v => GameSettings.ScreenShake = v);
@@ -186,20 +186,93 @@ namespace PackTheTrunk
                 () => Confirm("Erase all trips, stars and photos?", "ERASE", () => ResetProgressPressed?.Invoke()));
         }
 
+        Bindings.Action? rebinding;
+        Text rebindingLabel;
+        readonly List<(Bindings.Action Action, Text Label)> bindLabels = new List<(Bindings.Action, Text)>();
+
+        /// <summary>Waiting for a key press to bind (Settings → Controls).</summary>
+        public bool IsRebinding => rebinding != null;
+
         void BuildControlsTab()
         {
             var grid = UiKit.Rect("Controls", settingsBody);
-            UiKit.Size(grid.gameObject.AddComponent<LayoutElement>(), -1, 460);
-            var left = UiKit.Rect("Keys", grid).Place(new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(20, 0), new Vector2(-10, -10));
-            UiKit.Vertical(left.gameObject, 10).childControlHeight = false;
-            foreach (var (k, what) in ControlsList) ControlRow(left, k, what, 24);
-            var right = UiKit.Rect("Pad", grid).Place(new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(10, 0), new Vector2(0, -10));
-            UiKit.Vertical(right.gameObject, 10).childControlHeight = false;
-            var padHeader = UiTheme.Label("Gamepad", right, "GAMEPAD (Xbox layout)", UiTheme.Display, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
-            padHeader.rectTransform.sizeDelta = new Vector2(600, 36);
-            UiKit.Size(padHeader.gameObject.AddComponent<LayoutElement>(), -1, 36);
-            foreach (var (k, what) in PadControlsList) ControlRow(right, k, what, 22);
-            settingsHint.text = "Hold SHIFT with R, T or F (or LB with X, Y or RB) to turn the other way.";
+            UiKit.Size(grid.gameObject.AddComponent<LayoutElement>(), -1, 536);
+            bindLabels.Clear();
+            rebinding = null;
+
+            var kbHeader = UiTheme.Label("Keyboard", grid, "KEYBOARD  ·  click a key to change it", UiTheme.Display, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
+            kbHeader.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -40), new Vector2(0, -4));
+            // Three columns of four: "Turn  [R]".
+            var actions = Bindings.All;
+            for (int i = 0; i < actions.Length; i++)
+            {
+                var action = actions[i];
+                int col = i / 4, row = i % 4;
+                var cell = UiKit.Rect("Bind " + action, grid).Place(new Vector2(col / 3f, 1), new Vector2((col + 1) / 3f, 1),
+                    new Vector2(20, -48 - (row + 1) * 58), new Vector2(-14, -48 - row * 58 - 6));
+                var name = UiTheme.Label("Name", cell, Bindings.Name(action), UiTheme.Body, 23, UiTheme.InkSoft, TextAnchor.MiddleLeft);
+                name.rectTransform.Place(Vector2.zero, new Vector2(0.62f, 1), Vector2.zero, Vector2.zero);
+                var button = UiTheme.Pill("Bind " + action, cell, Bindings.Label(action), UiTheme.Night, 22, () => StartRebind(action), out var label);
+                ((RectTransform)button.transform).Place(new Vector2(0.62f, 0), Vector2.one, new Vector2(4, 2), new Vector2(0, -2));
+                bindLabels.Add((action, label));
+            }
+
+            var padHeader = UiTheme.Label("Gamepad", grid, "GAMEPAD (Xbox layout)", UiTheme.Display, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
+            padHeader.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -330), new Vector2(0, -294));
+            var padLeft = UiKit.Rect("Pad A", grid).Place(new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(20, 0), new Vector2(-10, -334));
+            var padRight = UiKit.Rect("Pad B", grid).Place(new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(10, 0), new Vector2(0, -334));
+            UiKit.Vertical(padLeft.gameObject, 4).childControlHeight = false;
+            UiKit.Vertical(padRight.gameObject, 4).childControlHeight = false;
+            for (int i = 0; i < PadControlsList.Length; i++)
+            {
+                var (k, what) = PadControlsList[i];
+                ControlRow(i < 4 ? padLeft : padRight, k, what, 20);
+            }
+            settingsHint.text = "Mouse: right-click turns, the wheel picks a shelf, right-drag looks around. Hold SHIFT (or LB) to turn the other way.";
+        }
+
+        void StartRebind(Bindings.Action action)
+        {
+            RefreshBindLabels();
+            if (rebinding == action) { rebinding = null; return; }
+            rebinding = action;
+            foreach (var (a, label) in bindLabels)
+                if (a == action) { rebindingLabel = label; label.text = "PRESS A KEY"; }
+        }
+
+        void RefreshBindLabels()
+        {
+            foreach (var (a, label) in bindLabels)
+                if (label != null) label.text = Bindings.Label(a);
+        }
+
+        /// <summary>While rebinding: the next key press is the new key; Escape cancels. True if Escape was used up.</summary>
+        bool UpdateRebind()
+        {
+            if (rebinding == null) return false;
+            if (!settings.gameObject.activeSelf) { rebinding = null; return false; }
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return false;
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                rebinding = null;
+                RefreshBindLabels();
+                Sfx.Instance?.Back();
+                escConsumedFrame = Time.frameCount;
+                return true;
+            }
+            foreach (var key in kb.allKeys)
+            {
+                if (key == null || !key.wasPressedThisFrame || !Bindings.CanBind(key.keyCode)) continue;
+                var action = rebinding.Value;
+                rebinding = null;
+                Bindings.Bind(action, key.keyCode);
+                RefreshBindLabels();
+                Sfx.Instance?.Confirm();
+                escConsumedFrame = Time.frameCount;
+                break;
+            }
+            return false;
         }
 
         // ------------------------------------------------------------------ rows

@@ -237,7 +237,13 @@ namespace PackTheTrunk
             rules.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(46, -250), new Vector2(-40, -104));
             var keys = UiKit.Rect("Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(keys.gameObject, 8).childControlHeight = false;
-            foreach (var (k, what) in ControlsList) ControlRow(keys, k, what, 22);
+            void FillKeys()
+            {
+                UiKit.Clear(keys);
+                foreach (var (k, what) in ControlsList) ControlRow(keys, k, what, 22);
+            }
+            FillKeys();
+            Bindings.Changed += FillKeys;
             var padKeys = UiKit.Rect("Pad Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(padKeys.gameObject, 8).childControlHeight = false;
             foreach (var (k, what) in PadControlsList) ControlRow(padKeys, k, what, 22);
@@ -251,18 +257,26 @@ namespace PackTheTrunk
             pause.gameObject.SetActive(false);
         }
 
-        internal static readonly (string, string)[] ControlsList =
+        /// <summary>The keyboard controls, with whatever keys are bound right now.</summary>
+        internal static (string, string)[] ControlsList
         {
-            ("CLICK", "pick up · drop into the trunk"),
-            ("R  T  F", "turn · tip · roll (hold SHIFT to reverse)"),
-            ("WHEEL / W S", "choose a shelf when there's a gap"),
-            ("Q  E / RIGHT-DRAG", "look around the car"),
-            ("TAB (hold)", "see through everything packed"),
-            ("Z  ·  H", "undo · ask Grandpa for a hint"),
-            ("SPACE", "close the trunk"),
-            ("ESC", "put back · pause"),
-            ("M", "music on / off"),
-        };
+            get
+            {
+                string L(Bindings.Action a) => Bindings.Label(a);
+                return new[]
+                {
+                    ("CLICK", "pick up · drop into the trunk"),
+                    ($"{L(Bindings.Action.Turn)}  {L(Bindings.Action.Tip)}  {L(Bindings.Action.Roll)}", "turn · tip · roll (hold SHIFT to reverse)"),
+                    ($"WHEEL / {L(Bindings.Action.ShelfUp)} {L(Bindings.Action.ShelfDown)}", "choose a shelf when there's a gap"),
+                    ($"{L(Bindings.Action.LookLeft)}  {L(Bindings.Action.LookRight)} / RIGHT-DRAG", "look around the car"),
+                    ($"{L(Bindings.Action.XRay)} (hold)", "see through everything packed"),
+                    ($"{L(Bindings.Action.Undo)}  ·  {L(Bindings.Action.Hint)}", "undo · ask Grandpa for a hint"),
+                    (L(Bindings.Action.Close), "close the trunk"),
+                    ("ESC", "put back · pause"),
+                    (L(Bindings.Action.Music), "music on / off"),
+                };
+            }
+        }
 
         internal static readonly (string, string)[] PadControlsList =
         {

@@ -60,13 +60,15 @@ namespace PackTheTrunk
             {
                 case Tip.Pickup: return "Click something on the blanket to pick it up.";
                 case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. Click to drop it.";
-                case Tip.Turn: return "Won't fit like that? R turns it, T tips it over and F rolls it sideways.";
-                case Tip.Shelf: return "There's room underneath too! The mouse wheel or W / S picks the shelf.";
+                case Tip.Turn: return $"Won't fit like that? {K(Bindings.Action.Turn)} turns it, {K(Bindings.Action.Tip)} tips it over and {K(Bindings.Action.Roll)} rolls it sideways.";
+                case Tip.Shelf: return $"There's room underneath too! The mouse wheel or {K(Bindings.Action.ShelfUp)} / {K(Bindings.Action.ShelfDown)} picks the shelf.";
                 case Tip.Fragile: return "Fragile! Nothing can go on top of it, so it rides up top.";
-                case Tip.Undo: return "Changed your mind? Z undoes, and anything packed can be clicked back out.";
-                default: return "Can't see the gap? Right-drag or Q / E walks you around the car.";
+                case Tip.Undo: return $"Changed your mind? {K(Bindings.Action.Undo)} undoes, and anything packed can be clicked back out.";
+                default: return $"Can't see the gap? Right-drag or {K(Bindings.Action.LookLeft)} / {K(Bindings.Action.LookRight)} walks you around the car.";
             }
         }
+
+        static string K(Bindings.Action action) => Bindings.Label(action);
 
         /// <summary>Has the player just done what the tip on screen is asking for?</summary>
         bool TipDone(Tip tip)
@@ -99,8 +101,7 @@ namespace PackTheTrunk
             tripPlayTime += Time.deltaTime;
             if (tripPlayTime > 15f && level.Size.y > 1) QueueTip(Tip.Orbit);
             if (held != null && hasTarget && restingHeights.Count >= 2) QueueTip(Tip.Shelf);
-            var keys = UnityEngine.InputSystem.Keyboard.current;
-            if (rig.IsDragging || rig.IsPadOrbiting || (keys != null && (keys.qKey.isPressed || keys.eKey.isPressed))) tipOrbited = true;
+            if (rig.IsDragging || rig.IsPadOrbiting || Bindings.Held(Bindings.Action.LookLeft) || Bindings.Held(Bindings.Action.LookRight)) tipOrbited = true;
 
             if (activeTip is Tip current && TipDone(current))
             {

@@ -144,6 +144,7 @@ namespace PackTheTrunk
                 "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "tips", "ghostpal", "textspeed",
             })
                 Prefs.DeleteKey(Prefix + key);
+            Bindings.ResetAll();
             Commit();
         }
 
