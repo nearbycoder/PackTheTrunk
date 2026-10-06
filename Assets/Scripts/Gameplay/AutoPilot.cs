@@ -42,9 +42,7 @@ namespace PackTheTrunk
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             PerfProbe.Attach();
             yield return null;
-            // Uncapped, so the frame times show real headroom rather than the display's refresh.
-            QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = -1;
+            Uncap();
             game = FindAnyObjectByType<GameController>();
             Log("started, levels: " + GameDatabase.Levels.Count);
 
@@ -261,6 +259,7 @@ namespace PackTheTrunk
             for (int palette = 0; palette < GameSettings.PlacementPalettes.Length; palette++)
             {
                 GameSettings.PlacementPalette = palette;
+                Uncap();
                 yield return MoveMouse(packed.transform.position + (Vector3)packed.Shape.Center + Vector3.up * 0.5f);
                 yield return Wait(0.4f);
                 if (palette == 0) Check(game.Held == second && !game.HasValidTarget, "over the packed item the ghost says it won't fit");
@@ -278,6 +277,7 @@ namespace PackTheTrunk
                 yield return Shot($"ghost-ok-{GameSettings.PlacementPalettes[palette].Replace(" / ", "-").ToLowerInvariant()}");
             }
             GameSettings.PlacementPalette = 0;
+            Uncap();
             yield return Press(Key.Escape);
             yield return Wait(0.5f);
             Check(game.Held == null && second.State == ItemState.Pile, "Escape puts the held item back");
@@ -305,9 +305,16 @@ namespace PackTheTrunk
             yield return Wait(0.6f);
             yield return Shot("tip-pickup");
 
+            // Let everything land on the blanket, then click (retrying: a loaded machine can drop a click).
+            for (float t = 0f; t < 6f && game.Items.Any(i => i.IsFalling); t += Time.unscaledDeltaTime) yield return null;
             var first = game.Items.First(i => !i.Def.Fragile && i.State == ItemState.Pile);
-            yield return MoveMouse(first.transform.position + (Vector3)first.Shape.Center);
-            yield return Click();
+            for (int attempt = 0; attempt < 3 && game.Held == null; attempt++)
+            {
+                yield return MoveMouse(first.transform.position + (Vector3)first.Shape.Center);
+                yield return Wait(0.2f);
+                yield return Click();
+                yield return Wait(0.2f);
+            }
             // Whatever the click landed on (things overlap a little on the blanket).
             var basket = game.Held;
             if (basket == null) { Check(false, "tip: picking something up on the wagon"); yield break; }
@@ -450,10 +457,10 @@ namespace PackTheTrunk
                 if (quick && level != 0 && level != 5 && level != GameDatabase.Levels.Count - 1 && GameDatabase.Levels[level].Id != "weekend") continue;
                 game.AutoStartLevel(level);
                 yield return Wait(0.3f);
-                int steps = FollowHints(out string stuck);
+                yield return FollowHints();
                 var id = GameDatabase.Levels[level].Id;
                 Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
-                    $"hint: following only hints packs {id} 100% ({steps} hints{(stuck != null ? ", stuck: " + stuck : "")})");
+                    $"hint: following only hints packs {id} 100% ({followSteps} hints{(followStuck != null ? ", stuck: " + followStuck : "")})");
                 yield return Wait(0.2f);
             }
 
@@ -479,27 +486,44 @@ namespace PackTheTrunk
             yield return Press(Key.H);
             yield return Wait(0.8f);
             yield return Shot("hint-move");
-            int fixSteps = FollowHints(out string fixStuck);
+            yield return FollowHints();
             Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
-                $"hint: from the wrong start, hints still lead to 100% ({fixSteps} hints{(fixStuck != null ? ", stuck: " + fixStuck : "")})");
+                $"hint: from the wrong start, hints still lead to 100% ({followSteps} hints{(followStuck != null ? ", stuck: " + followStuck : "")})");
         }
 
         /// <summary>Do exactly what Grandpa says (undoing when he says so) until everything is packed.</summary>
-        int FollowHints(out string stuck)
+        int followSteps;
+        string followStuck;
+
+        // Paced like the main packing loop, so the landing sounds don't all pile into one frame.
+        IEnumerator FollowHints()
         {
-            stuck = null;
-            int steps = 0;
-            for (; steps < 120 && !game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping); steps++)
+            followStuck = null;
+            for (followSteps = 0; followSteps < 120 && !game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping); followSteps++)
             {
                 var hint = game.AutoFindHint();
                 if (hint.Item == null)
                 {
-                    if (!game.AutoUndo()) { stuck = hint.Message; break; }
-                    continue;
+                    if (!game.AutoUndo()) { followStuck = hint.Message; yield break; }
                 }
-                if (!game.AutoPlace(hint.Item, hint.Rotation, hint.Pos)) { stuck = $"could not place {hint.Item.Def.Id} at {hint.Pos}"; break; }
+                else if (!game.AutoPlace(hint.Item, hint.Rotation, hint.Pos))
+                {
+                    followStuck = $"could not place {hint.Item.Def.Id} at {hint.Pos}";
+                    yield break;
+                }
+                yield return Wait(0.03f);
             }
-            return steps;
+        }
+
+        /// <summary>
+        /// Uncapped, so the frame times show real headroom rather than the display's refresh. Changing
+        /// any setting re-applies V-Sync, so call this again after touching GameSettings: with V-Sync on,
+        /// a covered window on Wayland gets throttled to ~11 fps and skews every later frame time.
+        /// </summary>
+        static void Uncap()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = -1;
         }
 
         static int LevelIndex(string id)
