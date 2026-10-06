@@ -12,7 +12,7 @@ namespace PackTheTrunk
         static Material litTemplate;
         static Material ghostTemplate;
         static readonly Dictionary<(Color32, float), Material> lit = new Dictionary<(Color32, float), Material>();
-        static readonly Dictionary<Color32, Material> ghosts = new Dictionary<Color32, Material>();
+        static readonly Dictionary<(Color32, bool), Material> ghosts = new Dictionary<(Color32, bool), Material>();
         static readonly Dictionary<string, Material> special = new Dictionary<string, Material>();
 
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
@@ -71,9 +71,9 @@ namespace PackTheTrunk
             return special[key] = mat;
         }
 
-        public static Material Ghost(Color color)
+        public static Material Ghost(Color color, bool hatched = false)
         {
-            var key = (Color32)color;
+            var key = ((Color32)color, hatched);
             if (ghosts.TryGetValue(key, out var mat)) return mat;
 
             if (ghostTemplate == null)
@@ -94,6 +94,7 @@ namespace PackTheTrunk
             }
             mat = new Material(ghostTemplate) { name = "Ghost" };
             mat.SetColor(BaseColor, color);
+            mat.SetFloat("_Hatch", hatched ? 1f : 0f);
             ghosts[key] = mat;
             return mat;
         }

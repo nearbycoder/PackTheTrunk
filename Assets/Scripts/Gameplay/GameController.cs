@@ -21,8 +21,10 @@ namespace PackTheTrunk
         }
 
         static readonly Color Sky = new Color(0.58f, 0.79f, 0.95f);
-        static readonly Color GhostOk = new Color(0.35f, 1f, 0.55f, 0.38f);
-        static readonly Color GhostBad = new Color(1f, 0.3f, 0.3f, 0.42f);
+        // Placement ghost per palette (Settings → Gameplay): green / red, or blue / orange for
+        // red-green colour blindness. "Won't fit" is also hatched, so it never relies on colour alone.
+        static readonly Color[] GhostOk = { new Color(0.35f, 1f, 0.55f, 0.38f), new Color(0.3f, 0.62f, 1f, 0.42f) };
+        static readonly Color[] GhostBad = { new Color(1f, 0.3f, 0.3f, 0.42f), new Color(1f, 0.58f, 0.12f, 0.45f) };
 
         Camera cam;
         CameraRig rig;
@@ -597,6 +599,7 @@ namespace PackTheTrunk
         void Update()
         {
             if (ui.InTransition) return;
+            ui.UpdateFragileTags(mode == Mode.Playing && !paused);
             var kb = Keyboard.current;
             if (kb != null && kb.mKey.wasPressedThisFrame && !ui.IsTitleWaiting)
             {
@@ -721,7 +724,8 @@ namespace PackTheTrunk
             if (hovered != null) hovered.SetHovered(false);
             hovered = item;
             if (hovered != null) hovered.SetHovered(true);
-            ui.SetHover(item == null ? "" : item.State == ItemState.Packed ? PackedHint(item) : item.Def.Name);
+            ui.SetHover(item == null ? "" : item.State == ItemState.Packed ? PackedHint(item)
+                : item.Def.Fragile ? item.Def.Name + "  (fragile: nothing goes on top)" : item.Def.Name);
         }
 
         string PackedHint(PackItem item)
@@ -846,7 +850,8 @@ namespace PackTheTrunk
                 }
                 ghost.gameObject.SetActive(true);
                 ghost.position = vehicle.transform.TransformPoint(targetPos);
-                ghostRenderer.sharedMaterial = MaterialLibrary.Ghost(targetValid ? GhostOk : GhostBad);
+                int palette = Mathf.Clamp(GameSettings.PlacementPalette, 0, GhostOk.Length - 1);
+                ghostRenderer.sharedMaterial = MaterialLibrary.Ghost(targetValid ? GhostOk[palette] : GhostBad[palette], !targetValid);
 
                 var hand = (Vector3)targetPos + Vector3.up * (targetValid ? 0.3f : 0.45f);
                 held.MoveTo(hand, false, 22f);

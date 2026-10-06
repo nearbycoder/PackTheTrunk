@@ -174,6 +174,9 @@ namespace PackTheTrunk
             ToggleRow("Invert camera tilt", "Flip up and down when dragging the camera.", () => GameSettings.InvertOrbit, v => GameSettings.InvertOrbit = v);
             ToggleRow("Screen shake", "A little bump when the trunk slams shut.", () => GameSettings.ScreenShake, v => GameSettings.ScreenShake = v);
             ToggleRow("Key hints", "Show the controls along the bottom while packing.", () => GameSettings.KeyHints, v => GameSettings.KeyHints = v);
+            ChoiceRow("Placement colours", "Blue / orange is easier to tell apart with red-green colour blindness.",
+                () => GameSettings.PlacementPalettes[Mathf.Clamp(GameSettings.PlacementPalette, 0, 1)],
+                d => GameSettings.PlacementPalette = (GameSettings.PlacementPalette + d + 2) % 2);
             ChoiceRow("Story text speed", "How quickly texts and notes appear.",
                 () => GameSettings.TextSpeeds[Mathf.Clamp(GameSettings.TextSpeed, 0, 2)],
                 d => GameSettings.TextSpeed = (GameSettings.TextSpeed + d + 3) % 3);

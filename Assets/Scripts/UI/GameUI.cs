@@ -696,6 +696,12 @@ namespace PackTheTrunk
         {
             hud = UiKit.Rect("HUD", root).Fill();
 
+            // "FRAGILE" stamps that float over fragile things on the blanket (behind every panel).
+            fragileLayer = UiKit.Rect("Fragile Tags", hud).Fill();
+            var fragileGroup = fragileLayer.gameObject.AddComponent<CanvasGroup>();
+            fragileGroup.blocksRaycasts = false;
+            fragileGroup.interactable = false;
+
             // Luggage tag with the trip name.
             var tag = UiTheme.Card("Trip Tag", hud, UiTheme.Kraft, -1.5f);
             ((RectTransform)tag.parent).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -30), new Vector2(680, 178));
@@ -815,6 +821,7 @@ namespace PackTheTrunk
             totalSpace = Mathf.Max(1, level.FreeCells);
             spaceShown = spaceTarget = 0f;
             keyHints.gameObject.SetActive(GameSettings.KeyHints);
+            BuildFragileTags(items);
 
             rows.Clear();
             UiKit.Clear(itemList);
@@ -961,6 +968,42 @@ namespace PackTheTrunk
             toast.text = message;
             toastTimer = seconds;
             toastGroup.alpha = 1f;
+        }
+
+        RectTransform fragileLayer;
+        readonly List<(PackItem Item, RectTransform Tag)> fragileTags = new List<(PackItem, RectTransform)>();
+
+        void BuildFragileTags(IReadOnlyList<PackItem> items)
+        {
+            fragileTags.Clear();
+            UiKit.Clear(fragileLayer);
+            foreach (var item in items)
+            {
+                if (!item.Def.Fragile) continue;
+                var tag = UiTheme.StampLabel(fragileLayer, "FRAGILE", UiTheme.Stamp, 15, -5f);
+                tag.gameObject.SetActive(false);
+                fragileTags.Add((item, tag));
+            }
+        }
+
+        /// <summary>Keep each fragile item's stamp just above it while it waits on the blanket.</summary>
+        public void UpdateFragileTags(bool show)
+        {
+            var cam = Camera.main;
+            foreach (var (item, tag) in fragileTags)
+            {
+                bool on = show && cam != null && item != null && item.State == ItemState.Pile && !item.IsFalling;
+                if (on)
+                {
+                    var c = item.Shape.Center;
+                    var top = item.transform.position + new Vector3(c.x, item.Shape.Size.y + 0.25f, c.z);
+                    var screen = cam.WorldToScreenPoint(top);
+                    on = screen.z > 0f;
+                    if (on && RectTransformUtility.ScreenPointToLocalPointInRectangle(fragileLayer, screen, null, out var local))
+                        tag.anchoredPosition = local;
+                }
+                if (tag.gameObject.activeSelf != on) tag.gameObject.SetActive(on);
+            }
         }
 
         public void HideHudForCutscene(bool hide)

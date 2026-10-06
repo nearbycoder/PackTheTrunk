@@ -49,7 +49,9 @@ the family album.
 ## How to play
 
 Pick something up off the blanket, turn it until it fits, and drop it into the trunk. A green
-ghost shows where it will land; red means it won't fit, and the game tells you why.
+ghost shows where it will land; a red, striped one means it won't fit, and the game tells you
+why. (Settings → Gameplay → Placement colours switches to blue / orange; the stripes stay either
+way.)
 
 | Input | Action |
 | --- | --- |
@@ -75,6 +77,7 @@ in **Settings → Controls**, and key hints run along the bottom of the screen w
   the clown who was already in the car.
 - Everything has to rest on something. Nothing floats.
 - **Fragile** things (eggs, cakes, the garden gnome, the lava lamp…) can't have anything on top.
+  They wear a red FRAGILE stamp while they wait on the blanket.
 - Stars: ★ every essential packed, ★★ at least half the extras, ★★★ everything.
 
 ## Features
@@ -139,8 +142,8 @@ Also in the box:
   loses focus), and a paper-wipe transition with a little car driving across. Settings are saved
   and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
   quality presets, render scale, anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient
-  occlusion, ink outlines, depth of field, bloom, camera speed, screen shake, key hints and
-  story text speed.
+  occlusion, ink outlines, depth of field, bloom, camera speed, screen shake, key hints,
+  placement colours and story text speed.
 - **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
   glass), spatial panning, music that crossfades between screens, muffles behind the story texts
   and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.

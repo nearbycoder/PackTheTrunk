@@ -141,6 +141,9 @@ namespace PackTheTrunk
 
         public void SetColliderEnabled(bool enabled) => meshCollider.enabled = enabled;
 
+        /// <summary>Still dropping onto the blanket at the start of a trip.</summary>
+        public bool IsFalling => falling;
+
         public void SetHovered(bool value) => hovered = value;
 
         public void MoveTo(Vector3 localPosition, bool instant = false, float speed = 14f)

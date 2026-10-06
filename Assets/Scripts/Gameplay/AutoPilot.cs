@@ -127,6 +127,7 @@ namespace PackTheTrunk
             yield return Wait(0.8f);
             Check(first.State == ItemState.Packed, "clicking drops the item into the trunk");
             yield return Shot("level1-dropped");
+            yield return GhostChecks(first);
             yield return Press(Key.Z);
             yield return Wait(0.6f);
             Check(first.State == ItemState.Pile, "Z undoes the placement");
@@ -147,6 +148,7 @@ namespace PackTheTrunk
                 PerfProbe.Begin("packing");
                 if (level != 0) game.AutoStartLevel(level);
                 yield return Wait(level == 0 ? 0.2f : 1.2f);
+                if (def.Id == "grandma") yield return Wait(2f);
                 yield return Shot(def.Id + "-start");
 
                 if (!solutions.TryGetValue(def.Id, out var placements))
@@ -240,6 +242,43 @@ namespace PackTheTrunk
             yield return Wait(2f);
             string after = File.Exists(photo) ? Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes(photo))) : null;
             Check(before != null && after == before && Prefs.GetInt("ptt.stars.wagon") == 3, "a 1-star replay keeps the 3-star photo and stars");
+        }
+
+        /// <summary>
+        /// Hold a second item over the (1-tall) wagon: over the packed item it can't fit, over an empty
+        /// cell it can. Screenshot both in both placement palettes for the colour-blind check.
+        /// </summary>
+        IEnumerator GhostChecks(PackItem packed)
+        {
+            var second = game.Items.First(i => i != packed && i.State == ItemState.Pile);
+            yield return MoveMouse(second.transform.position + (Vector3)second.Shape.Center);
+            yield return Click();
+            yield return Wait(0.3f);
+            if (game.Held != second) { Check(false, "picking up a second item for the ghost check"); yield break; }
+            var trunk = game.CurrentVehicle.transform;
+            for (int palette = 0; palette < GameSettings.PlacementPalettes.Length; palette++)
+            {
+                GameSettings.PlacementPalette = palette;
+                yield return MoveMouse(packed.transform.position + (Vector3)packed.Shape.Center + Vector3.up * 0.5f);
+                yield return Wait(0.4f);
+                if (palette == 0) Check(game.Held == second && !game.HasValidTarget, "over the packed item the ghost says it won't fit");
+                yield return Shot($"ghost-bad-{GameSettings.PlacementPalettes[palette].Replace(" / ", "-").ToLowerInvariant()}");
+                bool found = false;
+                for (int x = 0; x < game.TrunkSize.x && !found; x++)
+                for (int z = 0; z < game.TrunkSize.z && !found; z++)
+                {
+                    yield return MoveMouse(trunk.TransformPoint(new Vector3(x + 0.5f, 0f, z + 0.5f)));
+                    yield return Wait(0.15f);
+                    found = game.HasValidTarget;
+                }
+                yield return Wait(0.3f);
+                if (palette == 0) Check(found, "over an empty spot the ghost says it fits");
+                yield return Shot($"ghost-ok-{GameSettings.PlacementPalettes[palette].Replace(" / ", "-").ToLowerInvariant()}");
+            }
+            GameSettings.PlacementPalette = 0;
+            yield return Press(Key.Escape);
+            yield return Wait(0.5f);
+            Check(game.Held == null && second.State == ItemState.Pile, "Escape puts the held item back");
         }
 
         static bool AnyText(string fragment) =>
