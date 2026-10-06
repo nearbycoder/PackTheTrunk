@@ -317,3 +317,87 @@ Things round 2 turned up along the way:
 Still open: Windows (needs the module), WebGL and hosting, signing and notarization (all owner
 decisions); post-game replayability (#12); a hardware gamepad / Steam Deck test; re-cutting the
 trailer, poster and teaser so they show the HINT button; and the quiet-machine perf re-check above.
+
+## Round 3 scope (2026-10-06, branch `improvements-3`)
+
+**Measurement debt first.** The machine was quiet when the round started (load average 0.5), so
+`-pttBench` ran on the round-2 `main` build straight away (`Recordings/round3/bench-before.log`). The
+25-item minivan averaged **1.8 ms** packing (p99 2.7 ms) and **1.8 ms** holding (p99 2.4 ms). Every
+other screen was 1.6–1.8 ms, there were no frames over 33 ms, and there was about one GC per phase. Round 2's
+2.7 ms reading came from machine load, not the see-through checks or the scrolling list. That item is
+closed.
+
+Round 3 is about what a player runs into mid-trip. A misclick can wipe a packed trunk. The star rules
+are only written in the README. Hints make three stars easy to get without leaving any reason to replay.
+It also pays the last verification debt from round 2.
+
+### A. Restart you can take back
+
+The HUD's **RESTART** sits right next to **UNDO**. Today one click rebuilds the trip, and a 20-item
+trunk is gone with no undo. The pause menu's RESTART TRIP does the same.
+
+- **Acceptance:** RESTART (HUD and pause) unpacks everything onto the blanket in place, as one undo
+  step. Z / Backspace / View brings the whole trunk back exactly as it was. A toast says so. With nothing packed,
+  RESTART only puts the held item back and says there's nothing to unpack. The postcard's TRY AGAIN still
+  rebuilds the trip (the car has driven off). Grandpa's "RESTART starts fresh" hint stays true.
+- **Verify:** an autopilot section packs half a trip, clicks the real RESTART button, checks that every
+  item is on the blanket and the trunk grid is empty, presses Z, and checks that every item is back at
+  the same cell in the same orientation. Then the same through the pause menu.
+
+### B. A live star meter
+
+The HUD shows "Essentials 3/5 · Extras 2/6", but not what closing now would earn or what the next
+star needs ("at least half the extras").
+
+- **Acceptance:** three small stars on the packing list show the stars you'd get by closing now
+  (none until the essentials are in). When a star is earned it pops, and a toast says what the next one
+  needs ("Two stars if you close now. Every extra makes three."). The postcard's stars always equal
+  the meter at the moment of closing. The HUD layout pass stays clean at every screen shape and
+  interface size.
+- **Verify:** the autopilot checks the meter at 0 / 1 / 2 / 3 stars on a trip with an odd number of extras
+  (half rounds up). It also checks that the postcard agrees on every trip it closes, and the layout pass
+  (16:9, 16:10, 4:3, 21:9 × 80/100/120%) still reports no overlaps.
+
+### C. Grandpa's seal: a reason to replay (ranked #12, small version)
+
+Once Ask Grandpa exists, three stars stop meaning "I solved it". A trip packed to three stars
+**without asking for a hint** earns Grandpa's seal.
+
+- **Acceptance:** the seal is stamped on the postcard when it's earned and shown on that trip's card
+  on the Trip Map. The map and album show how many trips are sealed. Asking for a hint that shows
+  something (a ghost, or "X is in the way") rules out the seal for this attempt. A fresh attempt
+  (RESTART, TRY AGAIN, or starting the trip again) clears that. Undoing a RESTART brings the hinted
+  packing back, so it brings the "hinted" mark back too. Like stars, a seal is never taken away. Existing
+  saves start with no seals. Nothing changes for players who don't care: no star is gated on it.
+- **Verify:** the autopilot packs a trip to 3 stars without hints and checks for the seal (pref,
+  postcard stamp, map card). It replays it with one hint and checks the seal is still there (never
+  removed). On a different trip, it packs with one hint and checks no seal is given. Then RESTART
+  (clear), Undo (back to "hinted"), RESTART, and a hint-free pack earns it. Screenshots of the postcard
+  and the map.
+
+### D. Pay the round-2 verification debt: the hint ghost's see-through
+
+Round 2 made whatever hides Ask Grandpa's ghost go see-through, but it was only checked by eye.
+
+- **Acceptance / verify:** in the covered-gap setup of `SeeThroughChecks`, with empty hands, a hint
+  ghost placed in the gap makes the skis see-through. Clearing the hint restores them. Nothing else
+  is faded.
+
+### E. Gamepad: ready for a real controller test
+
+There's still no physical controller test. An 8BitDo Pro 3 receiver is plugged into this
+machine, but no controller is paired to it (only a `hidraw` node, no `event`/`js` device), and nobody
+is here to press buttons.
+
+- **Acceptance:** the player logs every input device it sees, at start and whenever one connects or
+  disconnects (`[Input] added Gamepad "…" (layout …)`). A device that shows up only as a generic
+  `Joystick` (not a `Gamepad`) gets a log line saying it isn't supported. Then a real test that "does
+  nothing" can be diagnosed from `Player.log`. A short checklist, `docs/GAMEPAD-TEST.md`, lets
+  the owner (or a Deck player) run the hardware test in about ten minutes.
+- **Verify:** the autopilot's simulated gamepad produces the `[Input] added` / `removed` lines. A
+  simulated `Joystick` produces the unsupported line. Physical hardware stays **unverified**, and the
+  README keeps saying so.
+
+Each item ends with `build-linux` (0 errors), the solver, a quick autopilot, and screenshots in
+`docs/media/improvements/round3/`. The round ends with a full autopilot (0 FAIL, save untouched) and
+a `-pttBench` re-run.
