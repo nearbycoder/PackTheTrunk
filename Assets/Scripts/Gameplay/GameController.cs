@@ -126,7 +126,12 @@ namespace PackTheTrunk
             };
             ui.UndoPressed += () => { if (mode == Mode.Playing) Undo(); };
             ui.HintPressed += AskGrandpa;
-            ui.RestartPressed += () => ui.Transition(() => StartLevel(levelIndex));
+            // While packing, RESTART unpacks in place as one undo step; on the postcard the car has gone, so rebuild.
+            ui.RestartPressed += () =>
+            {
+                if (mode == Mode.Playing) UnpackEverything();
+                else ui.Transition(() => StartLevel(levelIndex));
+            };
             ui.MenuPressed += () => ui.Transition(ShowMenu);
             ui.ClosePressed += () => { if (mode == Mode.Playing && CanClose()) StartCoroutine(CloseTrunk()); };
             ui.NextPressed += () => ui.Transition(() =>
@@ -148,7 +153,7 @@ namespace PackTheTrunk
             };
             ui.PausePressed += PauseGame;
             ui.ResumePressed += ResumeGame;
-            ui.PauseRestartPressed += () => { ResumeGame(); ui.Transition(() => StartLevel(levelIndex)); };
+            ui.PauseRestartPressed += () => { ResumeGame(); UnpackEverything(); };
             ui.PauseMapPressed += () => { ResumeGame(); ui.Transition(ShowMenu); };
             ui.PauseMainMenuPressed += () => { ResumeGame(); ui.Transition(() => ShowTitle(false)); };
             ui.ResetProgressPressed += ResetProgress;
@@ -1082,6 +1087,35 @@ namespace PackTheTrunk
             Restore(undo.Pop());
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
+        }
+
+        /// <summary>
+        /// RESTART while packing: everything goes back on the blanket as a single undo step, so a
+        /// misclick next to UNDO never costs a packed trunk.
+        /// </summary>
+        void UnpackEverything()
+        {
+            if (mode != Mode.Playing) return;
+            if (held != null) PutBack();
+            ClearHint();
+            if (!items.Any(IsPacked))
+            {
+                ui.Toast("Nothing's packed yet. The trunk's already empty.", 1.8f);
+                return;
+            }
+            undo.Push(Capture());
+            foreach (var item in items)
+            {
+                if (!IsPacked(item)) continue;
+                grid.Remove(item);
+                ReturnToPile(item);
+                item.SetColliderEnabled(true);
+            }
+            closeArmedUntil = 0f;
+            sfx.PutBack(vehicle.transform.position);
+            RefreshHud();
+            ui.Toast($"Unpacked everything. {(GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo))} puts it all back.", 3f);
+            Debug.Log($"[Restart] {level.Id}: unpacked {undo.Peek().Count(s => s.Packed)} items in place");
         }
 
         List<SavedItem> Capture()

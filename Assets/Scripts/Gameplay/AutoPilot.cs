@@ -211,6 +211,7 @@ namespace PackTheTrunk
             yield return EarlyCloseChecks(solutions);
             yield return TipChecks(solutions);
             yield return HintChecks();
+            yield return RestartChecks(solutions);
             yield return SeeThroughChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
@@ -508,6 +509,56 @@ namespace PackTheTrunk
             yield return FollowHints();
             Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
                 $"hint: from the wrong start, hints still lead to 100% ({followSteps} hints{(followStuck != null ? ", stuck: " + followStuck : "")})");
+        }
+
+        /// <summary>
+        /// RESTART (the HUD button and the pause menu's) unpacks in place as one undo step: everything goes
+        /// back on the blanket, and Z puts every item back in the same cell, turned the same way.
+        /// </summary>
+        IEnumerator RestartChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            int index = LevelIndex("grandma");
+            game.AutoStartLevel(index);
+            yield return Wait(2.5f);
+            int emptyFree = game.FreeCells;
+            int undoBefore = game.UndoDepth;
+            yield return ClickUi("Restart");
+            yield return Wait(0.5f);
+            Check(game.IsPlaying && game.UndoDepth == undoBefore && AnyText("already empty"),
+                "restart: with nothing packed, RESTART just says so (no undo step)");
+
+            if (!solutions.TryGetValue("grandma", out var placements)) { Check(false, "restart: grandma has a solution"); yield break; }
+            foreach (var (itemId, cells) in placements.Take(placements.Count / 2 + 1))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            var packedNow = game.Items.Where(i => i.State == ItemState.Packed).ToList();
+            var layout = packedNow.ToDictionary(i => i, i => (i.GridPos, i.Orientation));
+            int packedFree = game.FreeCells;
+
+            foreach (var via in new[] { "HUD", "pause" })
+            {
+                if (via == "HUD") yield return ClickUi("Restart");
+                else
+                {
+                    yield return Press(Key.Escape);
+                    yield return Wait(1f);
+                    yield return ClickUi("Pause Restart");
+                }
+                yield return Wait(0.8f);
+                if (via == "HUD") yield return Shot("restart-unpacked");
+                Check(game.IsPlaying && !game.IsPaused && game.Items.All(i => i.State == ItemState.Pile) && game.FreeCells == emptyFree,
+                    $"restart ({via}): {packedNow.Count} packed items all go back on the blanket and the trunk is empty");
+                yield return Press(Key.Z);
+                yield return Wait(0.8f);
+                bool same = packedNow.All(i => i.State == ItemState.Packed && i.GridPos == layout[i].GridPos && Quaternion.Angle(i.Orientation, layout[i].Orientation) < 1f);
+                Check(same && game.FreeCells == packedFree && game.Items.Count(i => i.State == ItemState.Packed) == packedNow.Count,
+                    $"restart ({via}): one Z puts all {packedNow.Count} back exactly where they were");
+            }
         }
 
         /// <summary>

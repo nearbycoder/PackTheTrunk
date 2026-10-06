@@ -62,6 +62,7 @@ way.)
 | **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
 | **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
 | **`Z`** / **`Backspace`** | Undo |
+| **RESTART** button | Unpack everything back onto the blanket (one undo puts it all back) |
 | **`H`** or the **HINT** button | Ask Grandpa: an orange ghost shows where one thing goes |
 | **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
 | **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |

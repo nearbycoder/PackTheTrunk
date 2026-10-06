@@ -51,6 +51,10 @@ namespace PackTheTrunk
 
         public bool XRayActive => xray;
 
+        public int UndoDepth => undo.Count;
+
+        public int FreeCells => grid.FreeCellCount();
+
         /// <summary>Undo one step, as Z would; false if there's nothing to undo.</summary>
         public bool AutoUndo()
         {

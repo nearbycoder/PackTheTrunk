@@ -218,7 +218,7 @@ namespace PackTheTrunk
             UiKit.Vertical(list.gameObject, 4, null, TextAnchor.LowerLeft).childForceExpandHeight = false;
             int n = 0;
             MenuEntry(list, "Resume", "RESUME", "Back to packing", () => ResumePressed?.Invoke(), n++, out _, true);
-            MenuEntry(list, "Pause Restart", "RESTART TRIP", "Unpack everything and start over", () => PauseRestartPressed?.Invoke(), n++, out _);
+            MenuEntry(list, "Pause Restart", "RESTART TRIP", "Unpack everything (undo puts it back)", () => PauseRestartPressed?.Invoke(), n++, out _);
             MenuEntry(list, "Pause Settings", "SETTINGS", "Sound, display, graphics and controls", () => ShowSettings(), n++, out _);
             MenuEntry(list, "Pause Map", "TRIP MAP", "Pick a different trip", () => PauseMapPressed?.Invoke(), n++, out _);
             MenuEntry(list, "Pause Title", "MAIN MENU", "Your progress is saved after every trip", () => PauseMainMenuPressed?.Invoke(), n++, out _);
