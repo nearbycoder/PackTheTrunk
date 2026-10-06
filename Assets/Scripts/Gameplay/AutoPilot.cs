@@ -867,6 +867,8 @@ namespace PackTheTrunk
                 float countsOver = game.Ui.CountsOverflow(), meterGap = game.Ui.MeterGapToHeading();
                 if (countsOver > 0f) problems.Add($"the counts line is {countsOver:0} units too wide for one line");
                 if (meterGap < 4f) problems.Add($"the star meter is {-meterGap:0} units into the heading");
+                var wrapped = game.Ui.WrappedKeyHints();
+                if (wrapped.Count > 0) problems.Add("key hints wrap onto two lines: " + string.Join(", ", wrapped));
                 Check(problems.Count == 0, $"layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? $"{names.Count} HUD pieces, {rows.Count} list rows of {smallest:0} units{(game.Ui.ListScrolls ? " (scrolling)" : "")}, counts line {-countsOver:0} units spare, star meter {meterGap:0} clear of the heading, all clear" : string.Join("; ", problems)));
                 yield return Shot($"layout-{size}-{scale * 100:0}");
             }

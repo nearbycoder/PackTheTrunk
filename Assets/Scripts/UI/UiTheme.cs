@@ -187,11 +187,26 @@ namespace PackTheTrunk
             cap.color = new Color(1f, 0.98f, 0.94f, 0.95f);
             var kt = Label("Key", cap.transform, key, Display, 20, Ink, TextAnchor.MiddleCenter);
             kt.rectTransform.Fill(2);
-            UiKit.Size(cap, Mathf.Max(38, kt.preferredWidth + 20), 38);
+            kt.horizontalOverflow = HorizontalWrapMode.Overflow;
             var c = Label("Caption", row, caption, Body, 19, Color.white, TextAnchor.MiddleLeft);
             c.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.6f);
-            UiKit.Size(c, c.preferredWidth + 4, 38);
+            c.horizontalOverflow = HorizontalWrapMode.Overflow;
+            FitKeyHint(row);
             return row;
+        }
+
+        /// <summary>
+        /// Size a key hint's cap and caption to their text. Text measured while inactive (say, rebuilt
+        /// behind Settings after a rebind) comes out a little narrow, so the HUD layout calls this again
+        /// once the strip is showing.
+        /// </summary>
+        public static void FitKeyHint(Transform hint)
+        {
+            var cap = hint.Find("Cap");
+            var kt = cap != null ? cap.Find("Key")?.GetComponent<Text>() : null;
+            if (kt != null) UiKit.Size(cap, Mathf.Max(38, kt.preferredWidth + 20), 38);
+            var c = hint.Find("Caption")?.GetComponent<Text>();
+            if (c != null) UiKit.Size(c, c.preferredWidth + 4, 38);
         }
 
         // ------------------------------------------------------------------ sprites

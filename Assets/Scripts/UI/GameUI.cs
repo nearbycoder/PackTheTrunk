@@ -63,6 +63,7 @@ namespace PackTheTrunk
                 if (row == null) continue;
                 var children = new List<RectTransform>();
                 foreach (Transform c in row) { c.gameObject.SetActive(true); children.Add((RectTransform)c); }
+                if (row.gameObject.activeInHierarchy) foreach (var c in children) UiTheme.FitKeyHint(c);
                 row.localScale = Vector3.one;
                 float Needed() { LayoutRebuilder.ForceRebuildLayoutImmediate(row); return LayoutUtility.GetPreferredWidth(row); }
                 var byRank = children.OrderByDescending(c => hintRank.TryGetValue(c, out var r) ? r : 0).ToList();
@@ -162,6 +163,22 @@ namespace PackTheTrunk
                 list.Add(new Rect((Vector2)itemList.localPosition + (Vector2)rt.localPosition + r.min, r.size));
             }
             return (listViewport.rect, list);
+        }
+
+        /// <summary>Key-hint captions in the strip that have wrapped onto a second line (layout self-test).</summary>
+        public List<string> WrappedKeyHints()
+        {
+            var wrapped = new List<string>();
+            foreach (var row in new[] { keyboardHintsRow, padHintsRow })
+            {
+                if (row == null || !row.gameObject.activeInHierarchy) continue;
+                foreach (Transform hint in row)
+                {
+                    var caption = hint.gameObject.activeSelf ? hint.Find("Caption")?.GetComponent<Text>() : null;
+                    if (caption != null && caption.cachedTextGenerator.lineCount > 1) wrapped.Add(caption.text);
+                }
+            }
+            return wrapped;
         }
 
         /// <summary>The key caps currently shown in the keyboard hint strip (for the self-test).</summary>
