@@ -116,6 +116,32 @@ namespace PackTheTrunk
             return rt;
         }
 
+        static readonly Color SealWax = new Color(0.72f, 0.16f, 0.14f);
+
+        /// <summary>Grandpa's seal (three stars packed without asking for a hint): a red wax disc with a gold star.</summary>
+        public static RectTransform Seal(Transform parent, float size)
+        {
+            var rt = UiKit.Rect("Seal", parent);
+            rt.sizeDelta = new Vector2(size, size);
+            var le = rt.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = size;
+            le.preferredHeight = size;
+            var wax = UiKit.Image("Wax", rt, SealWax, false);
+            wax.sprite = Circle;
+            wax.raycastTarget = false;
+            wax.rectTransform.Fill();
+            var ring = UiKit.Image("Ring", rt, new Color(1f, 0.82f, 0.7f, 0.5f), false);
+            ring.sprite = Ring;
+            ring.raycastTarget = false;
+            ring.rectTransform.Fill(size * 0.09f);
+            var star = UiKit.Image("Star", rt, Gold, false);
+            star.sprite = UiKit.Star;
+            star.raycastTarget = false;
+            star.rectTransform.Fill(size * 0.22f);
+            rt.localRotation = Quaternion.Euler(0, 0, -8f);
+            return rt;
+        }
+
         /// <summary>Chunky pill button with a darker base edge and a little hover lift.</summary>
         public static Button Pill(string name, Transform parent, string text, Color color, int size, UnityEngine.Events.UnityAction onClick, out Text label)
         {

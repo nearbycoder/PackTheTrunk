@@ -194,6 +194,7 @@ namespace PackTheTrunk
                 if (meterAtClose != game.LastStars) meterMismatches.Add($"{def.Id} meter {meterAtClose} postcard {game.LastStars}");
                 if (level == 0 || level == GameDatabase.Levels.Count - 1 || level % 8 == 4) yield return Shot(def.Id + "-results");
                 if (level == 0) Check(!AnyText("gnome"), "the wagon's perfect postcard doesn't mention a gnome (there isn't one)");
+                if (level == 0) Check(game.Ui.ResultsShowSeal && Prefs.GetInt("ptt.seal.wagon") == 1, "seal: the wagon, packed without a hint, gets Grandpa's seal on the postcard");
 
                 if (level == 0)
                 {
@@ -213,6 +214,8 @@ namespace PackTheTrunk
 
             Check(meterMismatches.Count == 0, $"stars: the meter matched the postcard on all {tripsClosed} trips" + (meterMismatches.Count > 0 ? " (" + string.Join(", ", meterMismatches) + ")" : ""));
             yield return EarlyCloseChecks(solutions);
+            Check(Prefs.GetInt("ptt.seal.wagon") == 1, "seal: the 1-star replay doesn't take the wagon's seal away");
+            yield return SealChecks(solutions);
             yield return TipChecks(solutions);
             yield return HintChecks();
             yield return RestartChecks(solutions);
@@ -516,6 +519,92 @@ namespace PackTheTrunk
             yield return FollowHints();
             Check(game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping),
                 $"hint: from the wrong start, hints still lead to 100% ({followSteps} hints{(followStuck != null ? ", stuck: " + followStuck : "")})");
+        }
+
+        /// <summary>Pack a trip completely from the solver's solution (no hints).</summary>
+        IEnumerator PackAll(string id, List<(string, List<Vector3Int>)> placements)
+        {
+            foreach (var (itemId, cells) in placements)
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+        }
+
+        IEnumerator CloseAndWait()
+        {
+            yield return Press(Key.Space);
+            for (float t = 0f; t < 9f && !game.IsShowingResults; t += Time.unscaledDeltaTime) yield return null;
+            yield return Wait(1.2f);
+        }
+
+        /// <summary>
+        /// Grandpa's seal on Weekend Getaway: three stars after a hint gets no seal (and says how to earn
+        /// one); RESTART starts a fresh attempt, undoing it brings the hint back; a hint-free three stars
+        /// earns it; a later hinted replay keeps it; the map and the album show it.
+        /// </summary>
+        IEnumerator SealChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            const string id = "weekend";
+            string key = "ptt.seal." + id;
+            var placements = solutions[id];
+            Prefs.DeleteKey(key);
+            PerfProbe.Begin("packing");
+            game.AutoStartLevel(LevelIndex(id));
+            yield return Wait(2.5f);
+            yield return Press(Key.H);
+            yield return Wait(0.5f);
+            Check(game.HintedThisTry, "seal: asking Grandpa marks this attempt as hinted");
+            yield return PackAll(id, placements);
+            yield return CloseAndWait();
+            yield return Wait(2f);
+            Check(game.LastStars == 3 && !game.Ui.ResultsShowSeal && Prefs.GetInt(key) == 0 && AnyText("earns Grandpa's seal"),
+                "seal: three stars after a hint, no seal, and the postcard says how to earn one");
+            yield return Shot("seal-nudge");
+
+            // TRY AGAIN is a fresh attempt; RESTART is too, and undoing it brings the hint back.
+            yield return Press(Key.R);
+            yield return Wait(2.5f);
+            Check(game.IsPlaying && !game.HintedThisTry, "seal: TRY AGAIN starts a fresh attempt");
+            yield return Press(Key.H);
+            yield return Wait(0.5f);
+            yield return PackAll(id, placements.Take(2).ToList());
+            yield return ClickUi("Restart");
+            yield return Wait(0.6f);
+            bool cleared = !game.HintedThisTry;
+            yield return Press(Key.Z);
+            yield return Wait(0.6f);
+            bool back = game.HintedThisTry;
+            yield return ClickUi("Restart");
+            yield return Wait(0.6f);
+            Check(cleared && back && !game.HintedThisTry, $"seal: RESTART clears the hint ({cleared}), undoing it brings it back ({back}), RESTART clears it again");
+            yield return PackAll(id, placements);
+            yield return CloseAndWait();
+            yield return Wait(3f);
+            Check(game.LastStars == 3 && game.Ui.ResultsShowSeal && Prefs.GetInt(key) == 1, "seal: three stars without a hint earns Grandpa's seal");
+            yield return Shot("seal-postcard");
+
+            // A hinted replay doesn't take it away (and doesn't nag).
+            game.AutoStartLevel(LevelIndex(id));
+            yield return Wait(1.2f);
+            yield return Press(Key.H);
+            yield return Wait(0.3f);
+            yield return PackAll(id, placements);
+            yield return CloseAndWait();
+            Check(Prefs.GetInt(key) == 1 && !game.Ui.ResultsShowSeal && !AnyText("earns Grandpa's seal"), "seal: a hinted replay keeps the seal, without the how-to note");
+
+            game.AutoShowMenu();
+            yield return Wait(2f);
+            Check(FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).Any(r => r.name.StartsWith("Seal ") && r.name.Length > 5 && char.IsDigit(r.name[5])) && AnyText("Grandpa's seal on"), "seal: the Trip Map shows the seals and how many there are");
+            yield return Shot("seal-map");
+            game.AutoShowMenuAlbum();
+            yield return Wait(11f);
+            int polaroidSeals = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).Count(r => r.name == "Seal" && r.parent != null && r.parent.parent != null && r.parent.parent.name == "Polaroid");
+            int sealedCount = GameDatabase.Levels.Count(l => Prefs.GetInt("ptt.seal." + l.Id) == 1);
+            Check(polaroidSeals == sealedCount && AnyText($"Grandpa's seal on {sealedCount} of"), $"seal: the album puts a seal on each of the {sealedCount} sealed polaroids ({polaroidSeals}) and counts them");
+            yield return Shot("seal-album");
         }
 
         readonly List<string> meterMismatches = new List<string>();

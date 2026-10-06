@@ -208,6 +208,15 @@ namespace PackTheTrunk
         int menuPage = -1;
         IReadOnlyList<LevelDef> menuLevels;
         Func<int, int> menuStars;
+        /// <summary>Has this trip (by index) earned Grandpa's seal? Set by the game controller.</summary>
+        public Func<int, bool> SealedFor;
+        Text mapSeals;
+
+        int SealCount(IReadOnlyList<LevelDef> levels) => SealedFor == null ? 0 : levels.Count(l => SealedFor(l.Index));
+
+        static string SealsLine(int sealedCount, int total) =>
+            (sealedCount == 0 ? "Grandpa's seal" : $"Grandpa's seal on {sealedCount} of {total} trips") +
+            "\n<size=21>Three stars without asking him for a hint.</size>";
         Func<int, bool> menuUnlocked;
 
         // Chapter card + note
@@ -437,6 +446,13 @@ namespace PackTheTrunk
             Hint("R  T  F", "turn, tip and roll it to fit");
             Hint("WHEEL", "choose a shelf when there's a gap");
 
+            var seals = UiTheme.Card("Seals Note", menu, UiTheme.Paper, 1.2f);
+            ((RectTransform)seals.parent).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(150, -740), new Vector2(640, 100));
+            UiMotion.Intro(seals.parent, new Vector2(-600, 0), 0.2f, 0.95f, -10f, 0.6f);
+            UiTheme.Seal(seals, 64).Pin(new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(54, 0), new Vector2(64, 64));
+            mapSeals = UiTheme.Label("Text", seals, "", UiTheme.Hand, 27, UiTheme.Ink, TextAnchor.MiddleLeft);
+            mapSeals.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(104, 8), new Vector2(-20, -8));
+
 
             var map = UiTheme.Card("Map", menu, new Color(0.99f, 0.95f, 0.86f), 1.5f);
             ((RectTransform)map.parent).Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-80, -10), new Vector2(880, 940));
@@ -494,6 +510,7 @@ namespace PackTheTrunk
             for (int i = 0; i < levels.Count; i++)
                 if (unlocked(i) && starsFor(i) == 0) { target = i; break; }
             menuPage = levels[target].Chapter.Index;
+            mapSeals.text = SealsLine(SealCount(levels), levels.Count);
             DrawPage();
         }
 
@@ -614,6 +631,7 @@ namespace PackTheTrunk
                     var star = UiKit.StarImage(starRow, k < stars, 22);
                     if (k >= stars) star.color = new Color(0.4f, 0.35f, 0.3f, 0.25f);
                 }
+                if (open && SealedFor != null && SealedFor(index)) UiTheme.Seal(starRow, 24).name = "Seal " + (index + 1);
             }
         }
 
@@ -1514,6 +1532,8 @@ namespace PackTheTrunk
                 while (cap.fontSize > 13 && cap.preferredWidth > 136f) cap.fontSize--;
                 var year = UiTheme.Label("Year", polaroid, level.Year > 0 ? level.Year.ToString() : "", UiTheme.Body, 14, UiTheme.InkSoft, TextAnchor.LowerCenter);
                 year.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, 4), new Vector2(-4, 24));
+                if (SealedFor != null && SealedFor(level.Index))
+                    UiTheme.Seal(polaroid, 40).Pin(new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-12, -12), new Vector2(40, 40));
                 if (starsFor(level.Index) == 0)
                 {
                     var g = holder.gameObject.AddComponent<CanvasGroup>();
@@ -1530,7 +1550,9 @@ namespace PackTheTrunk
                 yield return new WaitForSeconds(0.09f);
             }
             yield return new WaitForSeconds(0.8f);
-            albumThanks.text = albumFinale ? "Thank you for packing with us." : "Every trip you pack adds a photo.";
+            int sealedCount = SealCount(levels);
+            albumThanks.text = albumFinale ? "Thank you for packing with us." : "Every trip you pack adds a photo." +
+                (sealedCount > 0 ? $"\n<size=28>Grandpa's seal on {sealedCount} of {levels.Count}.</size>" : "");
             albumDone.gameObject.SetActive(true);
         }
 
@@ -1639,6 +1661,13 @@ namespace PackTheTrunk
             resultsCounts.rectTransform.Place(new Vector2(0.64f, 0), new Vector2(1, 1), new Vector2(0, 40), new Vector2(-40, -320));
             resultsCounts.lineSpacing = 1.4f;
 
+            // Grandpa's seal, stamped after the stars (or a note on how to earn it).
+            resultsSeal = UiKit.Rect("Seal Row", card).Place(new Vector2(0.64f, 0), new Vector2(1, 0), new Vector2(0, 34), new Vector2(-30, 134));
+            UiKit.Horizontal(resultsSeal.gameObject, 14, TextAnchor.MiddleLeft);
+            resultsSealMark = UiTheme.Seal(resultsSeal, 84);
+            resultsSealText = UiTheme.Label("Seal Text", resultsSeal, "", UiTheme.Hand, 27, UiTheme.Ink, TextAnchor.MiddleLeft);
+            UiKit.Size(resultsSealText, 250, 96);
+
             var buttons = UiKit.Rect("Buttons", results).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -330), new Vector2(900, 90));
             UiMotion.Intro(buttons, new Vector2(0, -220), 1.2f, 1f, 0f, 0.55f);
             UiKit.Horizontal(buttons.gameObject, 20, TextAnchor.MiddleCenter);
@@ -1654,7 +1683,9 @@ namespace PackTheTrunk
             UiMotion.Intro(keys.rectTransform, new Vector2(0, -20), 1.5f, 1f, 0f, 0.5f, false);
         }
 
-        RectTransform resultsButtons;
+        RectTransform resultsButtons, resultsSeal, resultsSealMark;
+        Text resultsSealText;
+        bool resultsSealEarned;
         Text resultsKeys;
         float resultsShownAt;
 
@@ -1688,8 +1719,19 @@ namespace PackTheTrunk
             MenuPressed?.Invoke();
         }
 
-        public void ShowResults(LevelDef level, int stars, int reqDone, int req, int bonusDone, int bonus, IEnumerable<string> leftBehind, bool hasNext)
+        /// <summary>Is the postcard showing Grandpa's seal (self-test)?</summary>
+        public bool ResultsShowSeal => resultsSeal.gameObject.activeSelf && resultsSealMark.gameObject.activeSelf;
+
+        public void ShowResults(LevelDef level, int stars, int reqDone, int req, int bonusDone, int bonus, IEnumerable<string> leftBehind, bool hasNext,
+            bool sealEarned, bool sealNudge)
         {
+            resultsSealEarned = sealEarned;
+            resultsSeal.gameObject.SetActive(sealEarned || sealNudge);
+            resultsSealMark.gameObject.SetActive(sealEarned);
+            resultsSealMark.localScale = sealEarned ? Vector3.zero : Vector3.one;
+            resultsSealText.color = sealEarned ? UiTheme.Ink : UiTheme.InkSoft;
+            resultsSealText.text = sealEarned ? "Grandpa's seal!\n<size=22>Packed without a single hint.</size>" : "<size=23>Three stars without a hint\nearns Grandpa's seal.</size>";
+            UiKit.Size(resultsSealText, sealEarned ? 250 : 340, 96);
             ShowResultsPanel(true);
             resultsShownAt = UiTime.Now;
             // The postcard's buttons sit where the key hints are.
@@ -1743,6 +1785,20 @@ namespace PackTheTrunk
                 img.transform.localRotation = Quaternion.identity;
                 yield return UiMotion.Wait(0.16f);
             }
+            if (!resultsSealEarned) yield break;
+            // Then Grandpa presses his seal into the corner.
+            yield return UiMotion.Wait(0.25f);
+            Sfx.Instance?.Stamp();
+            var seal = resultsSealMark;
+            for (float t = 0; t < 0.28f; t += Time.deltaTime)
+            {
+                float k = t / 0.28f;
+                seal.localScale = Vector3.one * Mathf.Lerp(2.2f, 1f, k * k);
+                seal.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(-30f, -8f, k));
+                yield return null;
+            }
+            seal.localScale = Vector3.one;
+            seal.localRotation = Quaternion.Euler(0, 0, -8f);
         }
 
         void ShowResultsPanel(bool show)

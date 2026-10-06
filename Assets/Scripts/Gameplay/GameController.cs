@@ -105,6 +105,7 @@ namespace PackTheTrunk
             long tAudio = bootWatch.ElapsedMilliseconds;
             ui = gameObject.AddComponent<GameUI>();
             long tUi = bootWatch.ElapsedMilliseconds;
+            ui.SealedFor = Sealed;
             music.TrackStarted += (title, artist) => ui.ShowNowPlaying(title, artist);
             ui.TitleKeyPressed += () => sfx.Confirm();
             ui.ContinuePressed += () => ui.Transition(() => BeginTrip(NextTripIndex()));
@@ -338,7 +339,11 @@ namespace PackTheTrunk
 
         void ResetProgress()
         {
-            foreach (var l in GameDatabase.Levels) Prefs.DeleteKey("ptt.stars." + l.Id);
+            foreach (var l in GameDatabase.Levels)
+            {
+                Prefs.DeleteKey("ptt.stars." + l.Id);
+                Prefs.DeleteKey(SealKey(l.Id));
+            }
             Prefs.Save();
             foreach (var tex in photos.Values) if (tex != null) Destroy(tex);
             photos.Clear();
@@ -538,6 +543,8 @@ namespace PackTheTrunk
             items.Clear();
             undo.Clear();
             starsAnnounced = 0;
+            hintedThisTry = false;
+            restartsAfterHint.Clear();
             held = null;
             hovered = null;
             pendingSnapshot = null;
@@ -1086,6 +1093,17 @@ namespace PackTheTrunk
             return StarRating(essentials, bonusDone, bonus);
         }
 
+        // ------------------------------------------------------------------ Grandpa's seal
+
+        // Asked for a hint (that showed something) since this attempt began. RESTART begins a new
+        // attempt; undoing the RESTART brings the hinted packing back, and with it the mark.
+        bool hintedThisTry;
+        readonly HashSet<List<SavedItem>> restartsAfterHint = new HashSet<List<SavedItem>>();
+
+        static string SealKey(string levelId) => "ptt.seal." + levelId;
+
+        bool Sealed(int index) => Prefs.GetInt(SealKey(GameDatabase.Levels[index].Id), 0) == 1;
+
         // The highest star count already announced by a toast (lowered when undo takes stars away).
         int starsAnnounced;
 
@@ -1118,7 +1136,9 @@ namespace PackTheTrunk
                 ui.Toast("Nothing to undo.", 1.2f);
                 return;
             }
-            Restore(undo.Pop());
+            var step = undo.Pop();
+            if (restartsAfterHint.Remove(step)) hintedThisTry = true;
+            Restore(step);
             starsAnnounced = CurrentStars();
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
@@ -1138,7 +1158,10 @@ namespace PackTheTrunk
                 ui.Toast("Nothing's packed yet. The trunk's already empty.", 1.8f);
                 return;
             }
-            undo.Push(Capture());
+            var step = Capture();
+            undo.Push(step);
+            if (hintedThisTry) restartsAfterHint.Add(step);
+            hintedThisTry = false;
             foreach (var item in items)
             {
                 if (!IsPacked(item)) continue;
@@ -1273,7 +1296,12 @@ namespace PackTheTrunk
             }
 
             Prefs.SetInt(key, Mathf.Max(best, stars));
+            // Like stars, a seal is never taken away.
+            bool sealNow = stars == 3 && !hintedThisTry;
+            bool hadSeal = Prefs.GetInt(SealKey(level.Id), 0) == 1;
+            if (sealNow) Prefs.SetInt(SealKey(level.Id), 1);
             Prefs.Save();
+            if (stars == 3) Debug.Log($"[Seal] {level.Id}: {(sealNow ? (hadSeal ? "sealed again" : "earned Grandpa's seal") : "three stars with a hint, " + (hadSeal ? "keeps its earlier seal" : "no seal"))}");
 
             mode = Mode.Results;
             sfx.TripComplete();
@@ -1281,7 +1309,8 @@ namespace PackTheTrunk
             atmosphere.SetBlur(0.7f);
             sfx.SetAmbience(0.7f, true);
             ui.HideHudForCutscene(false);
-            ui.ShowResults(level, stars, req, req, bonusDone, bonus, left.Select(i => i.Def.Name), levelIndex + 1 < GameDatabase.Levels.Count);
+            ui.ShowResults(level, stars, req, req, bonusDone, bonus, left.Select(i => i.Def.Name), levelIndex + 1 < GameDatabase.Levels.Count,
+                sealNow, stars == 3 && !sealNow && !hadSeal);
         }
 
         // ------------------------------------------------------------------ Family album

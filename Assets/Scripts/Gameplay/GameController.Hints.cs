@@ -25,6 +25,8 @@ namespace PackTheTrunk
             public Quaternion Rotation;
             /// <summary>The item is already in the trunk and should be moved here.</summary>
             public bool Move;
+            /// <summary>No spot is open: names the packed item that's in the way.</summary>
+            public bool Blocked;
             public string Message;
         }
 
@@ -62,6 +64,11 @@ namespace PackTheTrunk
                 return;
             }
             var hint = FindHint();
+            if ((hint.Item != null || hint.Blocked) && !hintedThisTry)
+            {
+                hintedThisTry = true;
+                Debug.Log($"[Seal] {level.Id}: asked Grandpa, no seal this attempt");
+            }
             sfx.Confirm();
             ui.Toast(hint.Message, 3.4f);
             if (hint.Item == null) return;
@@ -165,7 +172,7 @@ namespace PackTheTrunk
 
             // 4. Nothing fits where it should: something packed is in the way.
             if (bestMisplaced.Count > 0)
-                return new Hint { Message = $"Grandpa's hint: the {bestMisplaced[0].Def.Name} is in the way. {(GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo))} undoes a step, or RESTART starts fresh." };
+                return new Hint { Blocked = true, Message = $"Grandpa's hint: the {bestMisplaced[0].Def.Name} is in the way. {(GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo))} undoes a step, or RESTART starts fresh." };
             return new Hint { Message = "Grandpa's hint: you've got it from here. Close it up!" };
         }
 

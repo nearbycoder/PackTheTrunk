@@ -53,6 +53,9 @@ namespace PackTheTrunk
 
         public int UndoDepth => undo.Count;
 
+        /// <summary>Has a hint been shown since this attempt began (no seal if so)?</summary>
+        public bool HintedThisTry => hintedThisTry;
+
         /// <summary>The stars on the last postcard.</summary>
         public int LastStars { get; private set; }
 

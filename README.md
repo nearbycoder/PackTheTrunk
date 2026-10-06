@@ -92,7 +92,9 @@ any spot underneath or behind it.
 Stuck? **Ask Grandpa** (`H`) shows where one thing goes, taken from a complete 100% packing of
 the trip. Pick the hinted item up and it turns itself to match. If something already in the
 trunk is somewhere that packing doesn't have it, he tells you to move it (or to undo). Hints are
-only ever shown when you ask, and they never place anything for you.
+only ever shown when you ask, and they never place anything for you. They never cost stars either,
+but pack a trip to three stars **without** asking and Grandpa stamps his **seal** on the postcard.
+The trip map and the album show which trips have one, so there's a reason to go back.
 
 On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
 aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →
