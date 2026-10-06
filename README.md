@@ -277,6 +277,7 @@ unzipped under `$KENNEY` (default `/tmp/kenney`) and Thimras' park ambiences und
 Tools/record.sh [name]          # gameplay video with captions -> Recordings/<name>.mp4
 Tools/record_trailer.sh         # scripted trailer footage + clean stills -> Recordings/trailer-capture
 Tools/make_trailer.py           # cut the trailer, poster, teaser and screenshots -> docs/media
+PTT_STILLS_ONLY=1 Tools/record_trailer.sh Recordings/stills   # just the README stills (~3 min, no video)
 Tools/package_release.sh 0.1.0  # zip the Linux build for a release -> Builds/PackTheTrunk-v0.1.0-linux-x86_64.zip
 Tools/package_release.sh 0.1.0 mac  # zip the macOS app (with Gatekeeper instructions) -> ...-macos-universal.zip
 ```
@@ -285,7 +286,10 @@ Both recorders run the real game at a locked 30 fps (`Time.captureFramerate`) an
 audio in lockstep with `AudioRenderer`, so every take is identical and nothing stutters. They
 start from a sandboxed fresh save and leave yours alone. The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
 re-taken without the rest: `PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/retake`,
-then pass both folders to `make_trailer.py` (later folders win). `make_trailer.py` needs Pillow
+then pass both folders to `make_trailer.py` (later folders win). To refresh only the README
+screenshots, capture stills-only and run `make_trailer.py <all capture folders> Recordings/stills --only stills`.
+The trailer, poster and teaser are still the v0.1.0 cut, so they show the HUD without the
+HINT button. `make_trailer.py` needs Pillow
 (`pip install pillow`); the edit, the captions and the music bed are defined at the top of the script.
 
 ## Project structure
