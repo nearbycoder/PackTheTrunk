@@ -163,3 +163,42 @@ on a quiet machine, and README updates where behaviour or known issues change.
    and persistence pass first.
 5. **Hints:** are you happy for the game to ship its own solutions? They'd be readable in the
    build's data.
+
+## Round 1 results (2026-10-06)
+
+Everything in the proposed scope landed, plus the macOS target and the gamepad stretch. Each item
+was verified with `Tools/unity.sh build-linux` (0 errors) and the autopilot. The final full run
+(`Tools/autopilot.sh`, all 33 trips) had **150 PASS, 0 FAIL**, and the real save was
+byte-identical afterwards. `solve_levels.py` still proves all 33 levels. Screenshots are in
+`docs/media/improvements/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| E. Sandboxed save for test/capture modes | `e956cb4` | `autopilot.sh` hashes the save folder before and after (PASS). A short `-pttShowcase -pttTrailer` capture also left it untouched and started fresh. |
+| D. Space-close guard, best album photo, gnome line | `02b2008` | Autopilot replays the wagon with only the essentials: one Space doesn't close, a second does, the 3-star photo's SHA-256 is unchanged after a 1-star close, and the wagon postcard has no gnome. `d-space-close-prompt.jpg` |
+| C. Colour-blind-safe ghost + fragile stamps | `79afe2d` | Autopilot checks both ghost states. The grayscale comparison of both palettes shows the stripes clearly. Fragile stamps were checked on Grandma's Big Move (all 7 shown). `c-*.jpg` |
+| A. Grandpa's tips | `d60b360` | `TipChecks` triggers all seven tips the way a player would, checks each one retires, and checks none repeats (each shown exactly once). Checked at 16:9 (1600×900) and 4:3 (1440×1080). `a-*.jpg` |
+| B. Ask Grandpa hint | `eb8a257` | Following only hints packs **all 33 trips to 100%**. A deliberately wrong start gets a "move it" hint and still reaches 100%. A real H press shows the ghost, and the hinted item picks up pre-turned. `b-*.jpg` |
+| Autopilot harness fixes | `d1dc743` | Uncapped frame timing survives setting changes. Hint drops are paced so `[Audio]` isn't skewed. |
+| F. macOS build target | `57f12a1` | `build-mac` makes a universal (x86_64 + arm64, checked with `file`) 159 MB `.app`, `com.nearbycoder.packthetrunk`. `package_release.sh <v> mac` keeps the executable bit. **Not run on a Mac.** `build-windows` fails with a clear message (module missing). |
+| F. Gamepad (stretch) | `d971e66` | `GamepadChecks` drives a simulated `Gamepad` through 11 checks: pointing, pick up/drop, turn/tip/roll, undo, hint, pause, a menu click, B, and hand-back to the mouse. **Not tested on physical hardware or a Steam Deck.** `f-*.jpg` |
+
+What I found along the way:
+
+- **The "showcase segfault" is in Unity's Wayland backend.** One autopilot run crashed on the
+  main thread inside `wl_display_dispatch_queue_pending`. That is Unity's native Wayland event
+  dispatch, not game code. The log is kept at
+  `Recordings/crashes/autopilot-wayland-segfault-0745.log` (gitignored). `autopilot.sh` now
+  retries once, like the recorders.
+- **Frame-time numbers on this machine need the window uncapped.** With V-Sync on, a covered
+  window gets throttled to ~11 fps by the compositor. The final run, uncapped and at load
+  average 25–44, packed at 6.0 ms average, p95 13 ms. That's not comparable to the README's
+  quiet-machine figure; a `-pttBench` run on a quiet machine is still owed.
+- **The `[Audio]` peak before the limiter changes with the test script.** Many scripted drops
+  landing together push it up. The final run measured 1.4 dBFS in and −1.5 dBFS out, against
+  2.3 / −1.5 at baseline.
+
+Still open for later rounds: WebGL (#8), Windows (#9, needs the module), seeing into deep trunks
+(#10), remappable controls (#11), post-game replayability (#12), and testing the gamepad on real
+hardware or a Steam Deck. The README's trailer and screenshots are from v0.1.0, so they don't
+show the HINT button, the tips or the fragile stamps.
