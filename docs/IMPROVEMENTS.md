@@ -274,3 +274,46 @@ units tall at 21:9): the packing list's row height assumes a 1080-unit canvas.
 Each item ends with `build-linux`, the solver, a quick autopilot, and screenshots in
 `docs/media/improvements/round2/`. The round ends with a full autopilot and a quiet-machine
 benchmark if the machine is quiet.
+
+## Round 2 results (2026-10-06)
+
+All four scope items shipped. The final full autopilot (`Tools/autopilot.sh`, all 33 trips) had
+**168 PASS, 0 FAIL**, the real save was untouched, and there was no player crash. The solver
+proves all 33 levels. `build-linux` and `build-mac` both build with 0 errors. Screenshots are in
+`docs/media/improvements/round2/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| A. See into the trunk | `ea0294a` | `SeeThroughChecks` builds a covered gap on First Snow (skis over it, a thermos in front). The skis go see-through only while the ghost is in the gap. Holding Tab makes everything packed see-through and the aim reaches the gap (`(1, 1, 2)` → `(1, 0, 3)`). Everything is restored afterwards (6 checks). `a-see-through.jpg`, `a-xray-full.jpg` |
+| B. Remappable keyboard controls | `f330696`, `a98af16` | `RebindChecks` drives the real Settings UI: G for turn, Escape cancels, G turns and R doesn't, the hints show G, binding G to undo swaps it with turn, and Defaults restores every key (9 checks). `b-controls-rebind.jpg` |
+| C. HUD fits every screen | `1eb868b` | A layout pass at 16:9, 16:10, 4:3 and 21:9 × 80/100/120% interface size: 12/12 with no overlaps, nothing off screen, rows fit their text, and the held row in view. Quick autopilot 79/79 at 4:3 and at 21:9. `c-4x3-120-before-after.jpg`, `c-*.jpg` |
+| D. README screenshots | `cd85cd6`, `f01efcb` | A stills-only capture (3 min, 19 MB). All 10 screenshots regenerated with the current HUD, plus 11 Ask Grandpa, 12 Grandpa's tip and 13 X-ray, each under 1.4 MB. Checked by eye. |
+| /tmp care | `bc312df` | `record.sh` frames and logs, the `package_release.sh` staging folder and the autopilot's default output now live in gitignored repo folders. |
+
+Things round 2 turned up along the way:
+
+- **The layout pass found more than the plan expected.** The key strip, tip and toast collided
+  with the packing list at 120%, 16:10 and 4:3. On wide screens the list rows were squashed below
+  their text: the canvas used `MatchWidthOrHeight 0.5`, which makes a 21:9 canvas shorter than the
+  design. The canvas now uses **Expand**. The first version of the check missed the squashed rows,
+  because the 1°-tilted notepad makes screen-space boxes overlap. It now measures in the list's own
+  space and compares text height with row height. At 120% the 25-item list now **scrolls** at a
+  readable row size instead of shrinking.
+- **Ask Grandpa's ghost could be invisible.** Framing the README still showed it hidden behind packed
+  things or lost against yellow items. Whatever hides it now goes see-through (the same code as the
+  placement ghost), and it is drawn in the HINT button's orange at higher opacity. This is verified
+  only by the screenshot; there's no autopilot check for the hint occluder yet.
+- **Remapping briefly added per-frame allocations.** The benchmark showed 5–8 GCs per packing
+  phase instead of 1, because `Bindings.KeyFor` read PlayerPrefs with a new string on every call.
+  It's fixed (`a98af16`), and the GCs are back to about 1 per phase.
+- **Benchmark (`-pttBench`, 1600×900, High).** Before round 2 at load 0.8: 1.7–1.9 ms on every
+  screen. After, at load 6–9: title, menus, the wagon and pause are unchanged (1.7–1.9 ms). The
+  25-item minivan read 2.7 ms average, p99 4.8 ms, against 1.9 ms before. The machine wasn't quiet
+  enough to tell whether that's load or the new per-frame work (see-through checks, the scrolling
+  list's mask), so it needs a re-run on a quiet machine. There are still no frames over 33 ms.
+- **Old scratch cleaned up.** 386 MB of this project's old scratch files were deleted from /tmp, and 69 MB more
+  were moved to `Recordings/old-tmp-scratch/`.
+
+Still open: Windows (needs the module), WebGL and hosting, signing and notarization (all owner
+decisions); post-game replayability (#12); a hardware gamepad / Steam Deck test; re-cutting the
+trailer, poster and teaser so they show the HINT button; and the quiet-machine perf re-check above.
