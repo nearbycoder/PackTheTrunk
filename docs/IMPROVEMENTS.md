@@ -202,3 +202,75 @@ Still open for later rounds: WebGL (#8), Windows (#9, needs the module), seeing 
 (#10), remappable controls (#11), post-game replayability (#12), and testing the gamepad on real
 hardware or a Steam Deck. The README's trailer and screenshots are from v0.1.0, so they don't
 show the HINT button, the tips or the fragile stamps.
+
+## Round 2 scope (2026-10-06, branch `improvements-2`)
+
+The round-1 measurement debt is paid first. A `-pttBench` run on a quiet machine (load average
+0.8) at round-1 `main` averaged **1.7–1.9 ms on every screen**, with p99 at most 4.4 ms and no
+frames over 33 ms (`Recordings/round2/bench-before.log`). So round 1 cost nothing measurable.
+
+Round 2 takes the next player-facing items from the ranked list (#10, #11), one problem round 1
+turned up (the HUD only really fits 16:9 at 100% interface size), and README screenshots that
+show what the game looks like now. WebGL, Windows, signing and releases stay with the owner.
+
+### A. See into the trunk (ranked #10)
+
+When you tuck something into a gap with W/S or the wheel, the ghost can end up behind or under
+packed things, and in the SUV, minivan and moving truck the lower layers are hard to read.
+
+- **Acceptance:** while holding an item, any packed item that hides part of the placement ghost
+  from the camera turns into a faint see-through silhouette (ghost material, no outline) and
+  goes back to normal when it no longer hides the ghost or the item is dropped. Holding **Tab**
+  (gamepad: click the left stick) makes every packed item see-through, and aiming then passes
+  through them to the floor or walls, so any column can be targeted. W/S picks the height as
+  usual. The key hints, Settings → Controls and the pause card list it. Nothing else changes when
+  neither applies.
+- **Verify:** an autopilot section builds a known case (an item tucked under an overhang on the
+  Garage Sale pickup, as in the trailer). It checks that the occluder is faded only while it
+  hides the ghost, that X-ray fades every packed item and lets the aim reach a floor cell under a
+  stack, and that all materials are restored afterwards. Before/after screenshots. Quiet-machine
+  `-pttBench` on the biggest trunk, plus a holding pass, with no measurable cost.
+
+### B. Remappable keyboard controls (ranked #11)
+
+- **Acceptance:**
+  - Settings → Controls lists each keyboard action with its key. Clicking one waits for the next
+    key press; Escape cancels.
+  - Binding a key that's already used swaps the two actions. "Defaults" restores the original keys.
+  - Bindings save, apply immediately, and drive everything that names a key: the key-hint bar,
+    the pause card, Grandpa's tips and the "press SPACE again" prompt.
+  - Mouse buttons, the wheel and the gamepad are unchanged.
+- **Verify:** an autopilot section rebinds turn to `G`. It checks that `G` turns the held item and
+  `R` no longer does, that the hint bar shows `G`, that binding `G` to undo swaps the two, and that
+  Defaults restores everything (all in the sandboxed save). Screenshot of the Controls tab.
+
+### C. The HUD fits every screen shape and interface size
+
+Round 1 showed the key-hint strip running into the packing list at 4:3. The code suggests worse
+at 120% interface size (the canvas becomes 1600×900 units) and on ultrawide screens (about 935
+units tall at 21:9): the packing list's row height assumes a 1080-unit canvas.
+
+- **Acceptance:** at 16:9, 16:10, 4:3 and 21:9, and at 80%, 100% and 120% interface size:
+  - The trip tag, the top buttons, the packing list, the held-item card, the key-hint strip,
+    Grandpa's tip and the toast never overlap.
+  - The packing list fits every row of the biggest trip (25 things).
+  - Nothing is cut off at the screen edge.
+- **Verify:** an autopilot layout pass runs at each screen shape (separate player launches) and
+  steps through the interface sizes. It shows every HUD piece at once on the biggest trip and
+  asserts the screen rectangles pairwise don't intersect and stay on screen. Screenshots of the
+  worst cases before and after.
+
+### D. README screenshots that show the game as it is now
+
+- **Acceptance:**
+  - The README gallery is regenerated with the repo's own pipeline (`record_trailer.sh` sections
+    plus `make_trailer.py --only stills`), so the HUD shows the HINT button.
+  - New stills show Ask Grandpa's ghost, a Grandpa's tip, the fragile stamps with the striped
+    "won't fit" ghost, and the X-ray view.
+  - The trailer itself is not re-cut.
+- **Verify:** look at each image. The README links resolve, and file sizes stay under the script's
+  1.4 MB cap.
+
+Each item ends with `build-linux`, the solver, a quick autopilot, and screenshots in
+`docs/media/improvements/round2/`. The round ends with a full autopilot and a quiet-machine
+benchmark if the machine is quiet.
