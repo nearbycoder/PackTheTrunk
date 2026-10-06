@@ -259,7 +259,7 @@ namespace PackTheTrunk
 
         // ------------------------------------------------------------------ Levels
 
-        int StarsFor(int index) => PlayerPrefs.GetInt("ptt.stars." + GameDatabase.Levels[index].Id, 0);
+        int StarsFor(int index) => Prefs.GetInt("ptt.stars." + GameDatabase.Levels[index].Id, 0);
 
         bool Unlocked(int index) => index == 0 || StarsFor(index - 1) > 0;
 
@@ -329,8 +329,8 @@ namespace PackTheTrunk
 
         void ResetProgress()
         {
-            foreach (var l in GameDatabase.Levels) PlayerPrefs.DeleteKey("ptt.stars." + l.Id);
-            PlayerPrefs.Save();
+            foreach (var l in GameDatabase.Levels) Prefs.DeleteKey("ptt.stars." + l.Id);
+            Prefs.Save();
             foreach (var tex in photos.Values) if (tex != null) Destroy(tex);
             photos.Clear();
             try
@@ -1116,8 +1116,8 @@ namespace PackTheTrunk
             int bonusDone = packed.Count(i => i.IsBonus);
             int stars = 1 + (bonusDone * 2 >= bonus ? 1 : 0) + (bonusDone == bonus ? 1 : 0);
             string key = "ptt.stars." + level.Id;
-            PlayerPrefs.SetInt(key, Mathf.Max(PlayerPrefs.GetInt(key, 0), stars));
-            PlayerPrefs.Save();
+            Prefs.SetInt(key, Mathf.Max(Prefs.GetInt(key, 0), stars));
+            Prefs.Save();
 
             mode = Mode.Results;
             sfx.TripComplete();
@@ -1132,7 +1132,7 @@ namespace PackTheTrunk
 
         readonly Dictionary<string, Texture2D> photos = new Dictionary<string, Texture2D>();
 
-        static string AlbumDir => System.IO.Path.Combine(Application.persistentDataPath, "album");
+        static string AlbumDir => Prefs.AlbumDir;
 
         /// <summary>
         /// Snap a photo of the packed trunk from just above the bumper, for the family album. The

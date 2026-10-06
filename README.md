@@ -217,7 +217,9 @@ Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
 `-pttAutopilot`. It clicks, rotates, drops and undoes with real input events, packs all 33 trips
 from the solver's solutions, closes every trunk, opens the ending and the album, and writes
-screenshots to `/tmp/ptt-autopilot` (about 5 minutes).
+screenshots to `/tmp/ptt-autopilot` (about 5 minutes). Like the recorders and the benchmark, it
+plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings and progress in memory,
+photos in a cache folder), and `autopilot.sh` checks that your own save is byte-for-byte untouched.
 
 ### Regenerating assets
 
@@ -243,8 +245,7 @@ Tools/package_release.sh 0.1.0  # zip the Linux build for a release -> Builds/Pa
 
 Both recorders run the real game at a locked 30 fps (`Time.captureFramerate`) and capture its
 audio in lockstep with `AudioRenderer`, so every take is identical and nothing stutters. They
-start from a fresh save; `record_trailer.sh` backs yours up and restores it afterwards (`record.sh`
-does not). The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
+start from a sandboxed fresh save and leave yours alone. The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
 re-taken without the rest: `PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/retake`,
 then pass both folders to `make_trailer.py` (later folders win). `make_trailer.py` needs Pillow
 (`pip install pillow`); the edit, the captions and the music bed are defined at the top of the script.
@@ -349,8 +350,6 @@ autopilot passes every trip. Still rough or missing:
   OpenGL Core by default; Vulkan works with `-force-vulkan`.
 - **Editor on Arch-based distros.** The Unity editor needs `libxml2.so.2`; install
   `libxml2-legacy` (or point `LD_LIBRARY_PATH` at a copy, as `Tools/unity.sh` does).
-- **Capture modes wipe the save.** `-pttShowcase` (used by `record.sh` and `record_trailer.sh`)
-  starts from a fresh save; only `record_trailer.sh` backs yours up and restores it.
 - The showcase recorder segfaulted once mid-capture and succeeded on a re-run; the recorders now
   retry once. The cause wasn't found.
 - No licence has been chosen for the project's own code and content yet. Third-party assets keep

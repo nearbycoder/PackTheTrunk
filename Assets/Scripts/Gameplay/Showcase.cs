@@ -66,14 +66,8 @@ namespace PackTheTrunk
         IEnumerator Start()
         {
             Directory.CreateDirectory(outDir);
-            // Fresh save (progress, settings and album) so the video shows a new player's game.
-            PlayerPrefs.DeleteAll();
-            try
-            {
-                var album = Path.Combine(Application.persistentDataPath, "album");
-                if (Directory.Exists(album)) Directory.Delete(album, true);
-            }
-            catch (Exception e) { Log("could not clear album: " + e.Message); }
+            // Capture runs on a sandboxed save (see Prefs), so the video shows a new player's game
+            // and the real save is left alone.
             Time.captureFramerate = Fps;
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             yield return null;

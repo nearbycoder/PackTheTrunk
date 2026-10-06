@@ -21,7 +21,7 @@ namespace PackTheTrunk
         public static float Music { get => F("music", 0.75f); set => SetAudio("music", value); }
         public static float Effects { get => F("effects", 0.85f); set => SetAudio("effects", value); }
         public static float Ambience { get => F("ambience", 0.6f); set => SetAudio("ambience", value); }
-        public static bool MuteInBackground { get => B("bgmute", true); set { PlayerPrefs.SetInt(Prefix + "bgmute", value ? 1 : 0); CommitAudio(); } }
+        public static bool MuteInBackground { get => B("bgmute", true); set { Prefs.SetInt(Prefix + "bgmute", value ? 1 : 0); CommitAudio(); } }
 
         // ------------------------------------------------------------------ display
         public static readonly string[] WindowModes = { "Borderless", "Fullscreen", "Windowed" };
@@ -59,29 +59,29 @@ namespace PackTheTrunk
 
         const string Prefix = "ptt.set.";
 
-        static float F(string key, float fallback) => PlayerPrefs.GetFloat(Prefix + key, fallback);
-        static int I(string key, int fallback) => PlayerPrefs.GetInt(Prefix + key, fallback);
-        static bool B(string key, bool fallback) => PlayerPrefs.GetInt(Prefix + key, fallback ? 1 : 0) != 0;
+        static float F(string key, float fallback) => Prefs.GetFloat(Prefix + key, fallback);
+        static int I(string key, int fallback) => Prefs.GetInt(Prefix + key, fallback);
+        static bool B(string key, bool fallback) => Prefs.GetInt(Prefix + key, fallback ? 1 : 0) != 0;
 
-        static void Set(string key, float value) { PlayerPrefs.SetFloat(Prefix + key, value); Commit(); }
-        static void Set(string key, int value) { PlayerPrefs.SetInt(Prefix + key, value); Commit(); }
-        static void Set(string key, bool value) { PlayerPrefs.SetInt(Prefix + key, value ? 1 : 0); Commit(); }
+        static void Set(string key, float value) { Prefs.SetFloat(Prefix + key, value); Commit(); }
+        static void Set(string key, int value) { Prefs.SetInt(Prefix + key, value); Commit(); }
+        static void Set(string key, bool value) { Prefs.SetInt(Prefix + key, value ? 1 : 0); Commit(); }
 
         static void SetDisplay(string key, int value)
         {
-            PlayerPrefs.SetInt(Prefix + key, value);
-            PlayerPrefs.SetInt(Prefix + "displaySet", 1);
+            Prefs.SetInt(Prefix + key, value);
+            Prefs.SetInt(Prefix + "displaySet", 1);
             ApplyDisplay();
             Commit();
         }
 
-        static void SetCustom(string key, float value) { PlayerPrefs.SetFloat(Prefix + key, value); PlayerPrefs.SetInt(Prefix + "preset", 4); Commit(); }
-        static void SetCustom(string key, int value) { PlayerPrefs.SetInt(Prefix + key, value); PlayerPrefs.SetInt(Prefix + "preset", 4); Commit(); }
-        static void SetCustom(string key, bool value) { PlayerPrefs.SetInt(Prefix + key, value ? 1 : 0); PlayerPrefs.SetInt(Prefix + "preset", 4); Commit(); }
+        static void SetCustom(string key, float value) { Prefs.SetFloat(Prefix + key, value); Prefs.SetInt(Prefix + "preset", 4); Commit(); }
+        static void SetCustom(string key, int value) { Prefs.SetInt(Prefix + key, value); Prefs.SetInt(Prefix + "preset", 4); Commit(); }
+        static void SetCustom(string key, bool value) { Prefs.SetInt(Prefix + key, value ? 1 : 0); Prefs.SetInt(Prefix + "preset", 4); Commit(); }
 
         static void SetAudio(string key, float value)
         {
-            PlayerPrefs.SetFloat(Prefix + key, value);
+            Prefs.SetFloat(Prefix + key, value);
             CommitAudio();
         }
 
@@ -107,20 +107,20 @@ namespace PackTheTrunk
         {
             if (!unsaved) return;
             unsaved = false;
-            PlayerPrefs.Save();
+            Prefs.Save();
         }
 
         static void ApplyPreset(int preset)
         {
             void Put(float scale, int aa, int shadows, bool ssao, bool outlines, bool dof, bool bloom)
             {
-                PlayerPrefs.SetFloat(Prefix + "renderscale", scale);
-                PlayerPrefs.SetInt(Prefix + "aa", aa);
-                PlayerPrefs.SetInt(Prefix + "shadows", shadows);
-                PlayerPrefs.SetInt(Prefix + "ssao", ssao ? 1 : 0);
-                PlayerPrefs.SetInt(Prefix + "outlines", outlines ? 1 : 0);
-                PlayerPrefs.SetInt(Prefix + "dof", dof ? 1 : 0);
-                PlayerPrefs.SetInt(Prefix + "bloom", bloom ? 1 : 0);
+                Prefs.SetFloat(Prefix + "renderscale", scale);
+                Prefs.SetInt(Prefix + "aa", aa);
+                Prefs.SetInt(Prefix + "shadows", shadows);
+                Prefs.SetInt(Prefix + "ssao", ssao ? 1 : 0);
+                Prefs.SetInt(Prefix + "outlines", outlines ? 1 : 0);
+                Prefs.SetInt(Prefix + "dof", dof ? 1 : 0);
+                Prefs.SetInt(Prefix + "bloom", bloom ? 1 : 0);
             }
             switch (preset)
             {
@@ -129,7 +129,7 @@ namespace PackTheTrunk
                 case 2: Put(1f, 3, 3, true, true, true, true); break;
                 case 3: Put(1.25f, 3, 4, true, true, true, true); break;
             }
-            PlayerPrefs.SetInt(Prefix + "preset", preset);
+            Prefs.SetInt(Prefix + "preset", preset);
             Commit();
         }
 
@@ -140,7 +140,7 @@ namespace PackTheTrunk
                 "master", "music", "effects", "ambience", "bgmute", "vsync", "framecap", "fov", "uiscale", "preset", "renderscale",
                 "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "textspeed",
             })
-                PlayerPrefs.DeleteKey(Prefix + key);
+                Prefs.DeleteKey(Prefix + key);
             Commit();
         }
 
@@ -208,7 +208,7 @@ namespace PackTheTrunk
                 backgrounded = !focused;
                 ApplyAudio();
             };
-            if (PlayerPrefs.GetInt(Prefix + "displaySet", 0) == 1) ApplyDisplay();
+            if (Prefs.GetInt(Prefix + "displaySet", 0) == 1) ApplyDisplay();
             Apply();
         }
 

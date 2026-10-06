@@ -10,7 +10,8 @@
 #   PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/trailer-pickups
 #       re-shoots just those sections (intro, fragile, clown, arrivals, album, speed, heights, coldopen);
 #       pass both folders to make_trailer.py and the newer takes win.
-# The capture starts from a fresh save; your own save is backed up first and restored after.
+# The capture plays on a sandboxed fresh save (Prefs.cs) and never touches yours; as a safety net
+# your save folder is still backed up first and restored after.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$(mkdir -p "${1:-$ROOT/Recordings/trailer-capture}" && cd "${1:-$ROOT/Recordings/trailer-capture}" && pwd)"
