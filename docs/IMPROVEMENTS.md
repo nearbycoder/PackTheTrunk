@@ -1,0 +1,165 @@
+# Pack The Trunk: improvement plan
+
+Phase 1 of the post-launch pass (branch `improvements`, 2026-10-06). This file records the
+baseline, a ranked list of what would most improve the game for a real player, and the proposed
+scope for the next round. Nothing here is implemented yet.
+
+## Baseline (v0.1.0, commit 2ef8b74)
+
+| Check | Result |
+| --- | --- |
+| `Tools/unity.sh build-linux` | **Pass.** 147 MB, 0 errors, 0 compiler warnings. |
+| `python3 Tools/solve_levels.py` | **Pass.** All 33 levels pack 100% (14 s total; the hardest is `wedding` at 829k nodes / 7.7 s). |
+| `Tools/autopilot.sh` (full, 33 trips) | **Pass.** 79 PASS, 0 FAIL, no exceptions, `[AutoPilot] done`, 70+ screenshots. |
+| `[Audio]` line | Mix peaks at −1.5 dBFS after the limiter (2.3 dBFS in), at most 4.1 dB of gain reduction. |
+| `[Perf]` lines | **Not trustworthy this run.** Load average was 26–38 on 32 cores (other games' autopilots and builds were running at the same time). Packing averaged 15.6 ms with p95 34 ms and 294 frames over 33 ms, against the README's "2–3 ms" figure from a quiet machine. This has to be measured again with `-pttBench` when the machine is quiet before claiming any regression. |
+| Level build | 23–167 ms per trip (`[Perf] built …`), almost all of it the pile/blanket layout. It happens behind the paper-wipe transition, so it's hidden for now. |
+| macOS test build (`-buildTarget OSXUniversal -buildOSXUniversalPlayer`, Mono) | **Builds from Linux.** 3 min 24 s, 122 MB `.app`, 0 compiler errors. The executable is **arm64-only** (Apple Silicon), so Intel Macs need the architecture set to x64+ARM64. Unity ad-hoc signs it; it isn't notarized. **Not run on a Mac**, because there isn't one here. Output went to `Builds/macOS-test`, which is gitignored. |
+| Unit tests | There aren't any. The autopilot and the solver are the test suite. |
+
+Side effects to know about: the autopilot writes stars and album photos into the real save, and
+`-pttShowcase` wipes it. I backed up `~/.config/unity3d/Nearby Games/Pack The Trunk` before the
+run and restored it afterwards.
+
+## What I looked at
+
+The code in `Assets/Scripts` (`GameController`, `TrunkGrid`, `CameraRig`, `GameUI*`,
+`GameSettings`, the audio classes), the level data (fill ratios, item counts and fragile counts
+per trip, computed from `PackTheTrunkData.json`), the autopilot screenshots of every trip, and the
+README screenshots.
+
+Findings that drive the ranking:
+
+- **A new player never sees how to play.** The only how-to panel (CLICK / R T F / WHEEL) is on the
+  Trip Map's story note (`GameUI.BuildMenu`). A new player goes Title → *Begin the story* →
+  story → packing and skips the map entirely. Trip 1, the wagon, is 1 cell tall, so it never
+  asks for tip (T), roll (F) or a shelf choice (W/S). Trip 2 introduces height, trip 3 introduces
+  fragile cakes and eggs, and trip 4 is 19 items in an SUV with wheel wells. All of that is
+  explained only by the key-hint bar and the red-ghost error toasts.
+- **There's no help when you're stuck.** Getting 3 stars means filling 78–100% of the trunk
+  (the median is about 91%). Essentials fill only 40–75%, so one star is easy and all the
+  challenge is in the extras. The solver already has a 100% solution for every trip, but the
+  player can't use it.
+- **Input is hard-coded to the mouse and keyboard.** `Keyboard.current` and `Mouse.current` are
+  read directly in 7 files, and `GameUI.Update` clears the EventSystem selection every frame.
+  That rules out keyboard and gamepad menu navigation. No gamepad was connected to this machine
+  (`/dev/input/js*` is empty).
+- **Placement feedback relies on colour.** The ghost is green (fits) or red (doesn't fit)
+  (`GhostOk` / `GhostBad`). The only other cue is the held item floating 0.15 units higher. That
+  is the classic red/green pair that deuteranopia and protanopia make hard to tell apart.
+  "Fragile" appears only in the packing list and on the held-item card, never on the 3D object.
+  On a full blanket you can't tell which pieces are fragile without reading the list.
+- **Space closes the trunk at once** as soon as the essentials are in, even with extras still on
+  the blanket and room left. Space is also the key that hurries the story texts along, so
+  pressing it from habit can end a trip at one star. "Try again" makes this recoverable, but it
+  stings.
+- **The album keeps the latest photo, not the best one.** `TakeTrunkPhoto` overwrites
+  `album/<id>.png` on every close, while the stars keep the maximum (`Mathf.Max`). Replaying a
+  3-star trip and closing it early leaves a half-empty trunk in the album next to three stars.
+- **The postcard says "Not even the gnome."** for every perfect trip, including 1998's wagon, where
+  there's no gnome.
+- **Platforms:** only the Linux build exists. The editor has Mac and WebGL support installed, but
+  not Windows.
+
+## Ranked improvements
+
+Impact means impact for a real player. Effort: S is under half a day, M is about a day, L is
+several days.
+
+| # | Improvement | Impact | Effort | Risk | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **First-trip onboarding:** contextual "Grandpa's tips" the first time each mechanic matters | High | S–M | Low | Taught when needed: click to pick up; green/red ghost; R turns the item; T/F the first time something is too tall or too long; W/S the first time a column has two shelves; fragile the first time a fragile item is held; Space once the essentials are in; Z to undo. Each tip shows once and is stored in prefs. There's a toggle in Gameplay settings. |
+| 2 | **"Ask Grandpa" hint:** shows where one item goes, using the solver's solution | High | M | Low–Med | `solve_levels.py --dump` generates `Resources/Solutions.json` (the autopilot already parses this format). The hint shows a ghost for one unpacked item whose solution cells are free and supported right now. If the player's packing has drifted from every solution, it names the packed item to take out instead. Opt-in by key or button; never automatic. |
+| 3 | **Gamepad / Steam Deck support** | High (a Linux release's natural audience is the Deck) | M–L | Med | The left stick drives a virtual cursor that feeds the existing raycast and uGUI paths. A = pick up / drop, B = put back / back, X/Y = turn / tip, LB = roll, triggers or D-pad = shelf, the right stick orbits, Start pauses, View undoes. Key hints switch to controller glyphs. This needs a small input layer instead of direct `Keyboard.current` reads. There's no controller here, so it can only be verified with a simulated gamepad. |
+| 4 | **Colour-blind-safe placement and fragile markers** | Med–High (accessibility) | S | Low | A "Placement colours" setting (green/red or blue/orange). Whatever colours are chosen, an invalid ghost also gets diagonal hatching from `Ghost.shader`. A small stamp-style "fragile" glass icon floats over fragile items on the blanket and when hovered. |
+| 5 | **macOS build and packaging** | Med (reach; the blog lists macOS) | S–M | Med | The test build already succeeds (see Baseline). Add `build-mac` to `unity.sh` and `BuildScript`, set the architecture to universal (x64+ARM64), and add a macOS zip in `package_release.sh` that keeps the executable bit. The app would be unsigned and un-notarized, so players have to right-click → Open or run `xattr -dr com.apple.quarantine`. It can't be run on a Mac here. |
+| 6 | **Small fixes that protect the player:** no accidental close, best photo kept, postcard copy | Med | S | Low | If extras remain and they'd still fit, the first Space shows "Space again to close, 3 extras still on the blanket" and a second press within 2 s closes (the Close button stays one click). Only replace the album photo when the new stars ≥ the saved stars. Only mention the gnome when the trip had one. |
+| 7 | **Save isolation for test and capture modes** | Low for players, Med for the owner | S | Low | When `GameController.Automated` is set, use a `ptt.capture.` prefs prefix and an `album-capture` folder instead of wiping or writing the real save. This removes the "capture modes wipe the save" known issue, and the autopilot no longer fills a real player's map with 3-star trips. |
+| 8 | **WebGL browser build** | High reach (itch.io), if it works | M–L | Med–High | It suits the game: mouse-driven, cozy, small scenes. But several systems need work: `MasterBus` uses `OnAudioFilterRead` and the muffles use `AudioLowPassFilter` (neither runs in WebGL); album PNGs are encoded with `Task.Run` (no threads by default); persistence needs IndexedDB sync; Quit and the window/resolution settings make no sense in a browser; SSAO + MSAA cost on an iGPU in a browser is unknown; and download size is driven by 9 music tracks. It needs its own round, plus the owner's call on hosting (itch.io or GitHub Pages). |
+| 9 | **Windows build** | Med–High reach | S once unblocked | Low–Med | **Blocked:** Windows Build Support (Mono) isn't installed. The owner needs to add the module in Unity Hub. After that it's the same work as #5. |
+| 10 | **See into deep trunks:** fade or cut away items above the aimed layer, and fade the lid | Med | M | Med | It's hard to read the lower layers in the minivan, moving truck and SUV trips (see the `07-everyone-everything` screenshot). |
+| 11 | **Remappable controls** | Med (accessibility) | L now, M after #3 | Med | It becomes cheap once #3 adds an input layer. |
+| 12 | **Post-game replayability** (per-trip challenges such as "no undo" or "pack it in N pickups", or a solver-generated Garage Sale mode) | Med | L | Med | Once a trip has 3 stars, there's no reason to replay it. |
+| 13 | **Hide the level-build hitch** (spread the blanket build over frames) | Low | S | Low | It's currently hidden behind the transition. |
+| 14 | **Find the showcase recorder's segfault** | Low (dev only) | Unknown | — | It happened once, and the recorder now retries. There's no reproduction. |
+
+## Proposed scope for this round
+
+I'd implement items 1, 2, 4, 6 and 7 (all low-risk and verifiable here), and 3 if the owner
+wants controller support now. Item 5 can be done in parallel because it only adds a build target.
+
+### A. First-trip onboarding (item 1)
+
+- **Acceptance:** with a fresh save, trip 1 shows a tip to click an item, and holding an item
+  shows the ghost/turn tip. Over trips 1–4, each of the tips listed in item 1 appears exactly once,
+  at the moment it applies, and never covers the packing list or the held-item card. The tips
+  don't appear again after a restart or on later trips. A "Packing tips" toggle and "Show tips
+  again" in Gameplay settings control them. The Trip Map's how-to note stays.
+- **Verify:** the autopilot gets a fresh-save pass that asserts each tip's first trigger (as a log
+  line and UI visibility) and that none repeat. Screenshots of each tip at 1600×900 and 1920×1080.
+  The full autopilot still shows 0 FAIL.
+
+### B. "Ask Grandpa" hint (item 2)
+
+- **Acceptance:** pressing `H` (or a HINT button by Undo) shows a pulsing ghost and the item's
+  outline, for an item and position that is valid right now and comes from a 100% solution. If no
+  solution position is free, the hint says which packed item to take out. It never auto-places.
+  `Solutions.json` is generated by `solve_levels.py` and checked against the level data at load
+  (a mismatch is logged, and the hint button is hidden for that trip).
+- **Verify:** an autopilot pass on every trip that packs the whole trunk using only hints (press
+  H, place what it suggests, repeat) must reach 100%. A second pass that deliberately misplaces an
+  item first must get the "take out X" message. The solver still passes.
+
+### C. Colour-blind-safe placement and fragile markers (item 4)
+
+- **Acceptance:** an invalid placement can be told apart from a valid one in grayscale. A
+  screenshot of both, desaturated with ffmpeg (`hue=s=0`), must be distinguishable. The blue/orange
+  palette is selectable and applies live. Every fragile item on the blanket has a world-space
+  marker that hides once it's packed. Ghost cost per frame doesn't change measurably.
+- **Verify:** autopilot screenshots (valid / invalid / fragile pile) in both palettes, the
+  grayscale comparison, and the full autopilot.
+
+### D. Small fixes that protect the player (item 6)
+
+- **Acceptance:** with extras left that still fit, a single Space doesn't close the trunk and shows
+  the prompt; a double press does. With no extras left, or none that fit, a single Space closes
+  as it does now. Replaying a 3-star trip for 1 star keeps the 3-star photo. The wagon's
+  postcard doesn't mention a gnome.
+- **Verify:** new autopilot checks for all three, with the album PNG's modification time and hash
+  checked before and after the replay.
+
+### E. Save isolation for automated modes (item 7)
+
+- **Acceptance:** after a full autopilot run, and after `record.sh`, the real prefs file and album
+  folder are byte-identical to before. `record.sh` and `record_trailer.sh` still start from a fresh
+  (capture) save. The README's "Capture modes wipe the save" known issue is removed.
+- **Verify:** `sha256sum` of the save folder before and after `PTT_QUICK=1 Tools/autopilot.sh`, and
+  a short `record.sh` run (only if the owner is fine with a recording run on the shared machine).
+
+### F. Optional this round: gamepad (item 3) and macOS build (item 5)
+
+- **Gamepad acceptance:** the whole game can be played on a controller: title, menus,
+  settings, story, packing every action, pause, postcard and album. The hints show controller
+  glyphs when the gamepad was the last device used. Mouse and keyboard behave exactly as before.
+- **Gamepad verification:** an autopilot pass that drives a simulated `Gamepad` device
+  (`InputSystem.AddDevice<Gamepad>()`) through one trip and the menus, plus the existing
+  keyboard/mouse autopilot unchanged. **I can't test it on real hardware or a Steam Deck here.**
+  The README would say so.
+- **macOS acceptance:** `Tools/unity.sh build-mac` produces an `.app`, `package_release.sh` makes
+  a zip that keeps the executable bit, and the README documents the Gatekeeper step and that the
+  build is untested on real Macs until someone runs it.
+
+Every item ends with `build-linux`, the solver, the full autopilot (0 FAIL), a `-pttBench` perf run
+on a quiet machine, and README updates where behaviour or known issues change.
+
+## Decisions for the owner
+
+1. **Windows:** install *Windows Build Support (Mono)* for 6000.6.2f1 in Unity Hub if you want a
+   Windows build. Nothing else blocks it.
+2. **macOS:** are you OK publishing an unsigned, un-notarized build that hasn't been run on a
+   real Mac? Signing needs an Apple Developer account.
+3. **Gamepad:** do it this round (larger; no hardware to test on), or next round with remapping?
+4. **WebGL:** do you want a browser build at all, and where would it be hosted? It needs an audio
+   and persistence pass first.
+5. **Hints:** are you happy for the game to ship its own solutions? They'd be readable in the
+   build's data.
