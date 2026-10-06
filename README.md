@@ -69,8 +69,17 @@ way.)
 | **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
 | **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
 
-Mouse and keyboard only for now: there's no gamepad or touch support yet. The full list is also
-in **Settings → Controls**, and key hints run along the bottom of the screen while you pack.
+**Gamepad (new):** the left stick moves a cursor and **A** clicks, so every menu and button works
+by pointing. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
+way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, **D-pad right** closes the
+trunk, **View** undoes, **B** puts back or backs out, **Menu** pauses (and moves on from story
+texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
+the tips switch to controller buttons as soon as you touch the pad, and back when you move the
+mouse. It has only been tested with a simulated gamepad in the autopilot, not on a physical
+controller or a Steam Deck yet. There's no touch support or key remapping.
+
+The full list is also in **Settings → Controls**, and key hints run along the bottom of the screen
+while you pack.
 Stuck? **Ask Grandpa** (`H`) shows where one thing goes, taken from a complete 100% packing of
 the trip. Pick the hinted item up and it turns itself to match. If something already in the
 trunk is somewhere that packing doesn't have it, he tells you to move it (or to undo). Hints are
@@ -367,7 +376,10 @@ autopilot passes every trip. Still rough or missing:
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
   and isn't published**. Windows (`build-windows`) needs Unity's Windows Build Support module,
   which isn't installed here, and WebGL hasn't been built or tested.
-- **Mouse and keyboard only.** No gamepad, touch or remappable controls yet.
+- **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
+  checks (pointing, every packing action, undo, hint, pause, menu clicks, handing back to the
+  mouse), but no physical controller or Steam Deck has tried it yet. No touch or remappable
+  controls.
 - **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
   under XWayland, so the launchers force Unity's native Wayland backend. The player picks
   OpenGL Core by default; Vulkan works with `-force-vulkan`.

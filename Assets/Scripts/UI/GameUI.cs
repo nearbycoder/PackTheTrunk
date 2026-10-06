@@ -17,6 +17,10 @@ namespace PackTheTrunk
     {
         public event Action<int> LevelChosen;
         public event Action HintPressed;
+        RectTransform padHintsRow;
+
+        /// <summary>The key-hint strip is showing controller buttons.</summary>
+        public bool PadHintsShown => padHintsRow != null && padHintsRow.gameObject.activeInHierarchy;
         Button hintButton;
 
         /// <summary>The HINT button only shows on trips that have a usable solution.</summary>
@@ -170,7 +174,7 @@ namespace PackTheTrunk
             UpdateTip();
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame)
+            if ((kb != null && kb.escapeKey.wasPressedThisFrame) || Pad.Down(p => p.buttonEast))
             {
                 if (confirm.gameObject.activeSelf) { CloseConfirm(false); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
                 else if (settings.gameObject.activeSelf) { HideSettings(); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
@@ -802,17 +806,39 @@ namespace PackTheTrunk
 
             var keys = keyHints = UiKit.Rect("Keys", hud).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(44, 22), new Vector2(1380, 44));
             UiMotion.Intro(keys, new Vector2(0, -90), 0.25f, 1f, 0f, 0.5f, false);
-            var kh = UiKit.Horizontal(keys.gameObject, 22, TextAnchor.MiddleLeft);
+            // Two sets of hints in the same strip: keyboard, or controller once a gamepad is in use.
+            var kbHints = UiKit.Rect("Keyboard", keys).Fill();
+            var kh = UiKit.Horizontal(kbHints.gameObject, 22, TextAnchor.MiddleLeft);
             kh.childControlWidth = true;
-            UiTheme.KeyHint(keys, "CLICK", "pick up / drop");
-            UiTheme.KeyHint(keys, "R", "turn");
-            UiTheme.KeyHint(keys, "T", "tip");
-            UiTheme.KeyHint(keys, "F", "roll");
-            UiTheme.KeyHint(keys, "WHEEL", "shelf");
-            UiTheme.KeyHint(keys, "ESC", "put back / pause");
-            UiTheme.KeyHint(keys, "Z", "undo");
-            UiTheme.KeyHint(keys, "Q E", "orbit");
-            UiTheme.KeyHint(keys, "SPACE", "close trunk");
+            UiTheme.KeyHint(kbHints, "CLICK", "pick up / drop");
+            UiTheme.KeyHint(kbHints, "R", "turn");
+            UiTheme.KeyHint(kbHints, "T", "tip");
+            UiTheme.KeyHint(kbHints, "F", "roll");
+            UiTheme.KeyHint(kbHints, "WHEEL", "shelf");
+            UiTheme.KeyHint(kbHints, "ESC", "put back / pause");
+            UiTheme.KeyHint(kbHints, "Z", "undo");
+            UiTheme.KeyHint(kbHints, "Q E", "orbit");
+            UiTheme.KeyHint(kbHints, "SPACE", "close trunk");
+            var padHints = UiKit.Rect("Gamepad", keys).Fill();
+            var ph = UiKit.Horizontal(padHints.gameObject, 18, TextAnchor.MiddleLeft);
+            ph.childControlWidth = true;
+            UiTheme.KeyHint(padHints, "A", "pick up / drop");
+            UiTheme.KeyHint(padHints, "X", "turn");
+            UiTheme.KeyHint(padHints, "Y", "tip");
+            UiTheme.KeyHint(padHints, "RB", "roll");
+            UiTheme.KeyHint(padHints, "D-PAD", "shelf");
+            UiTheme.KeyHint(padHints, "B", "put back");
+            UiTheme.KeyHint(padHints, "VIEW", "undo");
+            UiTheme.KeyHint(padHints, "R-STICK", "look");
+            UiTheme.KeyHint(padHints, "D-PAD >", "close");
+            padHintsRow = padHints;
+            void ShowPadHints()
+            {
+                kbHints.gameObject.SetActive(!GamepadCursor.Active);
+                padHints.gameObject.SetActive(GamepadCursor.Active);
+            }
+            ShowPadHints();
+            GamepadCursor.ActiveChanged += ShowPadHints;
         }
 
         public void ShowHud(LevelDef level, IReadOnlyList<PackItem> items)

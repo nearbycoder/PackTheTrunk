@@ -190,10 +190,16 @@ namespace PackTheTrunk
         {
             var grid = UiKit.Rect("Controls", settingsBody);
             UiKit.Size(grid.gameObject.AddComponent<LayoutElement>(), -1, 460);
-            var left = UiKit.Rect("Keys", grid).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(20, 0), new Vector2(0, -10));
+            var left = UiKit.Rect("Keys", grid).Place(new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(20, 0), new Vector2(-10, -10));
             UiKit.Vertical(left.gameObject, 10).childControlHeight = false;
-            foreach (var (k, what) in ControlsList) ControlRow(left, k, what, 26);
-            settingsHint.text = "Hold SHIFT with R, T or F to turn the other way.";
+            foreach (var (k, what) in ControlsList) ControlRow(left, k, what, 24);
+            var right = UiKit.Rect("Pad", grid).Place(new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(10, 0), new Vector2(0, -10));
+            UiKit.Vertical(right.gameObject, 10).childControlHeight = false;
+            var padHeader = UiTheme.Label("Gamepad", right, "GAMEPAD (Xbox layout)", UiTheme.Display, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
+            padHeader.rectTransform.sizeDelta = new Vector2(600, 36);
+            UiKit.Size(padHeader.gameObject.AddComponent<LayoutElement>(), -1, 36);
+            foreach (var (k, what) in PadControlsList) ControlRow(right, k, what, 22);
+            settingsHint.text = "Hold SHIFT with R, T or F (or LB with X, Y or RB) to turn the other way.";
         }
 
         // ------------------------------------------------------------------ rows

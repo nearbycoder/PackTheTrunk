@@ -93,6 +93,7 @@ namespace PackTheTrunk
             rig = cam.gameObject.AddComponent<CameraRig>();
             if (cam.GetComponent<AudioListener>() == null) cam.gameObject.AddComponent<AudioListener>();
             cam.gameObject.AddComponent<MasterBus>();
+            gameObject.AddComponent<GamepadCursor>();
 
             atmosphere = Atmosphere.Apply(cam, rig);
             GameSettings.Init(cam, atmosphere);
@@ -611,15 +612,20 @@ namespace PackTheTrunk
                 music.ToggleMute();
                 ui.Toast(music.Muted ? "Music off" : "Music on", 1.2f);
             }
-            if (kb != null && kb.escapeKey.wasPressedThisFrame && !ui.OverlayOpen && !ui.EscConsumed) OnEscape();
-            if (kb != null)
+            if (((kb != null && kb.escapeKey.wasPressedThisFrame) || Pad.Back) && !ui.OverlayOpen && !ui.EscConsumed) OnEscape();
+            if (Pad.Start && mode == Mode.Playing && !ui.OverlayOpen)
             {
-                bool go = kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame;
+                if (paused) ResumeGame();
+                else PauseGame();
+            }
+            if (kb != null || Pad.Current != null)
+            {
+                bool go = (kb != null && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)) || Pad.Start;
                 if (mode == Mode.Story && go && ui.StoryReady) ui.PressStart();
                 else if (mode == Mode.Results && ui.ResultsReady)
                 {
                     if (go) ui.PressNext();
-                    else if (kb.rKey.wasPressedThisFrame) ui.PressRetry();
+                    else if ((kb != null && kb.rKey.wasPressedThisFrame) || Pad.Down(p => p.buttonWest)) ui.PressRetry();
                 }
             }
             if (mode != Mode.Playing || paused) return;
@@ -631,6 +637,28 @@ namespace PackTheTrunk
             bool overUi = ui.PointerOverUi;
             rig.ZoomEnabled = held == null;
             scrollCooldown -= Time.deltaTime;
+
+            // Gamepad: View undo, D-pad left hint, X turn / Y tip / RB roll (LB reverses), D-pad up/down shelf,
+            // D-pad right close. Pointing and A-to-click go through GamepadCursor's virtual mouse.
+            if (Pad.Current != null)
+            {
+                if (Pad.Down(p => p.selectButton)) Undo();
+                if (Pad.Down(p => p.dpad.left)) AskGrandpa();
+                if (held != null)
+                {
+                    bool reverse = Pad.Held(p => p.leftShoulder);
+                    if (Pad.Down(p => p.buttonWest)) Rotate(Vector3.up, reverse);
+                    if (Pad.Down(p => p.buttonNorth)) Rotate(rig.SnappedRight(), reverse);
+                    if (Pad.Down(p => p.rightShoulder)) Rotate(rig.SnappedForward(), reverse);
+                    if (Pad.Down(p => p.dpad.up)) { heightBias++; tipShelfPicked = true; }
+                    if (Pad.Down(p => p.dpad.down)) { heightBias--; tipShelfPicked = true; }
+                }
+                if (Pad.Down(p => p.dpad.right) && CanClose() && ConfirmKeyClose())
+                {
+                    StartCoroutine(CloseTrunk());
+                    return;
+                }
+            }
 
             if (keyboard != null)
             {
@@ -1016,7 +1044,7 @@ namespace PackTheTrunk
             closeArmedUntil = Time.unscaledTime + 2.2f;
             int left = items.Count(i => i.IsBonus && !IsPacked(i));
             sfx.Error();
-            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! SPACE again to close anyway.", 2.2f);
+            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {(GamepadCursor.Active ? "D-PAD RIGHT" : "SPACE")} again to close anyway.", 2.2f);
             return false;
         }
 

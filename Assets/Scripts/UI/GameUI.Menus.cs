@@ -183,7 +183,7 @@ namespace PackTheTrunk
             pressKeyGroup.alpha = Mathf.Clamp01((since - 1.2f) / 0.6f) * (0.55f + 0.45f * Mathf.Sin(UiTime.Now * 3.2f));
             if (since < 0.8f) return;
             bool pressed = (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) ||
-                           (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
+                           (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) || Pad.AnyButton;
             if (!pressed) return;
             waitingForKey = false;
             escConsumedFrame = Time.frameCount;
@@ -238,6 +238,16 @@ namespace PackTheTrunk
             var keys = UiKit.Rect("Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(keys.gameObject, 8).childControlHeight = false;
             foreach (var (k, what) in ControlsList) ControlRow(keys, k, what, 22);
+            var padKeys = UiKit.Rect("Pad Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
+            UiKit.Vertical(padKeys.gameObject, 8).childControlHeight = false;
+            foreach (var (k, what) in PadControlsList) ControlRow(padKeys, k, what, 22);
+            void ShowPadKeys()
+            {
+                keys.gameObject.SetActive(!GamepadCursor.Active);
+                padKeys.gameObject.SetActive(GamepadCursor.Active);
+            }
+            ShowPadKeys();
+            GamepadCursor.ActiveChanged += ShowPadKeys;
             pause.gameObject.SetActive(false);
         }
 
@@ -251,6 +261,17 @@ namespace PackTheTrunk
             ("SPACE", "close the trunk"),
             ("ESC", "put back · pause"),
             ("M", "music on / off"),
+        };
+
+        internal static readonly (string, string)[] PadControlsList =
+        {
+            ("L-STICK  ·  A", "point · pick up · drop · click"),
+            ("X  Y  RB", "turn · tip · roll (hold LB to reverse)"),
+            ("D-PAD UP / DOWN", "choose a shelf"),
+            ("R-STICK  ·  LT RT", "look around · zoom"),
+            ("VIEW  ·  D-PAD LEFT", "undo · ask Grandpa"),
+            ("D-PAD RIGHT", "close the trunk"),
+            ("B  ·  MENU", "put back / back · pause"),
         };
 
         void ControlRow(Transform parent, string key, string text, int size)

@@ -25,7 +25,8 @@ Pack The Trunk v$VERSION (Linux x86_64)
 https://github.com/nearbycoder/PackTheTrunk
 
 Run ./PackTheTrunk.sh (or ./PackTheTrunk.x86_64).
-Mouse and keyboard. Controls are listed in Settings > Controls.
+Mouse and keyboard, or a gamepad (new, not yet tested on a physical controller).
+Controls are listed in Settings > Controls.
 Saves live in ~/.config/unity3d/Nearby Games/Pack The Trunk/.
 TXT
     OUT="$ROOT/Builds/PackTheTrunk-v$VERSION-linux-x86_64.zip"
@@ -43,7 +44,8 @@ macOS will refuse to open it the first time. To run it anyway, either:
   - try to open it once, then System Settings > Privacy & Security > "Open Anyway"
     (on macOS 14 and earlier, right-click the app > Open also works); or
   - in Terminal: xattr -dr com.apple.quarantine "Pack The Trunk.app"
-Mouse and keyboard. Controls are listed in Settings > Controls.
+Mouse and keyboard, or a gamepad (new, not yet tested on a physical controller).
+Controls are listed in Settings > Controls.
 TXT
     OUT="$ROOT/Builds/PackTheTrunk-v$VERSION-macos-universal.zip"
     ;;

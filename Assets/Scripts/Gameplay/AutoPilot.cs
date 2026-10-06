@@ -197,6 +197,8 @@ namespace PackTheTrunk
             yield return EarlyCloseChecks(solutions);
             yield return TipChecks(solutions);
             yield return HintChecks();
+            // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
+            yield return GamepadChecks();
 
             // The finale: Grandma's note, then the family album.
             PerfProbe.Begin("ending + album");
@@ -524,6 +526,114 @@ namespace PackTheTrunk
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = -1;
+        }
+
+        /// <summary>
+        /// Play with a (simulated) gamepad: point with the stick, A to pick up and drop, X / Y / RB to
+        /// turn, View to undo, D-pad left for a hint, Menu to pause, A on a menu button, B to resume,
+        /// and the key hints switch to controller buttons and back when the mouse moves again.
+        /// There's no physical controller on the test machine, so this is the only gamepad test.
+        /// </summary>
+        IEnumerator GamepadChecks()
+        {
+            var realMouse = Mouse.current;
+            var pad = InputSystem.AddDevice<Gamepad>("AutoPilot Pad");
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("weekend"));
+            yield return Wait(2.5f);
+
+            var item = game.Items.First(i => i.Def.Id == "duffel");
+            yield return PadStickTo(pad, game.Camera.WorldToScreenPoint(item.transform.position + (Vector3)item.Shape.Center));
+            Check(GamepadCursor.Active && !Cursor.visible, "gamepad: the stick brings up the gamepad cursor");
+            Check(game.Ui.PadHintsShown, "gamepad: the key hints switch to controller buttons");
+            yield return PadPress(pad, GamepadButton.South);
+            Check(game.Held == item, "gamepad: A picks up what the cursor is on");
+            var o = item.Orientation;
+            yield return PadPress(pad, GamepadButton.West);
+            bool turned = item.Orientation != o;
+            o = item.Orientation;
+            yield return PadPress(pad, GamepadButton.North);
+            bool tipped = item.Orientation != o;
+            o = item.Orientation;
+            yield return PadPress(pad, GamepadButton.RightShoulder);
+            Check(turned && tipped && item.Orientation != o, "gamepad: X, Y and RB turn, tip and roll it");
+            yield return Shot("gamepad-holding");
+
+            var trunk = game.CurrentVehicle.transform;
+            bool found = false;
+            for (int x = 0; x < game.TrunkSize.x && !found; x++)
+            for (int z = 0; z < game.TrunkSize.z && !found; z++)
+            {
+                yield return PadStickTo(pad, game.Camera.WorldToScreenPoint(trunk.TransformPoint(new Vector3(x + 0.5f, 0f, z + 0.5f))));
+                yield return Wait(0.1f);
+                found = game.HasValidTarget;
+            }
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Wait(0.8f);
+            Check(found && item.State == ItemState.Packed, "gamepad: A drops it into the trunk");
+            yield return PadPress(pad, GamepadButton.Select);
+            yield return Wait(0.6f);
+            Check(item.State == ItemState.Pile, "gamepad: View undoes");
+            yield return PadPress(pad, GamepadButton.DpadLeft);
+            yield return Wait(0.4f);
+            Check(game.HintItem != null, "gamepad: D-pad left asks Grandpa");
+
+            yield return PadPress(pad, GamepadButton.Start);
+            yield return Wait(1f);
+            Check(game.IsPaused, "gamepad: Menu pauses");
+            yield return Shot("gamepad-pause");
+            var resume = FindButton("Resume");
+            if (resume != null)
+            {
+                var rt = (RectTransform)resume.transform;
+                yield return PadStickTo(pad, rt.TransformPoint(rt.rect.center));
+                yield return PadPress(pad, GamepadButton.South);
+                yield return Wait(0.6f);
+            }
+            Check(!game.IsPaused, "gamepad: A on RESUME (a menu button) resumes");
+            yield return PadPress(pad, GamepadButton.Start);
+            yield return Wait(0.8f);
+            yield return PadPress(pad, GamepadButton.East);
+            yield return Wait(0.6f);
+            Check(!game.IsPaused, "gamepad: B backs out of the pause menu");
+
+            // Touch the real mouse again: control and the hints go back to mouse and keyboard.
+            var p = realMouse.position.ReadValue();
+            InputSystem.QueueStateEvent(realMouse, new MouseState { position = p + new Vector2(40, 0), delta = new Vector2(40, 0) });
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(realMouse, new MouseState { position = p + new Vector2(40, 0) });
+            yield return Wait(0.3f);
+            Check(!GamepadCursor.Active && Cursor.visible && !game.Ui.PadHintsShown && Mouse.current == realMouse,
+                "gamepad: moving the mouse hands control back");
+            InputSystem.RemoveDevice(pad);
+        }
+
+        IEnumerator PadPress(Gamepad pad, GamepadButton button)
+        {
+            InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(button));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            yield return null;
+            yield return Wait(0.1f);
+        }
+
+        /// <summary>Steer the gamepad cursor onto a screen point with the left stick.</summary>
+        IEnumerator PadStickTo(Gamepad pad, Vector3 screen)
+        {
+            var target = new Vector2(screen.x, screen.y);
+            for (float t = 0f; t < 6f; t += Time.unscaledDeltaTime)
+            {
+                var d = target - GamepadCursor.Position;
+                if (d.magnitude < 10f && GamepadCursor.Active) break;
+                var stick = d.normalized * Mathf.Clamp(d.magnitude / 300f, 0.3f, 1f);
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = stick });
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            yield return null;
+            yield return null;
         }
 
         static int LevelIndex(string id)

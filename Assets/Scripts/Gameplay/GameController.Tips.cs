@@ -46,6 +46,16 @@ namespace PackTheTrunk
         string TipText(Tip tip)
         {
             bool blue = GameSettings.PlacementPalette == 1;
+            if (GamepadCursor.Active)
+                switch (tip)
+                {
+                    case Tip.Pickup: return "Point with the left stick and press A to pick something up.";
+                    case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. A drops it.";
+                    case Tip.Turn: return "Won't fit like that? X turns it, Y tips it over and RB rolls it sideways.";
+                    case Tip.Shelf: return "There's room underneath too! D-pad up / down picks the shelf.";
+                    case Tip.Undo: return "Changed your mind? VIEW undoes, and anything packed can be picked back out.";
+                    case Tip.Orbit: return "Can't see the gap? The right stick walks you around the car.";
+                }
             switch (tip)
             {
                 case Tip.Pickup: return "Click something on the blanket to pick it up.";
@@ -90,7 +100,7 @@ namespace PackTheTrunk
             if (tripPlayTime > 15f && level.Size.y > 1) QueueTip(Tip.Orbit);
             if (held != null && hasTarget && restingHeights.Count >= 2) QueueTip(Tip.Shelf);
             var keys = UnityEngine.InputSystem.Keyboard.current;
-            if (rig.IsDragging || (keys != null && (keys.qKey.isPressed || keys.eKey.isPressed))) tipOrbited = true;
+            if (rig.IsDragging || rig.IsPadOrbiting || (keys != null && (keys.qKey.isPressed || keys.eKey.isPressed))) tipOrbited = true;
 
             if (activeTip is Tip current && TipDone(current))
             {

@@ -9,6 +9,9 @@ namespace PackTheTrunk
         public Camera Camera { get; private set; }
         public bool ZoomEnabled { get; set; } = true;
         public bool IsDragging { get; private set; }
+
+        /// <summary>The right stick is swinging the camera this frame.</summary>
+        public bool IsPadOrbiting { get; private set; }
         public float Distance => distance;
         /// <summary>Slow cinematic drift for the title screen.</summary>
         public bool Attract { get; set; }
@@ -169,6 +172,22 @@ namespace PackTheTrunk
             {
                 if (keyboard.qKey.isPressed) targetYaw += 90f * speed * UiTime.Delta;
                 if (keyboard.eKey.isPressed) targetYaw -= 90f * speed * UiTime.Delta;
+            }
+            var pad = InputEnabled ? Gamepad.current : null;
+            if (pad != null)
+            {
+                // Right stick looks around; the triggers zoom while your hands are empty.
+                var look = pad.rightStick.ReadValue();
+                if (look.magnitude > 0.15f)
+                {
+                    targetYaw -= look.x * 110f * speed * UiTime.Delta;
+                    targetPitch = Mathf.Clamp(targetPitch - look.y * 70f * speed * UiTime.Delta * (GameSettings.InvertOrbit ? -1f : 1f), 20f, 85f);
+                    IsPadOrbiting = true;
+                }
+                else IsPadOrbiting = false;
+                float zoom = pad.leftTrigger.ReadValue() - pad.rightTrigger.ReadValue();
+                if (ZoomEnabled && Mathf.Abs(zoom) > 0.1f)
+                    targetDistance = Mathf.Clamp(targetDistance * (1f + zoom * 1.4f * UiTime.Delta), minDistance, maxDistance);
             }
             if (Attract)
             {
