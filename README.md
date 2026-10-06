@@ -79,6 +79,10 @@ texts and postcards), the **right stick** looks around and the **triggers** zoom
 the tips switch to controller buttons as soon as you touch the pad, and back when you move the
 mouse. It has only been tested with a simulated gamepad in the autopilot, not on a physical
 controller or a Steam Deck yet. There's no touch support, and gamepad buttons can't be remapped.
+If you try it on real hardware, [docs/GAMEPAD-TEST.md](docs/GAMEPAD-TEST.md) is a ten-minute
+checklist. The game logs every controller it sees (`[Input]` lines in `Player.log`), and if
+Unity only recognises a pad as a generic joystick, the game tells you and suggests Steam Input or
+the pad's Xbox mode.
 
 Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
 click a key and press the new one. A key that's already taken swaps with it, and **Defaults**
@@ -401,7 +405,8 @@ settings are complete, and the autopilot (168 checks) passes every trip. Still r
   which isn't installed here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
   checks (pointing, every packing action, undo, hint, pause, menu clicks, handing back to the
-  mouse), but no physical controller or Steam Deck has tried it yet. No touch support; keyboard
+  mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
+  checklist for that first test, and `[Input]` lines in `Player.log` show what the player saw. No touch support; keyboard
   keys can be remapped, gamepad buttons can't.
 - **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
   under XWayland, so the launchers force Unity's native Wayland backend. The player picks

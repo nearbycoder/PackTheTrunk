@@ -223,6 +223,7 @@ namespace PackTheTrunk
             yield return SeeThroughChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
+            yield return InputReportChecks();
             // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
             yield return GamepadChecks();
 
@@ -1073,6 +1074,28 @@ namespace PackTheTrunk
             Check(!GamepadCursor.Active && Cursor.visible && !game.Ui.PadHintsShown && Mouse.current == realMouse,
                 "gamepad: moving the mouse hands control back");
             InputSystem.RemoveDevice(pad);
+        }
+
+        /// <summary>
+        /// The [Input] log lines a real controller test relies on: a gamepad coming and going is logged, and
+        /// a device Unity only knows as a generic joystick is called out as unsupported (with a toast).
+        /// </summary>
+        IEnumerator InputReportChecks()
+        {
+            var pad = InputSystem.AddDevice<Gamepad>("Report Test Pad");
+            yield return null;
+            string added = InputReport.LastLine;
+            InputSystem.RemoveDevice(pad);
+            yield return null;
+            string removed = InputReport.LastLine;
+            Check(added.StartsWith("[Input] added Gamepad") && removed.StartsWith("[Input] removed Gamepad"), $"input: a gamepad coming and going is logged ({added})");
+            var stick = InputSystem.AddDevice<Joystick>("Report Test Stick");
+            yield return Wait(0.4f);
+            Check(game.IsPlaying && InputReport.LastLine.Contains("generic joystick") && AnyText("isn't a gamepad the game understands"),
+                "input: a generic joystick is logged as unsupported, and a toast says what to try");
+            yield return Shot("input-unsupported-joystick");
+            InputSystem.RemoveDevice(stick);
+            yield return Wait(0.2f);
         }
 
         IEnumerator PadPress(Gamepad pad, GamepadButton button)

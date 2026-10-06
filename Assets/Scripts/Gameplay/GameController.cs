@@ -106,6 +106,8 @@ namespace PackTheTrunk
             ui = gameObject.AddComponent<GameUI>();
             long tUi = bootWatch.ElapsedMilliseconds;
             ui.SealedFor = Sealed;
+            // A controller Unity only sees as a generic joystick can't drive the game: say so (the log has details).
+            InputReport.UnsupportedController += name => ui.Toast($"{name} isn't a gamepad the game understands. Try Steam Input or its Xbox mode.", 5f);
             music.TrackStarted += (title, artist) => ui.ShowNowPlaying(title, artist);
             ui.TitleKeyPressed += () => sfx.Confirm();
             ui.ContinuePressed += () => ui.Transition(() => BeginTrip(NextTripIndex()));
