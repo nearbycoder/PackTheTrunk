@@ -533,9 +533,10 @@ Things round 4 turned up along the way:
 - **`record_trailer.sh` used to copy a backup over the real save on exit**, and kept its scratch in
   `/tmp`. Since round 1 the capture runs on a sandbox, so the script now only hashes the save before
   and after, and its scratch stays in the capture folder.
-- **Pillow isn't installed for this machine's Python 3.14** (it was there in round 2), and
-  `make_trailer.py` needs it. Round 4 used a throwaway venv in `Recordings/round4/` (gitignored) and
-  deleted it afterwards. Nothing was installed system-wide.
+- **`make_trailer.py` needs Pillow, and the system Python doesn't have it.** Round 2 left a venv
+  with Pillow at `Recordings/.venv` (gitignored); use `Recordings/.venv/bin/python
+  Tools/make_trailer.py`. I missed it this round and briefly made a second throwaway venv in
+  `Recordings/round4/`, now deleted. Nothing was installed system-wide.
 - **No quiet-machine benchmark this round.** The load average stayed at 15–50 all session. The
   full run's `[Perf]` table (packing 9.8 ms average) reflects that load, not the game: round 3
   measured 1.9 ms at load 3–7. The new per-frame work is one mouse-distance check while dragging.
