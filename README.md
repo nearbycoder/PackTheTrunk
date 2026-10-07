@@ -310,6 +310,12 @@ photos in a cache folder), and `autopilot.sh` checks that your own save is byte-
 `resume_test.sh` keeps its sandbox in a file instead (`-pttPrefsFile`), so a second player can pick
 up where the killed one left off; it makes the same check on your save.
 
+Automated runs (the autopilot, the crash test, the benchmark and the recorders) don't open a window on
+your desktop: when `kwin_wayland` is installed, `Tools/play.sh` starts the player inside a private,
+headless KWin (`--virtual`) that still renders on the GPU, and it goes away with the player. That also
+keeps the run out of the desktop compositor's way (a covered window there is throttled to ~11 fps).
+`PTT_NESTED=0` shows a normal window instead, for watching a run.
+
 ### Regenerating assets
 
 ```sh

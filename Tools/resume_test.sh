@@ -20,15 +20,18 @@ save_hash() { [ -d "$SAVE" ] && (cd "$SAVE" && find . -path ./Unity -prune -o -t
 BEFORE="$(save_hash)"
 COMMON=(-pttAutopilot "$OUT" -pttSolutions "$OUT/solutions.txt" -pttPrefsFile "$OUT/prefs.txt")
 
-"$ROOT/Tools/play.sh" -logFile "$OUT/pack.log" "${COMMON[@]}" -pttResumeTest pack > /dev/null 2>&1 &
+# play.sh may run the player inside a nested compositor, so ask it for the player's own PID: the
+# crash has to hit the game, not the compositor around it.
+PTT_PIDFILE="$OUT/player.pid" "$ROOT/Tools/play.sh" -logFile "$OUT/pack.log" "${COMMON[@]}" -pttResumeTest pack > /dev/null 2>&1 &
 PID=$!
 for _ in $(seq 1 240); do
   grep -q "ready to be killed" "$OUT/pack.log" 2>/dev/null && break
   kill -0 "$PID" 2>/dev/null || break
   sleep 0.5
 done
-grep -q "ready to be killed" "$OUT/pack.log" 2>/dev/null || { echo "[AutoPilot] FAIL resume-crash: the first run never finished packing"; kill -9 "$PID" 2>/dev/null || true; exit 1; }
-kill -9 "$PID"
+grep -q "ready to be killed" "$OUT/pack.log" 2>/dev/null || { echo "[AutoPilot] FAIL resume-crash: the first run never finished packing"; kill -9 "$(cat "$OUT/player.pid" 2>/dev/null)" "$PID" 2>/dev/null || true; exit 1; }
+GAME_PID="$(cat "$OUT/player.pid")"
+kill -9 "$GAME_PID"
 wait "$PID" 2>/dev/null || true
 grep "resume-crash" "$OUT/pack.log"
 echo "saved trunk: $(grep -a 'ptt.trunk' "$OUT/prefs.txt" || echo none)"
