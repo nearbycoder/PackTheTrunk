@@ -659,3 +659,81 @@ Still open after round 5: Windows (needs the module), WebGL and hosting, signing
 releases and re-cutting the trailer (all owner decisions); a physical gamepad / Steam Deck test
 (`docs/GAMEPAD-TEST.md`); gamepad button remapping; and the bigger replayability ideas from ranked
 #12 (per-trip challenges, a solver-generated Garage Sale mode).
+
+## Round 6 scope (2026-10-07, branch `improvements-6`)
+
+**Measurement debt first.** The machine was quiet at the start of the round (load average 0.3), so
+round-5 `main` was rebuilt and benchmarked straight away (`-pttBench`, 1600×900, High, load 0.8 at
+the start and 6.4 at the end; `Recordings/round6/bench-round5-main.log`). Every screen averaged
+**1.6–1.9 ms**. The 25-item minivan was **1.9 ms** packing (p99 3.0) and **1.9 ms** holding (p99
+3.0). There were no frames over 33 ms and about one GC per phase. Round 4 `main` measured 1.7 / 1.8 ms
+at load 1–5, so round 5 cost nothing measurable, and its 16 ms reading was GPU contention. That debt
+is closed.
+
+Rounds 1–5 covered how to play, getting unstuck, and not losing work. Round 6 is about players who
+are less well served so far: people who want to look back at what they packed, people who can't
+comfortably hold a key or stick while aiming, Steam Deck–sized screens, and people who get
+uncomfortable with a lot of motion. Gamepad button remapping and D-pad menu navigation stay
+deferred: Steam Input already remaps buttons on a Deck, the virtual cursor works in every menu, and
+neither can be tried on real hardware here.
+
+### A. Look at any album photo up close
+
+The album promises "a photo of every trunk you close", but each polaroid is about 130 px wide and
+can't be opened.
+
+- **Acceptance:** clicking a polaroid that has a photo opens it large (at least three times the
+  polaroid's width), with the trip's title, year, vehicle, stars and seal. ← / → (and A / D, the
+  D-pad and the bumpers) flip to the previous or next photo, skipping trips without one. Esc, B, or a
+  click outside the photo closes it, back to the album; Esc then leaves the album as before. Trips
+  without a photo can't be opened. The finale's album behaves the same way.
+- **Verify:** autopilot `AlbumChecks`: click a real polaroid, check the close-up shows that trip,
+  press → and check it moved to the next trip with a photo, Esc closes it and the album is still
+  open, clicking a photo-less polaroid does nothing. Screenshot of the close-up.
+
+### B. X-ray: hold or toggle
+
+X-ray needs Tab held while you aim with the mouse, or the left stick **held in while you move the
+same stick**, which is awkward on a pad and hard for anyone using one hand.
+
+- **Acceptance:** Settings → Gameplay → "X-ray" chooses **Hold** (the default, as now) or **Toggle**.
+  In Toggle, one press turns X-ray on and the next turns it off; a small "X-RAY ON" tag shows while
+  it is on, and it switches off by itself when the trunk closes, the trip ends or you leave. The key
+  hints, the pause card and Settings → Controls say "hold" or "press" to match.
+- **Verify:** autopilot checks: in Toggle, one Tab press (and one simulated left-stick click) turns
+  X-ray on with everything packed see-through and stays on after release; a second press turns it off
+  and restores everything; leaving the trip turns it off; Hold behaves as before (the existing
+  `SeeThroughChecks` still pass). Screenshot of the tag.
+
+### C. Readable on a Steam Deck–sized screen
+
+The HUD is laid out against 1920×1080 and shrinks on smaller screens. At 1280×800 the smallest
+labels (the FRAGILE / EXTRA stamps, years, small captions) come out around 9 px.
+
+- **Acceptance:** a new legibility check measures every visible text's rendered size in screen
+  pixels on the title, menus, settings, packing HUD, pause, postcard and album. At 1280×800 with
+  default settings, no text is smaller than **12 px** (Valve recommends 12 px for the smallest text at
+  1280×800). Until the player picks an interface size, the default follows the screen (bigger on
+  small screens), and picking one in Settings still wins. The HUD layout pass stays clean at
+  1280×800 and at the existing 16:9 / 16:10 / 4:3 / 21:9 sizes.
+- **Verify:** the legibility check (minimum size logged per screen) at 1280×800 before and after,
+  the layout pass at 1280×800 and 1600×900, and screenshots at 1280×800.
+
+### D. Reduce motion
+
+- **Acceptance:** Settings → Gameplay → "Reduce motion" (off by default). When on: panels and cards
+  fade in instead of sliding, scaling or bouncing; idle bobbing and pulsing buttons stay still; the
+  paper-wipe transition becomes a short fade; screen shake is off; confetti still pops but the camera
+  doesn't shake. Off changes nothing.
+- **Verify:** autopilot checks with it on: a panel's intro keeps its position and scale while it
+  fades, the pulsing close button and the title letters stay still, a transition doesn't move the
+  wipe, and the camera doesn't shake on a slam. Off: the existing checks pass unchanged.
+
+### E. Owed housekeeping
+
+`build-mac` is re-run on the round-6 code (it wasn't in round 5) and checked with `file`. It still
+can't be run on a Mac here.
+
+Each item ends with `build-linux` (0 errors), the solver, a quick autopilot (load checked first), and
+screenshots in `docs/media/improvements/round6/`. The round ends with a full autopilot (0 FAIL, save
+untouched), the crash test, and a `-pttBench` run if the machine is still quiet.
