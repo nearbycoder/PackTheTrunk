@@ -52,6 +52,8 @@ namespace PackTheTrunk
                 game = FindAnyObjectByType<GameController>();
                 yield return Wait(3f);
                 yield return LayoutChecks();
+                yield return MenuLayoutChecks();
+                yield return LegibilityChecks(LoadSolutions());
                 Log("done");
                 Application.Quit();
                 yield break;
@@ -241,6 +243,8 @@ namespace PackTheTrunk
             yield return SeeThroughChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
+            yield return MenuLayoutChecks();
+            yield return LegibilityChecks(solutions);
             yield return InputReportChecks();
             // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
             yield return GamepadChecks();
@@ -1519,6 +1523,11 @@ namespace PackTheTrunk
         /// </summary>
         IEnumerator LayoutChecks()
         {
+            // The layout check places its own tip; the game's real tips (a fresh save in layout-only runs)
+            // would come and go mid-check.
+            bool tips = GameSettings.Tips;
+            GameSettings.Tips = false;
+            Uncap();
             PerfProbe.Begin("playing");
             game.AutoStartLevel(LevelIndex("reunion2"));
             yield return Wait(2.5f);
@@ -1568,12 +1577,168 @@ namespace PackTheTrunk
                 if (wrapped.Count > 0) problems.Add("key hints wrap onto two lines: " + string.Join(", ", wrapped));
                 Check(problems.Count == 0, $"layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? $"{names.Count} HUD pieces, {rows.Count} list rows of {smallest:0} units{(game.Ui.ListScrolls ? " (scrolling)" : "")}, counts line {-countsOver:0} units spare, star meter {meterGap:0} clear of the heading, all clear" : string.Join("; ", problems)));
                 yield return Shot($"layout-{size}-{scale * 100:0}");
+
+                // The "now playing" cassette (shown for a few seconds when a track starts) never covers a
+                // button or the trip tag, with or without Grandpa's tip.
+                game.Ui.ShowNowPlaying("A song title for the layout check", "TAD");
+                yield return Wait(1f);
+                var withTip = game.Ui.HudRects();
+                game.Ui.HideTip();
+                game.Ui.Toast("", 0.01f);
+                yield return Wait(0.8f);
+                game.Ui.ShowNowPlaying("A song title for the layout check", "TAD");
+                yield return Wait(1f);
+                var withoutTip = game.Ui.HudRects();
+                var cassetteProblems = new List<string>();
+                foreach (var (label, set) in new[] { ("with the tip", withTip), ("without it", withoutTip) })
+                {
+                    if (!set.TryGetValue("now playing", out var np)) continue;
+                    if (np.xMin < -1 || np.yMin < -1 || np.xMax > screen.xMax + 1 || np.yMax > screen.yMax + 1) cassetteProblems.Add($"{label}: off screen");
+                    foreach (var kv in set)
+                    {
+                        if (kv.Key == "now playing") continue;
+                        float w = Mathf.Min(np.xMax, kv.Value.xMax) - Mathf.Max(np.xMin, kv.Value.xMin), h = Mathf.Min(np.yMax, kv.Value.yMax) - Mathf.Max(np.yMin, kv.Value.yMin);
+                        if (w > 2f && h > 2f) cassetteProblems.Add($"{label}: it overlaps the {kv.Key}");
+                    }
+                }
+                Check(withoutTip.ContainsKey("now playing") && cassetteProblems.Count == 0,
+                    $"layout {size} at {scale * 100:0}%: the now-playing cassette " + (cassetteProblems.Count == 0
+                        ? $"is clear of everything ({(withTip.ContainsKey("now playing") ? "shown beside the tip" : "skipped while the tip has its spot")})"
+                        : string.Join("; ", cassetteProblems)));
+                yield return Shot($"layout-{size}-{scale * 100:0}-cassette");
             }
-            GameSettings.UiScale = 1f;
+            GameSettings.ResetUiScale();
+            GameSettings.Tips = tips;
             Uncap();
             game.Ui.HideTip();
             game.AutoPutBack();
             yield return Wait(0.5f);
+        }
+
+        /// <summary>
+        /// The main menu and the trip map at this screen shape, at 80%, 100% and 120% interface size: the
+        /// menu stays clear of the tagline, and the map's page clear of the note and the heading.
+        /// </summary>
+        IEnumerator MenuLayoutChecks()
+        {
+            string size = $"{Screen.width}x{Screen.height}";
+            PerfProbe.Begin("menus");
+            foreach (var scale in new[] { 0.8f, 1f, 1.2f })
+            {
+                GameSettings.UiScale = scale;
+                Uncap();
+                game.AutoShowMainMenu();
+                yield return Wait(1.5f);
+                var problems = game.Ui.MenuLayoutProblems();
+                if (scale > 1.1f) yield return Shot($"menu-layout-{size}-{scale * 100:0}-title");
+                game.AutoShowMenu();
+                yield return Wait(1.8f);
+                problems.AddRange(game.Ui.MenuLayoutProblems());
+                if (scale > 1.1f) yield return Shot($"menu-layout-{size}-{scale * 100:0}-map");
+                Check(problems.Count == 0, $"menu layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? "the main menu and the trip map are clear" : string.Join("; ", problems)));
+            }
+            GameSettings.ResetUiScale();
+            Uncap();
+            game.AutoShowMainMenu();
+            yield return Wait(1f);
+        }
+
+        /// <summary>
+        /// Readable text at this window size with default settings: on every screen (title, menus, each
+        /// settings tab, the map, story, packing with a held item, tip and toast, pause, postcard, album and
+        /// its close-up) the smallest text showing is at least 12 screen pixels, Valve's recommended
+        /// minimum at the Steam Deck's 1280x800.
+        /// </summary>
+        IEnumerator LegibilityChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            const float MinPx = 12f;
+            string size = $"{Screen.width}x{Screen.height}";
+            GameSettings.ResetUiScale();
+            Uncap();
+            Log($"legibility {size}: interface size {GameSettings.UiScale * 100f:0}% by default");
+            static string Short(string text) => text.Length > 28 ? text.Substring(0, 28) + "…" : text;
+            void Measure(string screen)
+            {
+                var sizes = game.Ui.VisibleTextSizes();
+                if (sizes.Count == 0) { Check(false, $"legibility {size} {screen}: no text found"); return; }
+                var (name, text, px) = sizes[0];
+                var small = sizes.Where(x => x.Px < MinPx - 0.05f).Select(x => $"{x.Name} {x.Px:0.0}").Distinct().Take(8).ToList();
+                Check(small.Count == 0, $"legibility {size} {screen}: smallest text {px:0.0} px (\"{Short(text.Replace("\n", " "))}\" in {name}), {sizes.Count} texts" +
+                    (small.Count > 0 ? "; under 12 px: " + string.Join(", ", small) : ""));
+            }
+
+            PerfProbe.Begin("menus");
+            game.AutoShowTitle();
+            yield return Wait(3f);
+            Measure("title");
+            yield return Press(Key.Space);
+            yield return Wait(1.6f);
+            Measure("main menu");
+            yield return Shot($"legibility-{size}-menu");
+            yield return ClickUi("Settings");
+            yield return Wait(1f);
+            foreach (var tab in new[] { "AUDIO", "DISPLAY", "GRAPHICS", "GAMEPLAY", "ACCESSIBILITY", "CONTROLS" })
+            {
+                yield return ClickUi("Tab " + tab);
+                yield return Wait(0.8f);
+                Measure("settings " + tab.ToLowerInvariant());
+            }
+            yield return Shot($"legibility-{size}-settings");
+            yield return Press(Key.Escape);
+            yield return Wait(0.6f);
+            yield return ClickUi("Trip Map");
+            yield return Wait(1.6f);
+            Measure("trip map");
+            yield return Shot($"legibility-{size}-map");
+            yield return Press(Key.Escape);
+            yield return Wait(1f);
+
+            game.AutoBeginTrip(LevelIndex("grandma"));
+            yield return Wait(7f);
+            Measure("story");
+            yield return Shot($"legibility-{size}-story");
+
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("reunion2"));
+            yield return Wait(2.5f);
+            game.AutoHold(game.Items.Last(i => i.State == ItemState.Pile));
+            game.Ui.ShowTip("Grandpa's tip for the legibility check, about as long as a real one.");
+            game.Ui.Toast("A toast for the legibility check.", 30f);
+            yield return Wait(1.2f);
+            Measure("packing");
+            yield return Shot($"legibility-{size}-packing");
+            game.Ui.HideTip();
+            game.AutoPutBack();
+            game.AutoPause();
+            yield return Wait(1f);
+            Measure("pause");
+            game.AutoResume();
+            yield return Wait(0.5f);
+
+            if (solutions.TryGetValue("wagon", out var wagon))
+            {
+                game.AutoStartLevel(LevelIndex("wagon"));
+                yield return Wait(2f);
+                yield return PackAll("wagon", wagon);
+                yield return CloseAndWait();
+                yield return Wait(3f);
+                Measure("postcard");
+                yield return Shot($"legibility-{size}-postcard");
+            }
+            game.AutoShowMenuAlbum();
+            yield return Wait(11f);
+            Measure("album");
+            if (Visible("Polaroid wagon"))
+            {
+                yield return ClickUi("Polaroid wagon");
+                yield return Wait(0.6f);
+                Measure("album close-up");
+                yield return Shot($"legibility-{size}-album-zoom");
+                yield return Press(Key.Escape);
+                yield return Wait(0.5f);
+            }
+            yield return Press(Key.Escape);
+            yield return Wait(1f);
         }
 
         IEnumerator OpenControls()

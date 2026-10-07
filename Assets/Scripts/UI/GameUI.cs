@@ -102,6 +102,7 @@ namespace PackTheTrunk
             }
             if (tipShown) PlaceTip();
             PlaceToast();
+            if (nowPlaying.gameObject.activeSelf && !PlaceNowPlaying()) RetractNowPlaying();
             // A different canvas height (interface size changed mid-trip, window resized): new rows.
             if (listItems != null && Mathf.Abs(listViewport.rect.height - listBuiltFor) > 1f)
             {
@@ -161,8 +162,41 @@ namespace PackTheTrunk
                 if (row != null && row.gameObject.activeInHierarchy && ChildrenRect(row) is Rect kr) rects["key hints"] = kr;
             if (tipShown) Add("tip", tipHolder);
             if (toastGroup.alpha > 0.5f) Add("toast", toastHolder);
+            if (nowPlayingTimer > 0.5f && nowPlayingTimer < 4f) Add("now playing", nowPlaying);
             return rects;
         }
+
+        /// <summary>
+        /// Every text showing on screen with its rendered size in screen pixels (font size times every
+        /// scale above it, including smaller &lt;size&gt; tags inside it), smallest first. Faded-out,
+        /// scrolled-away and off-screen text is skipped (legibility self-test).
+        /// </summary>
+        public List<(string Name, string Text, float Px)> VisibleTextSizes()
+        {
+            var sizes = new List<(string, string, float)>();
+            var screen = new Rect(0, 0, Screen.width, Screen.height);
+            // The album's close-up covers everything behind it.
+            foreach (var t in (IsAlbumZoomOpen ? albumZoom : root).GetComponentsInChildren<Text>(false))
+            {
+                if (!t.enabled || string.IsNullOrWhiteSpace(t.text) || t.canvasRenderer.cull) continue;
+                if (t.color.a * t.canvasRenderer.GetInheritedAlpha() < 0.35f) continue;
+                if (!ScreenRect(t.rectTransform).Overlaps(screen)) continue;
+                int size = t.fontSize;
+                if (t.supportRichText)
+                    foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(t.text, "<size=(\\d+)>"))
+                        size = Mathf.Min(size, int.Parse(m.Groups[1].Value));
+                string name = t.transform.parent != null ? t.transform.parent.name + "/" + t.name : t.name;
+                sizes.Add((name, t.text, size * Mathf.Abs(t.transform.lossyScale.y)));
+            }
+            sizes.Sort((a, b) => a.Item3.CompareTo(b.Item3));
+            return sizes;
+        }
+
+        /// <summary>
+        /// The smallest font size, in canvas units, that still comes out at 12 screen pixels (Valve's
+        /// recommended minimum on a Steam Deck) at this screen size and interface size.
+        /// </summary>
+        int MinReadableFont => Mathf.CeilToInt(12f / Mathf.Max(0.01f, root.GetComponent<Canvas>().scaleFactor) - 0.05f);
 
         /// <summary>Canvas units per screen pixel (screen shape and interface size).</summary>
         public float UnitsPerPixel => 1f / root.GetComponent<Canvas>().scaleFactor;
@@ -410,6 +444,7 @@ namespace PackTheTrunk
                 toastGroup.alpha = Mathf.Clamp01(toastTimer / 0.4f) * Mathf.Clamp01(toastShown * 3f);
             }
 
+            FollowScreenSize();
             UpdateNowPlaying();
             UpdateTitle();
             UpdateHudMotion();
@@ -472,7 +507,7 @@ namespace PackTheTrunk
             var wash = UiKit.Image("Wash", menu, new Color(0.98f, 0.82f, 0.62f, 0.18f), false);
             wash.rectTransform.Fill();
 
-            var mapHeader = UiTheme.Label("Header", menu, "THE FAMILY TRIPS", UiTheme.Display, 84, Color.white, TextAnchor.UpperLeft);
+            mapHeader = UiTheme.Label("Header", menu, "THE FAMILY TRIPS", UiTheme.Display, 84, Color.white, TextAnchor.UpperLeft);
             mapHeader.rectTransform.Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -150), new Vector2(800, 110));
             mapHeader.gameObject.AddComponent<Outline>().effectColor = UiTheme.Ink;
             var mh = mapHeader.gameObject.AddComponent<Shadow>();
@@ -484,7 +519,8 @@ namespace PackTheTrunk
             ((RectTransform)back.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -50), new Vector2(170, 60));
 
             var note = UiTheme.Card("Story Note", menu, UiTheme.Paper, -1f);
-            ((RectTransform)note.parent).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -330), new Vector2(700, 380));
+            mapNote = (RectTransform)note.parent;
+            mapNote.Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -330), new Vector2(700, 380));
             UiMotion.Intro(note.parent, new Vector2(-600, 0), 0.12f, 0.95f, -10f, 0.6f);
             UiTheme.Tape(note, new Vector2(0.5f, 1f), new Vector2(0, -2), 4f);
             var noteText = UiTheme.Label("Text", note,
@@ -520,7 +556,8 @@ namespace PackTheTrunk
 
 
             var map = UiTheme.Card("Map", menu, new Color(0.99f, 0.95f, 0.86f), 1.5f);
-            ((RectTransform)map.parent).Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-80, -10), new Vector2(880, 940));
+            mapPage = (RectTransform)map.parent;
+            mapPage.Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-80, -10), new Vector2(880, 940));
             UiMotion.Intro(map.parent, new Vector2(700, 0), 0f, 0.95f, 8f, 0.6f);
             UiTheme.Tape(map, new Vector2(0, 1), new Vector2(40, -10), -35f);
             UiTheme.Tape(map, new Vector2(1, 1), new Vector2(-40, -10), 35f);
@@ -564,8 +601,56 @@ namespace PackTheTrunk
             return pins;
         }
 
+        RectTransform mapPage, mapNote;
+        Text mapHeader;
+
+        /// <summary>
+        /// What overlaps or leaves the screen on the main menu or the trip map, whichever is showing
+        /// (menu layout self-test). Cards are tilted a degree or two, so their screen boxes are a little
+        /// bigger than the cards; the gaps the layout leaves are wider than that.
+        /// </summary>
+        public List<string> MenuLayoutProblems()
+        {
+            var problems = new List<string>();
+            var screen = new Rect(0, 0, Screen.width, Screen.height);
+            bool Overlaps(Rect a, Rect b) => Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin) > 2f && Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin) > 2f;
+            bool OffScreen(Rect r) => r.xMin < -1 || r.yMin < -1 || r.xMax > screen.xMax + 1 || r.yMax > screen.yMax + 1;
+            if (title.gameObject.activeSelf && titleMenu.gameObject.activeInHierarchy && ChildrenRect(titleMenu) is Rect entries)
+            {
+                if (Overlaps(entries, ScreenRect(titleTagline))) problems.Add("the main menu runs into the tagline");
+                if (OffScreen(entries)) problems.Add("the main menu is off screen");
+            }
+            if (menu.gameObject.activeSelf)
+            {
+                var page = ScreenRect(mapPage);
+                var header = ScreenRect(mapHeader.rectTransform);
+                header.xMax = header.xMin + mapHeader.preferredWidth * mapHeader.transform.lossyScale.x;
+                if (Overlaps(page, ScreenRect(mapNote))) problems.Add("the map page covers the story note");
+                if (Overlaps(page, header)) problems.Add("the map page covers the heading");
+                if (OffScreen(page)) problems.Add("the map page is off screen");
+            }
+            return problems;
+        }
+
+        /// <summary>
+        /// The scrapbook page sits right of the note. On a narrower canvas (a bigger interface size) it
+        /// first moves closer to the screen edge, then shrinks, rather than covering the note. Runs before
+        /// the menu shows, so the page's entrance lands on the new spot.
+        /// </summary>
+        void FitMapPage()
+        {
+            const float NoteRight = 110f + 700f, Gap = 25f, Width = 880f, Height = 940f;
+            float w = root.rect.width, h = root.rect.height;
+            float margin = Mathf.Clamp(w - NoteRight - Gap - Width, 30f, 80f);
+            float scale = Mathf.Min(1f, (w - margin - NoteRight - Gap) / Width, (h - 70f) / Height);
+            mapPage.anchoredPosition = new Vector2(-margin, -10f);
+            mapPage.localScale = Vector3.one * scale;
+            mapPage.GetComponent<UiIntro>()?.Rehome();
+        }
+
         public void ShowMenu(IReadOnlyList<LevelDef> levels, Func<int, int> starsFor, Func<int, bool> unlocked)
         {
+            if (!menu.gameObject.activeSelf) FitMapPage();
             ShowOnly(menu);
             menuLevels = levels;
             menuStars = starsFor;
@@ -689,8 +774,11 @@ namespace PackTheTrunk
                 string when = level.Year > 0 ? $"{month} {level.Year}" : month;
                 int waiting = open && WaitingFor != null ? WaitingFor(index) : 0;
                 if (waiting > 0) when += $"  ·  {waiting} PACKED, WAITING";
-                var sub = UiTheme.Label("When", labelCard, open ? when : "LOCKED", UiTheme.Body, 15, waiting > 0 ? UiTheme.Accent : UiTheme.InkSoft, TextAnchor.UpperLeft);
+                var sub = UiTheme.Label("When", labelCard, open ? when : "LOCKED", UiTheme.Body, 18, waiting > 0 ? UiTheme.Accent : UiTheme.InkSoft, TextAnchor.UpperLeft);
                 sub.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -58), new Vector2(-10, -38));
+                sub.horizontalOverflow = HorizontalWrapMode.Overflow;
+                // A long "waiting" line drops the date rather than shrinking or running off the card.
+                if (waiting > 0 && sub.preferredWidth > 264f) sub.text = $"{waiting} PACKED, WAITING";
                 var starRow = UiKit.Rect("Stars", labelCard).Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(14, 4), new Vector2(-10, 28));
                 UiKit.Horizontal(starRow.gameObject, 3, TextAnchor.MiddleLeft);
                 for (int k = 0; k < 3; k++)
@@ -1180,13 +1268,15 @@ namespace PackTheTrunk
             UiKit.Clear(itemList);
             float available = listViewport.rect.height > 50f ? listViewport.rect.height : 1080f - 118f - 40f - 214f - 114f;
             listBuiltFor = available;
-            // Never below a readable 20 units; if that doesn't fit, the list scrolls instead.
-            float rowHeight = Mathf.Clamp(available / Mathf.Max(1, items.Count) - 2f, 20f, 46f);
+            // Never below a readable 20 units (or 12 screen pixels of text); if that doesn't fit, the list
+            // scrolls instead.
+            int minFont = Mathf.Max(14, MinReadableFont);
+            float rowHeight = Mathf.Clamp(available / Mathf.Max(1, items.Count) - 2f, Mathf.Max(20f, minFont + 6f), 46f);
             listScrolls = items.Count * (rowHeight + 2f) > available + 1f;
             listScroll.enabled = listScrolls;
             itemList.anchoredPosition = Vector2.zero;
             // Glyphs are about 1.1x the font size tall: keep them inside the row.
-            int fontSize = Mathf.Min(rowHeight < 30f ? 22 : rowHeight < 38f ? 25 : 28, Mathf.Clamp(Mathf.FloorToInt((rowHeight + 1f) / 1.18f), 13, 28));
+            int fontSize = Mathf.Max(minFont, Mathf.Min(rowHeight < 30f ? 22 : rowHeight < 38f ? 25 : 28, Mathf.Clamp(Mathf.FloorToInt((rowHeight + 1f) / 1.18f), 13, 28)));
             foreach (var item in items)
             {
                 var captured = item;
@@ -1233,17 +1323,20 @@ namespace PackTheTrunk
                 name.horizontalOverflow = HorizontalWrapMode.Overflow;
                 // Shrink to stay on one line beside the stamps.
                 float room = 430f - 36f - 96f - 8f - stampCount * 74f;
-                while (name.fontSize > 14 && name.preferredWidth > room) name.fontSize--;
+                while (name.fontSize > minFont && name.preferredWidth > room) name.fontSize--;
                 var strike = UiKit.Image("Strike", rowRt, new Color(UiTheme.Ink.r, UiTheme.Ink.g, UiTheme.Ink.b, 0.55f), false);
                 strike.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(92, -1), new Vector2(Mathf.Min(name.preferredWidth, 300f - stampCount * 74f) + 10, 3));
                 strike.raycastTarget = false;
 
                 var stamps = UiKit.Rect("Stamps", rowRt).Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-170, 0), new Vector2(-4, 0));
                 UiKit.Horizontal(stamps.gameObject, 6, TextAnchor.MiddleRight);
-                if (item.Def.Fragile) UiTheme.StampLabel(stamps, "FRAGILE", UiTheme.Stamp, 14, -5f);
-                if (item.IsBonus) UiTheme.StampLabel(stamps, "EXTRA", new Color(0.85f, 0.6f, 0.1f), 14, 4f);
-                // The stamps are 28 units tall: shrink them with short rows.
-                stamps.localScale = Vector3.one * Mathf.Clamp01((rowHeight + 2f) / 30f);
+                // Stamps are 28 units tall; on short rows they get a thinner border rather than smaller
+                // letters, and only shrink if even that doesn't fit.
+                int stampFont = Mathf.Max(14, minFont);
+                float stampPad = Mathf.Clamp(rowHeight - stampFont, 4f, 14f);
+                if (item.Def.Fragile) UiTheme.StampLabel(stamps, "FRAGILE", UiTheme.Stamp, stampFont, -5f, stampPad);
+                if (item.IsBonus) UiTheme.StampLabel(stamps, "EXTRA", new Color(0.85f, 0.6f, 0.1f), stampFont, 4f, stampPad);
+                stamps.localScale = Vector3.one * Mathf.Clamp01((rowHeight + 2f) / (stampFont + stampPad + 2f));
 
                 rows[item] = new ItemRow { Marker = marker, Check = check, Strike = strike, Name = name, Stamps = stamps, StrikeWidth = strike.rectTransform.sizeDelta.x };
             }
@@ -1395,9 +1488,9 @@ namespace PackTheTrunk
             ScrollToRow(item);
             heldName.text = item.Def.Name;
             UiKit.Clear(heldStamps);
-            UiTheme.StampLabel(heldStamps, item.IsBonus ? "EXTRA" : "ESSENTIAL", item.IsBonus ? new Color(0.85f, 0.6f, 0.1f) : UiTheme.Teal, 17, -3f);
-            if (item.Def.Fragile) UiTheme.StampLabel(heldStamps, "FRAGILE · NOTHING ON TOP", UiTheme.Stamp, 17, 2f);
-            UiTheme.StampLabel(heldStamps, $"{item.Def.Volume} SPACE{(item.Def.Volume == 1 ? "" : "S")}", UiTheme.InkSoft, 17, -1f);
+            UiTheme.StampLabel(heldStamps, item.IsBonus ? "EXTRA" : "ESSENTIAL", item.IsBonus ? new Color(0.85f, 0.6f, 0.1f) : UiTheme.Teal, 18, -3f);
+            if (item.Def.Fragile) UiTheme.StampLabel(heldStamps, "FRAGILE · NOTHING ON TOP", UiTheme.Stamp, 18, 2f);
+            UiTheme.StampLabel(heldStamps, $"{item.Def.Volume} SPACE{(item.Def.Volume == 1 ? "" : "S")}", UiTheme.InkSoft, 18, -1f);
             heldDesc.text = "“" + item.Def.Description + "”";
         }
 
@@ -1496,7 +1589,7 @@ namespace PackTheTrunk
             foreach (var item in items)
             {
                 if (!item.Def.Fragile) continue;
-                var tag = UiTheme.StampLabel(fragileLayer, "FRAGILE", UiTheme.Stamp, 15, -5f);
+                var tag = UiTheme.StampLabel(fragileLayer, "FRAGILE", UiTheme.Stamp, 18, -5f);
                 tag.gameObject.SetActive(false);
                 fragileTags.Add((item, tag));
             }
@@ -1583,6 +1676,20 @@ namespace PackTheTrunk
         IEnumerator FillAlbum(IReadOnlyList<LevelDef> levels, Func<int, int> starsFor, Func<string, Texture2D> photoFor)
         {
             yield return null;
+            // Polaroids as big as the page allows, up to the 152x214 design, eleven to a row; the text
+            // on them never drops below 12 screen pixels (a long title wraps onto a second line instead).
+            const int Columns = 11;
+            int rowsNeeded = Mathf.Max(1, Mathf.CeilToInt(levels.Count / (float)Columns));
+            var grid = albumGrid.GetComponent<GridLayoutGroup>();
+            var area = albumGrid.rect;
+            float w = Mathf.Min(152f, (area.width - (Columns - 1) * grid.spacing.x) / Columns,
+                (area.height - (rowsNeeded - 1) * grid.spacing.y) / rowsNeeded * 152f / 214f);
+            float h = w * 214f / 152f, k = w / 152f;
+            grid.cellSize = new Vector2(w, h);
+            int minFont = Mathf.Max(13, MinReadableFont);
+            int yearFont = Mathf.Max(Mathf.RoundToInt(14f * k), minFont);
+            float yearTop = 4f * k + yearFont * 1.25f;
+
             var rng = new System.Random(3);
             foreach (var level in levels)
             {
@@ -1590,31 +1697,44 @@ namespace PackTheTrunk
                 var polaroid = UiTheme.Card("Polaroid", slot, Color.white, (float)(rng.NextDouble() * 10 - 5));
                 var holder = (RectTransform)polaroid.parent;
                 holder.Fill();
+
+                var cap = UiTheme.Label("Caption", polaroid, level.Title, UiTheme.Hand, Mathf.Max(Mathf.RoundToInt(20f * k), minFont), UiTheme.Ink, TextAnchor.MiddleCenter);
+                cap.horizontalOverflow = HorizontalWrapMode.Wrap;
+                cap.verticalOverflow = VerticalWrapMode.Overflow;
+                cap.lineSpacing = 0.85f;
+                float lineWidth = w - 8f;
+                while (cap.fontSize > minFont && cap.preferredWidth > lineWidth) cap.fontSize--;
+                int lines = cap.preferredWidth > lineWidth ? 2 : 1;
+                float capHeight = Mathf.Max(38f * k, lines * cap.fontSize * 1.05f + 4f);
+                cap.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, yearTop - 2f), new Vector2(-4, yearTop - 2f + capHeight));
+                var year = UiTheme.Label("Year", polaroid, level.Year > 0 ? level.Year.ToString() : "", UiTheme.Body, yearFont, UiTheme.InkSoft, TextAnchor.LowerCenter);
+                year.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, 4f * k), new Vector2(-4, yearTop));
+
+                // The photo fills what's left above the caption.
+                float photoBottom = yearTop - 2f + capHeight + 2f * k;
+                var photoArea = new Vector2(w - 20f * k, h - 10f * k - photoBottom);
                 var photo = photoFor(level.Id);
                 if (photo != null)
                 {
                     var raw = UiKit.Rect("Photo", polaroid).gameObject.AddComponent<RawImage>();
                     raw.texture = photo;
                     raw.raycastTarget = false;
-                    raw.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -150), new Vector2(-10, -10));
-                    float aspect = photo.width / (float)photo.height;
-                    raw.uvRect = new Rect((1f - 1.1f / aspect) * 0.5f, 0f, 1.1f / aspect, 1f);
+                    raw.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(10f * k, photoBottom), new Vector2(-10f * k, -10f * k));
+                    // Crop the photo to the frame instead of stretching it.
+                    float aspect = photo.width / (float)photo.height, frame = photoArea.x / Mathf.Max(1f, photoArea.y);
+                    raw.uvRect = frame < aspect ? new Rect((1f - frame / aspect) * 0.5f, 0f, frame / aspect, 1f)
+                                                : new Rect(0f, (1f - aspect / frame) * 0.5f, 1f, aspect / frame);
                 }
                 else
                 {
                     var swatch = UiKit.Image("Photo", polaroid, Color.Lerp(level.BodyColor, Color.white, 0.25f), false);
                     swatch.raycastTarget = false;
-                    swatch.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -150), new Vector2(-10, -10));
-                    var v = UiTheme.Label("Vehicle", swatch.transform, level.Vehicle, UiTheme.Display, 18, Color.white, TextAnchor.MiddleCenter);
+                    swatch.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(10f * k, photoBottom), new Vector2(-10f * k, -10f * k));
+                    var v = UiTheme.Label("Vehicle", swatch.transform, level.Vehicle, UiTheme.Display, Mathf.Max(Mathf.RoundToInt(18f * k), minFont), Color.white, TextAnchor.MiddleCenter);
                     v.rectTransform.Fill(6);
                 }
-                var cap = UiTheme.Label("Caption", polaroid, level.Title, UiTheme.Hand, 20, UiTheme.Ink, TextAnchor.UpperCenter);
-                cap.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, 22), new Vector2(-4, 60));
-                while (cap.fontSize > 13 && cap.preferredWidth > 136f) cap.fontSize--;
-                var year = UiTheme.Label("Year", polaroid, level.Year > 0 ? level.Year.ToString() : "", UiTheme.Body, 14, UiTheme.InkSoft, TextAnchor.LowerCenter);
-                year.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, 4), new Vector2(-4, 24));
                 if (SealedFor != null && SealedFor(level.Index))
-                    UiTheme.Seal(polaroid, 40).Pin(new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-12, -12), new Vector2(40, 40));
+                    UiTheme.Seal(polaroid, 40f * k).Pin(new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-12f * k, -12f * k), new Vector2(40f * k, 40f * k));
                 if (starsFor(level.Index) == 0)
                 {
                     var g = holder.gameObject.AddComponent<CanvasGroup>();
@@ -1623,8 +1743,8 @@ namespace PackTheTrunk
                 Sfx.Instance?.Play("bubble", 0.25f, 0.9f + level.Index * 0.012f, 0f, 0.02f, 0f);
                 for (float t = 0; t < 0.16f; t += Time.deltaTime)
                 {
-                    float k = t / 0.16f;
-                    holder.localScale = Vector3.one * Mathf.Lerp(1.4f, 1f, k * k);
+                    float e = t / 0.16f;
+                    holder.localScale = Vector3.one * Mathf.Lerp(1.4f, 1f, e * e);
                     yield return null;
                 }
                 holder.localScale = Vector3.one;
@@ -1666,7 +1786,7 @@ namespace PackTheTrunk
                 }
                 reels[i] = reel.rectTransform;
             }
-            var caption = UiTheme.Label("Caption", label.transform, "NOW PLAYING", UiTheme.Body, 15, UiTheme.InkSoft, TextAnchor.UpperLeft);
+            var caption = UiTheme.Label("Caption", label.transform, "NOW PLAYING", UiTheme.Body, 18, UiTheme.InkSoft, TextAnchor.UpperLeft);
             caption.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(112, -28), new Vector2(-10, -6));
             nowPlayingTitle = UiTheme.Label("Title", label.transform, "", UiTheme.Hand, 30, UiTheme.Ink, TextAnchor.UpperLeft);
             nowPlayingTitle.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(112, 2), new Vector2(-10, -24));
@@ -1677,21 +1797,58 @@ namespace PackTheTrunk
         {
             nowPlayingTitle.text = $"{title}  <size=20><color={UiKit.Hex(UiTheme.InkSoft)}>· {artist}</color></size>";
             nowPlayingTimer = 4.5f;
-            // Clear of the trip tag while packing; centred over the empty sky elsewhere.
-            nowPlayingX = hud.gameObject.activeSelf ? 110f : -140f;
+            // No room beside Grandpa's tip: the music is heard anyway, so skip the cassette this time.
+            if (!PlaceNowPlaying()) { RetractNowPlaying(); return; }
             nowPlaying.gameObject.SetActive(true);
             nowPlaying.SetAsLastSibling();
         }
 
-        float nowPlayingX = -140f;
+        float nowPlayingX = -140f, nowPlayingY = -112f;
+        bool nowPlayingFromLeft;
+
+        /// <summary>
+        /// Centred over the empty sky on menus. While packing it goes in the gap between the trip tag and
+        /// the buttons, or, when that gap is too narrow (big interface sizes, narrow screens), it slides in
+        /// from the left under the trip tag (under Grandpa's tip if that's there), never over a button.
+        /// </summary>
+        bool PlaceNowPlaying()
+        {
+            const float Width = 430f, TagRight = 40f + 680f, ButtonsWidth = 40f + 546f;
+            float w = root.rect.width;
+            nowPlayingFromLeft = false;
+            nowPlayingY = -112f;
+            if (!hud.gameObject.activeSelf) { nowPlayingX = -140f; return true; }
+            float gap = w - TagRight - ButtonsWidth;
+            if (gap >= Width + 24f)
+            {
+                nowPlayingX = (TagRight - ButtonsWidth) * 0.5f;
+                return true;
+            }
+            nowPlayingFromLeft = true;
+            nowPlayingX = HudMargin + Width * 0.5f - w * 0.5f;
+            nowPlayingY = -322f;
+            return !TipUnderTag;
+        }
+
+        bool TipUnderTag => tipShown && tipHome.y < -200f;
+
+        /// <summary>Slide a showing cassette away now.</summary>
+        void RetractNowPlaying()
+        {
+            if (nowPlaying.gameObject.activeSelf && nowPlayingTimer > 0.45f) nowPlayingTimer = 0.45f;
+        }
 
         void UpdateNowPlaying()
         {
             if (nowPlaying == null || !nowPlaying.gameObject.activeSelf) return;
+            // Grandpa's tip took the spot under the trip tag: give it the room.
+            if (nowPlayingFromLeft && TipUnderTag) RetractNowPlaying();
             nowPlayingTimer -= UiTime.Delta;
             float slide = Mathf.Clamp01(Mathf.Min(4.5f - nowPlayingTimer, nowPlayingTimer) / 0.45f);
             float e = 1f - (1f - slide) * (1f - slide);
-            nowPlaying.anchoredPosition = new Vector2(nowPlayingX, Mathf.Lerp(20f, -112f, e));
+            nowPlaying.anchoredPosition = nowPlayingFromLeft
+                ? new Vector2(Mathf.Lerp(nowPlayingX - 520f, nowPlayingX, e), nowPlayingY)
+                : new Vector2(nowPlayingX, Mathf.Lerp(20f, nowPlayingY, e));
             foreach (var reel in reels) reel.Rotate(0, 0, -160f * UiTime.Delta);
             if (nowPlayingTimer <= 0f) nowPlaying.gameObject.SetActive(false);
         }

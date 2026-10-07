@@ -146,7 +146,7 @@ namespace PackTheTrunk
                 d => GameSettings.FrameCap = (GameSettings.FrameCap + d + GameSettings.FrameCaps.Length) % GameSettings.FrameCaps.Length);
             SliderRow("Field of view", "How wide the camera sees.", () => GameSettings.FieldOfView, v => GameSettings.FieldOfView = Mathf.Round(v),
                 32f, 55f, v => $"{Mathf.RoundToInt(v)}°");
-            SliderRow("Interface size", "Scale every menu, card and button.", () => GameSettings.UiScale, v => GameSettings.UiScale = Mathf.Round(v * 20f) / 20f,
+            SliderRow("Interface size", "Scale every menu, card and button. It suits your screen until you change it (DEFAULTS puts that back).", () => GameSettings.UiScale, v => GameSettings.UiScale = Mathf.Round(v * 20f) / 20f,
                 0.8f, 1.2f, v => $"{Mathf.RoundToInt(v * 100)}%");
         }
 
@@ -427,6 +427,17 @@ namespace PackTheTrunk
             Row(label, hint, out var control);
             var b = UiTheme.Pill("Row Button", control, text, color, 24, () => onClick());
             ((RectTransform)b.transform).Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(200, 52));
+        }
+
+        Vector2Int uiScaleScreen;
+
+        /// <summary>The default interface size follows the window: re-apply it when the window changes size.</summary>
+        void FollowScreenSize()
+        {
+            var size = new Vector2Int(Screen.width, Screen.height);
+            if (size == uiScaleScreen) return;
+            uiScaleScreen = size;
+            if (GameSettings.UiScaleIsAuto) ApplyUiSettings();
         }
 
         void ApplyUiSettings()

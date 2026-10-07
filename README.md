@@ -191,9 +191,13 @@ Also in the box:
   and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
   quality presets, render scale, anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient
   occlusion, ink outlines, depth of field, bloom, camera speed, screen shake, key hints,
-  Grandpa's tips, placement colours and story text speed. The HUD fits 16:9, 16:10, 4:3 and
-  21:9 screens at every interface size from 80% to 120%. When a big trip's packing list wouldn't
-  fit at a readable size, it scrolls (and follows whatever you're holding).
+  Grandpa's tips, placement colours and story text speed. The HUD, the main menu and the trip
+  map fit 16:9, 16:10, 4:3 and 21:9 screens at every interface size from 80% to 120%. When a big
+  trip's packing list wouldn't fit at a readable size, it scrolls (and follows whatever you're
+  holding).
+- **Readable on small screens.** Until you pick an interface size, it follows the screen: a Steam
+  Deck–sized 1280×800 window starts at 110%, and every text in the game comes out at 12 screen
+  pixels or more there (Valve's recommended minimum), checked screen by screen by the self-test.
 - **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
   glass), spatial panning, music that crossfades between screens, muffles behind the story texts
   and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.

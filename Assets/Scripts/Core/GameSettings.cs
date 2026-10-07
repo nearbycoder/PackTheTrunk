@@ -31,7 +31,34 @@ namespace PackTheTrunk
         public static readonly int[] FrameCaps = { 30, 60, 120, 144, 240, -1 };
         public static int FrameCap { get => I("framecap", 1); set => Set("framecap", value); }
         public static float FieldOfView { get => F("fov", 40f); set => Set("fov", value); }
-        public static float UiScale { get => F("uiscale", 1f); set => Set("uiscale", value); }
+        public static float UiScale { get => Prefs.HasKey(Prefix + "uiscale") ? F("uiscale", 1f) : AutoUiScale; set => Set("uiscale", value); }
+
+        /// <summary>
+        /// The interface size until the player picks one: 100%, or bigger on screens too small for the
+        /// 1920x1080 design to stay readable (aiming for 0.8 screen pixels per design unit), but only as
+        /// far as the menus keep their full layout (a canvas at least 1080 units tall and 1745 wide). A
+        /// Steam Deck's 1280x800 gets 110%; 16:9 screens stay at 100%.
+        /// </summary>
+        public static float AutoUiScale
+        {
+            get
+            {
+                float fit = Mathf.Max(0.01f, Mathf.Min(Screen.width / 1920f, Screen.height / 1080f));
+                float roomy = Mathf.Min(Screen.height / fit / 1080f, Screen.width / fit / 1745f);
+                float want = Mathf.Ceil(0.8f / fit * 20f - 0.001f) / 20f;
+                return Mathf.Clamp(want, 1f, Mathf.Min(1.2f, Mathf.Floor(roomy * 20f + 0.001f) / 20f));
+            }
+        }
+
+        /// <summary>The player hasn't picked an interface size, so it follows the screen.</summary>
+        public static bool UiScaleIsAuto => !Prefs.HasKey(Prefix + "uiscale");
+
+        /// <summary>Forget the chosen interface size (back to the default).</summary>
+        public static void ResetUiScale()
+        {
+            Prefs.DeleteKey(Prefix + "uiscale");
+            Commit();
+        }
 
         // ------------------------------------------------------------------ graphics
         public static readonly string[] Presets = { "Low", "Medium", "High", "Ultra", "Custom" };

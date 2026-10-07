@@ -176,9 +176,23 @@ namespace PackTheTrunk
             titleLogo.gameObject.SetActive(true);
         }
 
+        /// <summary>
+        /// The menu stands on the bottom edge and the logo and tagline hang from the top; on a short canvas
+        /// (a bigger interface size on a 16:9 screen) the menu shrinks to stay clear of the tagline.
+        /// </summary>
+        void FitTitleMenu()
+        {
+            // The tagline's bottom edge (372 + 64 down, plus about 24 more at its tilted end), a gap, and
+            // the menu's 96-unit bottom margin.
+            float s = Mathf.Clamp((root.rect.height - 372f - 64f - 24f - 12f - 96f) / 520f, 0.6f, 1f);
+            if (!Mathf.Approximately(titleMenu.localScale.x, s)) titleMenu.localScale = new Vector3(s, s, 1f);
+        }
+
         void UpdateTitle()
         {
-            if (title == null || !title.gameObject.activeSelf || !waitingForKey) return;
+            if (title == null || !title.gameObject.activeSelf) return;
+            FitTitleMenu();
+            if (!waitingForKey) return;
             float since = UiTime.Now - titleShownAt;
             pressKeyGroup.alpha = Mathf.Clamp01((since - 1.2f) / 0.6f) * (0.55f + 0.45f * Mathf.Sin(UiTime.Now * 3.2f));
             if (since < 0.8f) return;

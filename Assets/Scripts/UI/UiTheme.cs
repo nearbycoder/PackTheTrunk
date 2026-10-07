@@ -95,7 +95,7 @@ namespace PackTheTrunk
         }
 
         /// <summary>A rubber-stamp label: outlined, tilted, slightly faded.</summary>
-        public static RectTransform StampLabel(Transform parent, string text, Color color, int size = 18, float rotation = -4f)
+        public static RectTransform StampLabel(Transform parent, string text, Color color, int size = 18, float rotation = -4f, float padding = 14f)
         {
             var rt = UiKit.Rect("Stamp " + text, parent);
             var border = UiKit.Image("Border", rt, new Color(color.r, color.g, color.b, 0.95f), true);
@@ -108,10 +108,10 @@ namespace PackTheTrunk
             var t = Label("Text", rt, text, Display, size, color, TextAnchor.MiddleCenter);
             t.rectTransform.Fill(2);
             float width = t.preferredWidth + 22f;
-            rt.sizeDelta = new Vector2(width, size + 14);
+            rt.sizeDelta = new Vector2(width, size + padding);
             var le = rt.gameObject.AddComponent<LayoutElement>();
             le.preferredWidth = width;
-            le.preferredHeight = size + 14;
+            le.preferredHeight = size + padding;
             rt.localRotation = Quaternion.Euler(0, 0, rotation);
             return rt;
         }

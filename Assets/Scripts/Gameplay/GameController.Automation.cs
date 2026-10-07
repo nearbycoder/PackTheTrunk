@@ -40,6 +40,8 @@ namespace PackTheTrunk
 
         public void AutoShowTitle() => ShowTitle(true);
 
+        public void AutoShowMainMenu() => ShowTitle(false);
+
         public void AutoTransitionTrip(int index) => ui.Transition(() => BeginTrip(index));
 
         public void AutoShowEnding() => ShowEnding();
