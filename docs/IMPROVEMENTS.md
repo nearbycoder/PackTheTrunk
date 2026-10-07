@@ -866,3 +866,80 @@ back-to-back `-pttBench` A/B against round-6 `main` if the machine is quiet enou
 Each item ends with `build-linux`, the solver and a quick autopilot (load checked first), with
 screenshots in `docs/media/improvements/round7/`. If an item turns out bigger or riskier than planned,
 the others land first and it's reported rather than half-landed.
+
+## Round 7 results (2026-10-07)
+
+All four scope items shipped. The final full autopilot (`Tools/autopilot.sh`, all 33 trips) had **304 PASS,
+0 FAIL** (262 before, plus 42 new checks). There were no exceptions and no player crash, and the real save was
+untouched. Load average was 15.6 at the start and 9.3 at the end. The crash test (`Tools/resume_test.sh`) passed
+5/5. The solver proves all 33 levels. `build-linux` has 0 errors and 0 warnings. `build-mac` gives a universal
+(x86_64 + arm64, checked with `file`) 160 MB `.app` with 0 errors; it still hasn't been run on a Mac. Screenshots
+are in `docs/media/improvements/round7/`.
+
+**Benchmark (`-pttBench`, 1600×900, High), back to back at load 10–16** (`Recordings/round7/bench-ab-*.log`).
+Round 7 averaged 3.5–4.6 ms on every screen and round-6 `main` 2.5–5.7 ms, with CPU time per frame 1.6–2.2 ms
+in both, 0 KB allocated per frame, and no frames over 33 ms. That's no measurable difference. The absolute
+numbers are higher than round 6's quiet-machine 1.6–1.8 ms because the machine was busy; it never got below
+load 8 this round.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| B. Sharper album photos | `c7fb330` | `PhotoChecks` (3) and an `AlbumChecks` addition. A closed trunk is saved as a 960×720 JPEG (100 KB) and a 320×240 thumbnail (17 KB). Read back, the polaroid gets the thumbnail with 9 mip levels (2.0 ms to decode) and the close-up the full photo (8.8 ms, load 10.5). An old 480×360 PNG still loads for both, and the close-up shows the full 960×720 photo. `b-album-closeup-before-after.jpg` |
+| A. D-pad menu navigation | `b6447ab` | `PadMenuChecks` (8) with a simulated pad. While packing, the D-pad doesn't move the cursor. The D-pad walks the pause menu to RESUME and A resumes. It walks the main menu to SETTINGS and A opens it. It reaches the AUDIO tab and the master volume slider, where right raises it 0.90 → 0.95 and left lowers it back. B closes Settings. It reaches a polaroid and A opens the close-up, where D-pad right and RB go forward and LB and D-pad left go back (owed since round 6); B closes it. `docs/GAMEPAD-TEST.md` has the matching hardware steps. |
+| C. Text contrast | `572c39f`, `29652a4`, `f9e02af` | The legibility pass now also checks contrast on 20 screens (every settings tab and all six trip-map pages) at 1600×900, 1280×800, 1440×900, 1200×900 and 2100×900 (layout-only runs, 50/50 at each size on the final code), plus in the full run with all trips open. Every text passes 4.5:1, or 3:1 for large or bold text. `c-contrast-story-before-after.jpg`, `c-contrast-postcard-before-after.jpg` |
+| D. Best so far on the trip card | `35ad733` | `BestSoFarChecks` (5) on Grocery Run. A fresh trip has no line. Closed with an extra left out, the card reads "Best so far: 2 stars. On the curb: Birthday Bouquet." and the details still fit. A worse replay (1 star) leaves the line as it was. Three stars after a hint asks for the seal; with the seal there's no line. |
+
+What the contrast check found on the old colours (WCAG ratio of the colours involved):
+
+- White labels on the bright orange, teal and green buttons: 1.9–2.6:1. The pills tint their face ×1.2 and
+  add a white shine, so on screen they're lighter than the theme colour. Darkening the faces enough would
+  have meant about 30% darker buttons everywhere. Instead the labels got a thin ink outline, like the
+  title's lettering. WCAG counts a narrow border as part of the letter, and ink on those faces is 5–7:1.
+- Orange text on paper (the trip card's date line, the postcard's place, Grandpa's tip header, the keyboard
+  and gamepad headers): 2.4:1. Teal ON: 2.7:1. Both now use deeper inks (`AccentInk` 4.8:1, `TealInk` 5.2:1).
+- The small EXTRA stamp: 1.9:1. Stamps now deepen their ink against their own fill (4.6:1 or more).
+- The version line 3.6:1, "or press SPACE" over the driveway 3.8:1, and the main menu's captions over bright
+  grass 3.5:1. Respectively: brighter, a dark outline, and a soft shade behind the menu.
+- Trip-map pins wear their car's colour, so the white number was 1.2–2.8:1 on 8 of 33 trips (the yellow
+  Mini, the orange clown car, the pink wedding car, the white house car). Those now use ink.
+- At 4:3 the interface is smaller, so ON and ERASE fell below the bold-large size (18.7 px). TealInk went
+  deeper and the settings row button's label went from 24 to 28.
+
+Things round 7 turned up along the way:
+
+- **`Texture2D.Compress` broke the album.** The first version compressed decoded photos to DXT1 to save
+  memory. In the Linux player those came out black in the polaroid and blank in the close-up. The album now
+  loads small thumbnails (with mipmaps) and decodes one full photo at a time for the close-up, so it never
+  compresses. A full album takes about 10–13 MB for the polaroids plus 2–3 MB for the close-up. The scope's
+  1024×768 became 960×720 (twice the old size, and about as big as the close-up shows it at 1080p).
+- **The album checks used a fixed 11 s wait.** The album deals out 33 polaroids at a quarter of a second
+  each (at least 9 s), and at load 26 a seal count check failed. Album checks now wait until the album is
+  done.
+- **The best-so-far test closed nothing at first.** Leaving out an extra that something else rests on left
+  essentials unplaced, so the trunk couldn't close. The test now leaves out only extras with nothing on top,
+  and checks that the trunk closed.
+- **The contrast check has rules worth knowing.** It reads the background from the screen (median of a band
+  1–3 px outside the glyphs) and uses the text's own colour, as WCAG does. It also accepts the rendered glyph
+  pixels or a solid outline when those stand out more. It skips text under an overlay, text faded below 60%,
+  and parts of controls that can't be used (locked trips), which WCAG doesn't hold to a ratio. Stamps are
+  checked against their known fill, because their letters nearly touch the border.
+- **Commits.** The four items were built in one working tree and split into per-item commits afterwards.
+  Only the final commit was built and tested. The intermediate commits weren't compiled on their own.
+
+Known limits:
+
+- Photos taken before round 7 stay 480×360 until that trunk is closed again.
+- The contrast check doesn't check a `<color>` part inside a line separately (the waiting line's accent
+  uses `AccentInk`). It only covers the screens the self-test visits.
+- D-pad navigation picks the nearest control by geometry. It's been tried only with a simulated pad.
+  Gamepad button remapping is still not offered (Steam Input covers it on a Deck).
+- The deeper orange text and outlined button labels are a visible change to the look. Both are a
+  one-line change in `UiTheme` if the owner prefers the old style.
+
+Still open after round 7:
+
+- **Owner decisions:** Windows (needs the module), WebGL and hosting, signing and notarization, licences,
+  releases and re-cutting the trailer (the trailer and README stills predate the outlined button labels).
+- **Needs hardware:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`) and a Mac run.
+- **Bigger ideas:** replayability from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
+- **Measurement:** a benchmark on a quiet machine (load < 6).
