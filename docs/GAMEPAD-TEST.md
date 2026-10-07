@@ -44,7 +44,8 @@ and keep `Player.log`. Where the log lives:
 | 17 | In **Settings**, D-pad onto a volume slider, then **D-pad right / left**; on a switch and a `<` `>` choice too | The slider moves in 5% steps; the switch turns on (right) / off (left); the choice steps |
 | 18 | In the **Family album**, D-pad onto a polaroid, **A**, then **D-pad left / right** and **LB / RB**; **B** | The close-up opens and flips between photos; B closes it |
 | 19 | Move the real mouse | The pad cursor hides, the hints go back to keys |
-| 20 | Unplug or switch off the controller mid-trip, then reconnect | Log shows `[Input] removed` then `added` (or `disconnected` / `reconnected`); the game keeps working with the mouse, and the pad works again after reconnecting |
+| 20 | **Settings → Controls**, steer onto **Turn** under GAMEPAD, **A**, then press **R3** (click the right stick); back in a trip, hold something and press **R3**, then **X**; then Settings → **DEFAULTS** | The button reads PRESS BUTTON, then R3; R3 turns the item and X doesn't; the hints at the bottom say R3; DEFAULTS puts X back |
+| 21 | Unplug or switch off the controller mid-trip, then reconnect | Log shows `[Input] removed` then `added` (or `disconnected` / `reconnected`); the game keeps working with the mouse, and the pad works again after reconnecting |
 
 Things worth noting even if everything works: stick dead-zone (does the cursor drift?), cursor
 speed, whether the D-pad ever jumps somewhere you didn't expect (which screen, which button), whether **A**'s and **B**'s positions match the labels on your pad (Nintendo-layout pads swap

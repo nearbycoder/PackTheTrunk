@@ -186,7 +186,7 @@ namespace PackTheTrunk
             ChoiceRow("Placement colours", "Blue / orange is easier to tell apart with red-green colour blindness.",
                 () => GameSettings.PlacementPalettes[Mathf.Clamp(GameSettings.PlacementPalette, 0, 1)],
                 d => GameSettings.PlacementPalette = (GameSettings.PlacementPalette + d + 2) % 2);
-            ChoiceRow("X-ray", $"Hold {Bindings.Label(Bindings.Action.XRay)} (or the left stick) to see through what's packed, or press it once to turn it on and again to turn it off.",
+            ChoiceRow("X-ray", $"Hold {Bindings.Label(Bindings.Action.XRay)} (or {PadBindings.Label(PadBindings.Action.XRay)} on a gamepad) to see through what's packed, or press it once to turn it on and again to turn it off.",
                 () => GameSettings.XRayModes[GameSettings.XRayToggle ? 1 : 0],
                 d => GameSettings.XRayToggle = !GameSettings.XRayToggle);
             ToggleRow("Screen shake", "A little bump when the trunk slams shut.", () => GameSettings.ScreenShake, v => GameSettings.ScreenShake = v);
@@ -202,14 +202,16 @@ namespace PackTheTrunk
         readonly List<(Bindings.Action Action, Text Label)> bindLabels = new List<(Bindings.Action, Text)>();
 
         /// <summary>Waiting for a key press to bind (Settings → Controls).</summary>
-        public bool IsRebinding => rebinding != null;
+        public bool IsRebinding => rebinding != null || padRebinding != null;
 
         void BuildControlsTab()
         {
             var grid = UiKit.Rect("Controls", settingsBody);
             UiKit.Size(grid.gameObject.AddComponent<LayoutElement>(), -1, 536);
             bindLabels.Clear();
+            padBindLabels.Clear();
             rebinding = null;
+            padRebinding = null;
 
             var kbHeader = UiTheme.Label("Keyboard", grid, "KEYBOARD  ·  click a key to change it", UiTheme.Display, 24, UiTheme.AccentInk, TextAnchor.MiddleLeft);
             kbHeader.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -40), new Vector2(0, -4));
@@ -228,23 +230,48 @@ namespace PackTheTrunk
                 bindLabels.Add((action, label));
             }
 
-            var padHeader = UiTheme.Label("Gamepad", grid, "GAMEPAD (Xbox layout)", UiTheme.Display, 24, UiTheme.AccentInk, TextAnchor.MiddleLeft);
+            // The gamepad's packing buttons, the same way: three columns of three. A, B, MENU, LB, the sticks
+            // and the triggers keep their jobs, so the menus and the camera always work.
+            var padHeader = UiTheme.Label("Gamepad", grid, "GAMEPAD (Xbox layout)  ·  click an action, then press a button", UiTheme.Display, 24, UiTheme.AccentInk, TextAnchor.MiddleLeft);
             padHeader.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -330), new Vector2(0, -294));
-            var padLeft = UiKit.Rect("Pad A", grid).Place(new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(20, 0), new Vector2(-10, -334));
-            var padRight = UiKit.Rect("Pad B", grid).Place(new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(10, 0), new Vector2(0, -334));
-            UiKit.Vertical(padLeft.gameObject, 4).childControlHeight = false;
-            UiKit.Vertical(padRight.gameObject, 4).childControlHeight = false;
-            var pad = PadControlsList;
-            for (int i = 0; i < pad.Length; i++)
+            var padActions = PadBindings.All;
+            for (int i = 0; i < padActions.Length; i++)
             {
-                var (k, what) = pad[i];
-                ControlRow(i < 4 ? padLeft : padRight, k, what, 20);
+                var action = padActions[i];
+                int col = i / 3, row = i % 3;
+                var cell = UiKit.Rect("Pad " + action, grid).Place(new Vector2(col / 3f, 1), new Vector2((col + 1) / 3f, 1),
+                    new Vector2(20, -334 - (row + 1) * 54 + 5), new Vector2(-14, -334 - row * 54 - 1));
+                var name = UiTheme.Label("Name", cell, PadBindings.Name(action), UiTheme.Body, 23, UiTheme.InkSoft, TextAnchor.MiddleLeft);
+                name.rectTransform.Place(Vector2.zero, new Vector2(0.62f, 1), Vector2.zero, Vector2.zero);
+                var button = UiTheme.Pill("Pad Bind " + action, cell, PadBindings.Short(action), UiTheme.Night, 22, () => StartPadRebind(action), out var label);
+                ((RectTransform)button.transform).Place(new Vector2(0.62f, 0), Vector2.one, new Vector2(4, 2), new Vector2(0, -2));
+                padBindLabels.Add((action, label));
             }
+            var fixedLine = UiTheme.Label("Pad Fixed", grid, "Always: L-STICK + A point and click  ·  B back  ·  MENU pause  ·  LB the other way / redo  ·  R-STICK, LT RT look and zoom",
+                UiTheme.Body, 20, UiTheme.InkSoft, TextAnchor.MiddleLeft);
+            fixedLine.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -536), new Vector2(0, -500));
             settingsHint.text = "Mouse: right-click turns, the wheel picks a shelf, right-drag looks around. Hold SHIFT (or LB) to turn the other way.";
+        }
+
+        PadBindings.Action? padRebinding;
+        readonly List<(PadBindings.Action Action, Text Label)> padBindLabels = new List<(PadBindings.Action, Text)>();
+        bool padRebindArmed;
+
+        void StartPadRebind(PadBindings.Action action)
+        {
+            rebinding = null;
+            RefreshBindLabels();
+            if (padRebinding == action) { padRebinding = null; return; }
+            padRebinding = action;
+            // Clicked with the pad's A: wait for every button to be let go first, so the click itself isn't taken.
+            padRebindArmed = false;
+            foreach (var (a, label) in padBindLabels)
+                if (a == action) label.text = "PRESS BUTTON";
         }
 
         void StartRebind(Bindings.Action action)
         {
+            padRebinding = null;
             RefreshBindLabels();
             if (rebinding == action) { rebinding = null; return; }
             rebinding = action;
@@ -256,6 +283,40 @@ namespace PackTheTrunk
         {
             foreach (var (a, label) in bindLabels)
                 if (label != null) label.text = Bindings.Label(a);
+            foreach (var (a, label) in padBindLabels)
+                if (label != null) label.text = PadBindings.Short(a);
+        }
+
+        /// <summary>While rebinding a pad action: the next bindable button is the new one; B or Escape cancels.</summary>
+        bool UpdatePadRebind()
+        {
+            if (padRebinding == null) return false;
+            if (!settings.gameObject.activeSelf) { padRebinding = null; return false; }
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            var pad = UnityEngine.InputSystem.Gamepad.current;
+            if ((kb != null && kb.escapeKey.wasPressedThisFrame) || (pad != null && pad.buttonEast.wasPressedThisFrame))
+            {
+                padRebinding = null;
+                RefreshBindLabels();
+                Sfx.Instance?.Back();
+                escConsumedFrame = Time.frameCount;
+                return true;
+            }
+            if (!padRebindArmed)
+            {
+                padRebindArmed = pad == null || !pad.buttonSouth.isPressed;
+                return false;
+            }
+            if (PadBindings.PressedBindable() is UnityEngine.InputSystem.LowLevel.GamepadButton button)
+            {
+                var action = padRebinding.Value;
+                padRebinding = null;
+                PadBindings.Bind(action, button);
+                RefreshBindLabels();
+                Sfx.Instance?.Confirm();
+                escConsumedFrame = Time.frameCount;
+            }
+            return false;
         }
 
         /// <summary>While rebinding: the next key press is the new key; Escape cancels. True if Escape was used up.</summary>

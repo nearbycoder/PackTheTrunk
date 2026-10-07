@@ -276,6 +276,7 @@ namespace PackTheTrunk
             }
             FillKeys();
             Bindings.Changed += FillKeys;
+            PadBindings.Changed += FillKeys;
             // "(hold)" or "(press)" follows the X-ray setting.
             GameSettings.Changed += () => { if (GameSettings.XRayToggle != filledToggle) FillKeys(); };
             void ShowPadKeys()
@@ -309,17 +310,24 @@ namespace PackTheTrunk
             }
         }
 
-        internal static (string, string)[] PadControlsList => new[]
+        internal static (string, string)[] PadControlsList
         {
-            ("L-STICK  ·  A", "point · pick up · drop · click"),
-            ("X  Y  RB", "turn · tip · roll (hold LB to reverse)"),
-            ("D-PAD UP / DOWN", "choose a shelf"),
-            ("R-STICK  ·  LT RT", "look around · zoom"),
-            ($"L-STICK CLICK ({(GameSettings.XRayToggle ? "press" : "hold")})", "see through everything packed"),
-            ("VIEW  ·  D-PAD LEFT", "undo (LB: redo) · ask Grandpa"),
-            ("D-PAD RIGHT", "close the trunk"),
-            ("B  ·  MENU", "put back / back · pause"),
-        };
+            get
+            {
+                string P(PadBindings.Action a) => PadBindings.Label(a);
+                return new[]
+                {
+                    ("L-STICK  ·  A", "point · pick up · drop · click"),
+                    ($"{P(PadBindings.Action.Turn)}  {P(PadBindings.Action.Tip)}  {P(PadBindings.Action.Roll)}", "turn · tip · roll (hold LB to reverse)"),
+                    (PadBindings.ShelfLabel(), "choose a shelf"),
+                    ("R-STICK  ·  LT RT", "look around · zoom"),
+                    ($"{P(PadBindings.Action.XRay)} ({(GameSettings.XRayToggle ? "press" : "hold")})", "see through everything packed"),
+                    ($"{P(PadBindings.Action.Undo)}  ·  {P(PadBindings.Action.Hint)}", "undo (LB: redo) · ask Grandpa"),
+                    (P(PadBindings.Action.Close), "close the trunk"),
+                    ("B  ·  MENU", "put back / back · pause"),
+                };
+            }
+        }
 
         void ControlRow(Transform parent, string key, string text, int size)
         {

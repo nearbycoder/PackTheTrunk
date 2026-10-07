@@ -195,6 +195,7 @@ namespace PackTheTrunk
             })
                 Prefs.DeleteKey(Prefix + key);
             Bindings.ResetAll();
+            PadBindings.ResetAll();
             Commit();
         }
 

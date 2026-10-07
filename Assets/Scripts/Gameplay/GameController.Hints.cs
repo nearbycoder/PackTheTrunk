@@ -177,7 +177,7 @@ namespace PackTheTrunk
 
             // 4. Nothing fits where it should: something packed is in the way.
             if (bestMisplaced.Count > 0)
-                return new Hint { Blocked = true, Message = $"Grandpa's hint: the {bestMisplaced[0].Def.Name} is in the way. {(GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo))} undoes a step, or RESTART starts fresh." };
+                return new Hint { Blocked = true, Message = $"Grandpa's hint: the {bestMisplaced[0].Def.Name} is in the way. {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo))} undoes a step, or RESTART starts fresh." };
             return new Hint { Message = "Grandpa's hint: you've got it from here. Close it up!" };
         }
 

@@ -54,9 +54,9 @@ namespace PackTheTrunk
                 {
                     case Tip.Pickup: return "Point with the left stick and press A to pick something up.";
                     case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. A drops it.";
-                    case Tip.Turn: return "Won't fit like that? X turns it, Y tips it over and RB rolls it sideways.";
-                    case Tip.Shelf: return "There's room underneath too! D-pad up / down picks the shelf.";
-                    case Tip.Undo: return "Changed your mind? VIEW undoes (LB + VIEW redoes), and anything packed can be picked back out.";
+                    case Tip.Turn: return $"Won't fit like that? {P(PadBindings.Action.Turn)} turns it, {P(PadBindings.Action.Tip)} tips it over and {P(PadBindings.Action.Roll)} rolls it sideways.";
+                    case Tip.Shelf: return $"There's room underneath too! {PadBindings.ShelfLabel()} picks the shelf.";
+                    case Tip.Undo: return $"Changed your mind? {P(PadBindings.Action.Undo)} undoes (LB + {P(PadBindings.Action.Undo)} redoes), and anything packed can be picked back out.";
                     case Tip.Orbit: return "Can't see the gap? The right stick walks you around the car.";
                 }
             switch (tip)
@@ -72,6 +72,8 @@ namespace PackTheTrunk
         }
 
         static string K(Bindings.Action action) => Bindings.Label(action);
+
+        static string P(PadBindings.Action action) => PadBindings.Label(action);
 
         /// <summary>Has the player just done what the tip on screen is asking for?</summary>
         bool TipDone(Tip tip)

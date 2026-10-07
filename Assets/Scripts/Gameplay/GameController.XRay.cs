@@ -42,13 +42,9 @@ namespace PackTheTrunk
             ui.Toast(xrayClicked ? "X-ray on until you let go of it." : "X-ray off.", 1.6f);
         }
 
-        bool XRayHeld =>
-            Bindings.Held(Bindings.Action.XRay) ||
-            (Gamepad.current != null && Gamepad.current.leftStickButton.isPressed);
+        bool XRayHeld => Bindings.Held(Bindings.Action.XRay) || PadBindings.Held(PadBindings.Action.XRay);
 
-        bool XRayPressed =>
-            Bindings.Pressed(Bindings.Action.XRay) ||
-            (Gamepad.current != null && Gamepad.current.leftStickButton.wasPressedThisFrame);
+        bool XRayPressed => Bindings.Pressed(Bindings.Action.XRay) || PadBindings.Pressed(PadBindings.Action.XRay);
 
         /// <summary>Called each playing frame (before aiming): work out what should be see-through.</summary>
         void UpdateSeeThrough()
@@ -62,7 +58,7 @@ namespace PackTheTrunk
                     // The key turns off X-ray however it was turned on (a click on its key hint too).
                     xrayLatched = !(xrayLatched || xrayClicked);
                     xrayClicked = false;
-                    string key = GamepadCursor.Active ? "L3" : Bindings.Label(Bindings.Action.XRay);
+                    string key = GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.XRay) : Bindings.Label(Bindings.Action.XRay);
                     ui.Toast(xrayLatched ? $"X-ray on. {key} again turns it off." : "X-ray off.", 1.6f);
                 }
             }

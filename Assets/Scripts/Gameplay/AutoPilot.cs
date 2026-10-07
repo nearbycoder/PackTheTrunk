@@ -2310,6 +2310,7 @@ namespace PackTheTrunk
             yield return Wait(0.6f);
             Check(!game.IsPaused, "gamepad: B backs out of the pause menu");
             yield return PadMenuChecks(pad);
+            yield return PadRebindChecks(pad);
 
             // Touch the real mouse again: control and the hints go back to mouse and keyboard.
             var p = realMouse.position.ReadValue();

@@ -81,8 +81,11 @@ way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the 
 trunk, **View** undoes (**LB** + **View** redoes), **B** puts back or backs out, **Menu** pauses (and moves on from story
 texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
 the tips switch to controller buttons as soon as you touch the pad, and back when you move the
-mouse. It has only been tested with a simulated gamepad in the autopilot, not on a physical
-controller or a Steam Deck yet. There's no touch support, and gamepad buttons can't be remapped.
+mouse. The packing buttons can be moved in **Settings → Controls** (pick an action with **A**,
+then press the button you want; **B** cancels): X, Y, RB, View, the D-pad, L3 and R3 can take any
+packing action, while A, B, Menu, LB (the other way / redo), the sticks and the triggers keep their
+jobs so the menus and the camera always work. It has only been tested with a simulated gamepad in
+the autopilot, not on a physical controller or a Steam Deck yet. There's no touch support.
 If you try it on real hardware, [docs/GAMEPAD-TEST.md](docs/GAMEPAD-TEST.md) is a ten-minute
 checklist. The game logs every controller it sees (`[Input]` lines in `Player.log`), and if
 Unity only recognises a pad as a generic joystick, the game tells you and suggests Steam Input or
@@ -448,9 +451,9 @@ settings are complete, and the autopilot (304 checks) passes every trip. Still r
   here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
   checks (pointing, every packing action, undo, hint, pause, menu clicks, D-pad menu navigation,
-  the album close-up's D-pad and bumpers, handing back to the mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
-  checklist for that first test, and `[Input]` lines in `Player.log` show what the player saw. No touch support; keyboard
-  keys can be remapped, gamepad buttons can't.
+  the album close-up's D-pad and bumpers, remapping a button through Settings, handing back to the mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
+  checklist for that first test, and `[Input]` lines in `Player.log` show what the player saw. No touch support. Keyboard
+  keys and the pad's packing buttons can be remapped (A, B, Menu, LB, the sticks and triggers are fixed).
 - **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
   under XWayland, so the launchers force Unity's native Wayland backend. The player picks
   OpenGL Core by default; Vulkan works with `-force-vulkan`.

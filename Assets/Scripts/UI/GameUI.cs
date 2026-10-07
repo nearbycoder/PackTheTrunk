@@ -47,6 +47,31 @@ namespace PackTheTrunk
             SetXRayOn(on);
         }
 
+        /// <summary>The controller hints, from the current gamepad bindings (rebuilt when they change).</summary>
+        void BuildPadHints()
+        {
+            if (padHintsRow == null) return;
+            UiKit.Clear(padHintsRow);
+            string P(PadBindings.Action a) => PadBindings.Short(a);
+            bool dpadShelf = PadBindings.ButtonFor(PadBindings.Action.ShelfUp) == UnityEngine.InputSystem.LowLevel.GamepadButton.DpadUp
+                && PadBindings.ButtonFor(PadBindings.Action.ShelfDown) == UnityEngine.InputSystem.LowLevel.GamepadButton.DpadDown;
+            Hint(padHintsRow, "A", "grab / drop", 0);
+            Hint(padHintsRow, P(PadBindings.Action.Turn), "turn", 1);
+            Hint(padHintsRow, P(PadBindings.Action.Tip), "tip", 2);
+            Hint(padHintsRow, P(PadBindings.Action.Roll), "roll", 3);
+            Hint(padHintsRow, dpadShelf ? "D-PAD" : P(PadBindings.Action.ShelfUp) + " " + P(PadBindings.Action.ShelfDown), "shelf", 6);
+            Hint(padHintsRow, "B", "put back", 9);
+            Hint(padHintsRow, P(PadBindings.Action.Undo), "undo", 5);
+            Hint(padHintsRow, "R-STICK", "look", 8);
+            padXRayHint = UiTheme.KeyHint(padHintsRow, P(PadBindings.Action.XRay), "x-ray");
+            hintRank[padXRayHint] = 7;
+            Hint(padHintsRow, P(PadBindings.Action.Close), "close", 4);
+            hudLayoutWidth = -1f;
+            bool on = xrayShownOn;
+            xrayShownOn = false;
+            SetXRayOn(on);
+        }
+
         RectTransform keyboardXRayHint, padXRayHint;
         bool xrayShownOn;
 
@@ -64,7 +89,7 @@ namespace PackTheTrunk
                 if (caption == null) continue;
                 caption.text = on ? "x-ray on" : "x-ray";
                 caption.color = on ? UiTheme.Accent : Color.white;
-                hintRank[hint] = on ? -1 : 4;
+                hintRank[hint] = on ? -1 : hint == padXRayHint ? 7 : 4;
             }
             hudLayoutWidth = -1f;
         }
@@ -408,11 +433,16 @@ namespace PackTheTrunk
         public List<string> PadHintCaptions() => Captions(padHintsRow);
 
         /// <summary>The key caps currently shown in the keyboard hint strip (for the self-test).</summary>
-        public List<string> KeyboardHintKeys()
+        public List<string> KeyboardHintKeys() => HintKeys(keyboardHintsRow);
+
+        /// <summary>The button caps currently shown in the controller hint strip (for the self-test).</summary>
+        public List<string> PadHintKeys() => HintKeys(padHintsRow);
+
+        static List<string> HintKeys(RectTransform strip)
         {
             var keys = new List<string>();
-            if (keyboardHintsRow == null) return keys;
-            foreach (Transform row in keyboardHintsRow)
+            if (strip == null) return keys;
+            foreach (Transform row in strip)
             {
                 var cap = row.Find("Cap/Key");
                 if (cap != null) keys.Add(cap.GetComponent<Text>().text);
@@ -609,7 +639,7 @@ namespace PackTheTrunk
                 LayoutHud();
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            bool escUsed = UpdateRebind();
+            bool escUsed = UpdateRebind() | UpdatePadRebind();
             if (!escUsed && !IsRebinding && ((kb != null && kb.escapeKey.wasPressedThisFrame) || Pad.Down(p => p.buttonEast)))
             {
                 if (confirm.gameObject.activeSelf) { CloseConfirm(false); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
@@ -1366,18 +1396,9 @@ namespace PackTheTrunk
             var padHints = UiKit.Rect("Gamepad", keys).Fill();
             var ph = UiKit.Horizontal(padHints.gameObject, 18, TextAnchor.MiddleLeft);
             ph.childControlWidth = true;
-            Hint(padHints, "A", "grab / drop", 0);
-            Hint(padHints, "X", "turn", 1);
-            Hint(padHints, "Y", "tip", 2);
-            Hint(padHints, "RB", "roll", 3);
-            Hint(padHints, "D-PAD", "shelf", 6);
-            Hint(padHints, "B", "put back", 9);
-            Hint(padHints, "VIEW", "undo", 5);
-            Hint(padHints, "R-STICK", "look", 8);
-            padXRayHint = UiTheme.KeyHint(padHints, "L3", "x-ray");
-            hintRank[padXRayHint] = 7;
-            Hint(padHints, "D-PAD >", "close", 4);
             padHintsRow = padHints;
+            BuildPadHints();
+            PadBindings.Changed += BuildPadHints;
             void ShowPadHints()
             {
                 kbHints.gameObject.SetActive(!GamepadCursor.Active);

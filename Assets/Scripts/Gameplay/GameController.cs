@@ -509,8 +509,8 @@ namespace PackTheTrunk
             if (resumed > 0) ui.Toast($"Your trunk is just how you left it: {resumed} thing{(resumed == 1 ? "" : "s")} packed. RESTART unpacks it.", 4f);
             else if (resumed < 0)
             {
-                string undoKey = GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo);
-                string key = undo.Count > 0 ? undoKey : GamepadCursor.Active ? "LB + VIEW" : "SHIFT + " + undoKey;
+                string undoKey = GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo);
+                string key = undo.Count > 0 ? undoKey : GamepadCursor.Active ? "LB + " + undoKey : "SHIFT + " + undoKey;
                 ui.Toast($"Your trunk is empty, but {key} still brings back what you packed.", 4f);
             }
             music.Play(level.Music);
@@ -715,26 +715,27 @@ namespace PackTheTrunk
             rig.ZoomEnabled = held == null;
             scrollCooldown -= Time.deltaTime;
 
-            // Gamepad: View undo, D-pad left hint, X turn / Y tip / RB roll (LB reverses), D-pad up/down shelf,
-            // D-pad right close. Pointing and A-to-click go through GamepadCursor's virtual mouse.
+            // Gamepad (Settings → Controls can move these): View undo, D-pad left hint, X turn / Y tip / RB roll
+            // (LB reverses), D-pad up/down shelf, D-pad right close. Pointing and A-to-click go through
+            // GamepadCursor's virtual mouse.
             if (Pad.Current != null)
             {
-                if (Pad.Down(p => p.selectButton))
+                if (PadBindings.Pressed(PadBindings.Action.Undo))
                 {
                     if (Pad.Held(p => p.leftShoulder)) Redo();
                     else Undo();
                 }
-                if (Pad.Down(p => p.dpad.left)) AskGrandpa();
+                if (PadBindings.Pressed(PadBindings.Action.Hint)) AskGrandpa();
                 if (held != null)
                 {
                     bool reverse = Pad.Held(p => p.leftShoulder);
-                    if (Pad.Down(p => p.buttonWest)) Rotate(Vector3.up, reverse);
-                    if (Pad.Down(p => p.buttonNorth)) Rotate(rig.SnappedRight(), reverse);
-                    if (Pad.Down(p => p.rightShoulder)) Rotate(rig.SnappedForward(), reverse);
-                    if (Pad.Down(p => p.dpad.up)) { heightBias++; tipShelfPicked = true; }
-                    if (Pad.Down(p => p.dpad.down)) { heightBias--; tipShelfPicked = true; }
+                    if (PadBindings.Pressed(PadBindings.Action.Turn)) Rotate(Vector3.up, reverse);
+                    if (PadBindings.Pressed(PadBindings.Action.Tip)) Rotate(rig.SnappedRight(), reverse);
+                    if (PadBindings.Pressed(PadBindings.Action.Roll)) Rotate(rig.SnappedForward(), reverse);
+                    if (PadBindings.Pressed(PadBindings.Action.ShelfUp)) { heightBias++; tipShelfPicked = true; }
+                    if (PadBindings.Pressed(PadBindings.Action.ShelfDown)) { heightBias--; tipShelfPicked = true; }
                 }
-                if (Pad.Down(p => p.dpad.right) && CanClose() && ConfirmKeyClose())
+                if (PadBindings.Pressed(PadBindings.Action.Close) && CanClose() && ConfirmKeyClose())
                 {
                     StartCoroutine(CloseTrunk());
                     return;
@@ -1163,7 +1164,7 @@ namespace PackTheTrunk
             closeArmedUntil = Time.unscaledTime + 2.2f;
             int left = items.Count(i => i.IsBonus && !IsPacked(i));
             sfx.Error();
-            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {(GamepadCursor.Active ? "D-PAD RIGHT" : Bindings.Label(Bindings.Action.Close))} again to close anyway.", 2.2f);
+            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Close) : Bindings.Label(Bindings.Action.Close))} again to close anyway.", 2.2f);
             return false;
         }
 
@@ -1309,7 +1310,7 @@ namespace PackTheTrunk
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
             SaveTrunk();
-            ui.Toast($"Unpacked everything. {(GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo))} puts it all back.", 3f);
+            ui.Toast($"Unpacked everything. {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo))} puts it all back.", 3f);
             Debug.Log($"[Restart] {level.Id}: unpacked {undo.Peek().Count(s => s.Packed)} items in place");
         }
 
