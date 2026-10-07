@@ -1090,3 +1090,99 @@ Still open after round 8:
   remapping) and a Mac run.
 - **Bigger ideas:** replayability from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
 - **Measurement:** an A/B benchmark with both builds on a quiet machine (load < 6 throughout).
+
+## Round 9 scope (2026-10-07, branch `improvements-9`)
+
+**Measurement debt first: the round-7 vs round-8 A/B.** The machine was nearly idle at the start of the round
+(load 0.5), so both builds were benchmarked back to back (`-pttBench`, 1600×900, High) in a private, headless
+nested KWin (see E), which keeps the window off the shared desktop and away from its compositor
+(`Recordings/round9/bench-nested-*.log`):
+
+| Build | Load | Every screen (avg) | Minivan packing / holding | p99 worst | >33 ms | Alloc/frame |
+| --- | --- | --- | --- | --- | --- | --- |
+| Round 8 (`cdfb912`) | 0.7 → 6.8 | 1.7–2.0 ms | 1.8 / 1.9 ms | 4.2 ms (credits) | 0 | 0 KB |
+| Round 7 (`90f0170`) | 7.9 → 10.3 | 1.8–2.4 ms | 1.9 / 2.4 ms | 4.9 ms (story) | 1 (album) | 0 KB |
+
+Round 8 costs nothing measurable (it was the faster of the two, at the lower load). A third run (round 8 again)
+at load 10–14 read a flat 2–7 ms on every screen as other sessions started, which is contention again; it's in
+the same folder. That debt is closed.
+
+**A first look below 1280×720.** Settings → Display offers every resolution down to 1024 pixels wide, but no
+round had measured one. A layout-only run at 1024×768 on round-8 `main` (`Recordings/round9/layout-1024x768-before`)
+kept every HUD and menu layout check clean, but **19 of 50 checks failed**: text came out at 10.6–11.7 px on 18 of
+the 20 screens (the version line, trip-map dates and captions, the trip card, the FRAGILE / EXTRA stamps, key-hint
+captions, the postcard's key line), and Settings → Gameplay's ERASE reached 4.4:1 (it needs 4.5).
+
+Rounds 1–8 covered how to play, getting unstuck, not losing work, motion, size and colour, controllers and the
+mouse alone. The biggest group the game still can't serve is **players who use only the keyboard**: no menu
+reacts to the arrow keys or Enter, and nothing can be picked up or aimed without pointing. Round 9 is about them,
+plus the two rough edges round 8 left for mouse-only players and the small-window gap above.
+
+### A. Menus with the keyboard
+
+- **Acceptance:** on every screen outside packing (title, main menu, settings, trip map, story, pause, postcard,
+  album, credits), the arrow keys move a visible focus cursor to the nearest button, switch, slider, map pin or
+  polaroid in that direction, holding repeats, and **Enter** (or Space) clicks what it's on. On a slider, switch or
+  choice, ← / → change the value. While the keyboard cursor is on a control, Enter and Space click it instead of
+  their usual screen-wide job (so Enter on the postcard's TRY AGAIN tries again, not "next trip"); with no control
+  under it, they do what they did before. Esc is unchanged. Moving the mouse hands straight back (the cursor hides),
+  and using a pad hands over to the pad. Key hints keep showing keyboard keys. Arrow keys being rebound to packing
+  actions doesn't affect menus. Mouse and gamepad behave as before.
+- **Verify:** autopilot `KeyMenuChecks` with keyboard events only: from the main menu, ↓ moves the cursor to another
+  button and Enter opens it; in Settings → Audio the arrows reach the master volume and → / ← change it (restored);
+  in the pause menu ↓ + Enter resumes; on the postcard ←/→ + Enter on TRY AGAIN retries; a mouse move hides the
+  cursor. The existing `GamepadChecks` / `PadMenuChecks` pass unchanged. Screenshot.
+
+### B. Pack with the keyboard alone (riskiest; lands only if it's clean)
+
+- **Acceptance:** with empty hands, the arrow keys walk the packing list and the HUD buttons (HINT, UNDO, RESTART,
+  CLOSE THE TRUNK) and Enter clicks them, so Enter on a row picks that thing up (from the blanket, or back out of
+  the trunk, as a click on the row does now). Holding something, the arrow keys move the landing spot **one cell at
+  a time** across the trunk, relative to the camera (↑ away, ↓ towards you, ← / → sideways), the ghost shows it as
+  it does for the mouse, Enter drops it there (or says why it can't), and the existing keys turn, tip, roll, pick a
+  shelf (W / S), see through (Tab), undo and close. Esc puts it back. Touching the mouse hands aiming straight back.
+  An arrow key bound to a packing action keeps that job. Grandpa's tips and the README say how.
+- **Verify:** autopilot `KeyboardOnlyChecks`: a whole small trip (Weekend Getaway, from the solver's solution) is
+  packed and closed for three stars with **keyboard events only** (no mouse event at all), checking that each arrow
+  step moves the ghost by exactly one cell in the camera-relative direction and that Enter on a packed row lifts it
+  back out. The HUD layout, legibility and contrast passes stay clean. Screenshot.
+
+### C. Mouse only: redo, and a steady hand over the key hints
+
+Round 8's known limits: redo needs Shift + Z, and clicking a key hint moves the pointer off the trunk, so the held
+thing drops down to the strip until you point back in (and the ghost doesn't follow the turn you just clicked).
+
+- **Acceptance:** a **REDO** button sits with UNDO and shows only while there's something to redo; it does what
+  Shift + Z does. While you hold something and the pointer is over the HUD, the held thing and its ghost stay at the
+  spot you last aimed at, and turning, tipping or rolling with the key-hint buttons updates the ghost there; clicking
+  the trunk still drops as before, and clicking off the trunk still puts it back. The HUD still fits every screen
+  shape and interface size.
+- **Verify:** `MouseOnlyChecks` additions with mouse events only: REDO hidden with nothing to redo, appears after an
+  undo, a click redoes the same layout as Shift + Z; hold an item over the trunk, move to the TIP hint, click it: the
+  ghost is still over the same column with the tipped shape, and a click back on the trunk drops it there. The
+  mouse-only trip also makes one shelf choice with the **wheel** (owed since round 8). Layout pass at 16:9, 16:10,
+  4:3, 21:9 × 80/100/120%.
+
+### D. Readable at 1024×768
+
+- **Acceptance:** at 1024×768 (the smallest window Settings offers on a 4:3 monitor) every text is 12 px or more and
+  passes contrast on all 20 screens, and the HUD and menu layouts stay clean, without changing the round-7 contrast
+  style that's waiting on the owner (no new outlines, no new or deeper inks). The smallest labels grow only as much as
+  a small screen needs; at 1280×720 and up nothing changes size. 1024×768 joins the measured sizes in the README.
+- **Verify:** layout-only runs at 1024×768 before (19 FAIL) and after (0 FAIL), and after at 1280×720, 1280×800,
+  1600×900, 1200×900 and 2100×900. Before/after screenshots.
+
+### E. Housekeeping: test windows off the shared desktop
+
+- **Acceptance:** `Tools/play.sh` runs the player inside a private, headless nested KWin (`kwin_wayland --virtual`)
+  whenever it's started in an automated mode (`-pttAutopilot`, `-pttBench`, `-pttShowcase`), so the autopilot,
+  the benchmark, the crash test and the recorders never open a window on the desktop. Each flag stays its own word.
+  `PTT_NESTED=0` opts out (a visible window, as before); without `kwin_wayland` it falls back to the old way.
+  Normal play is unchanged. The crash test still SIGKILLs the player itself, not the compositor.
+- **Verify:** the benchmark above, a quick autopilot and the crash test run nested, with the hardware renderer in
+  the log (radeonsi), and no new window on the desktop.
+
+Each item is built (`build-linux`, 0 errors) and tested on its own commit before the next starts: the solver, a quick
+autopilot (load checked first) and screenshots in `docs/media/improvements/round9/`. The round ends with a full
+autopilot (0 FAIL, real save untouched, load noted) and the crash test. If an item turns out bigger or riskier than
+planned, the others land first and it's reported rather than half-landed.
