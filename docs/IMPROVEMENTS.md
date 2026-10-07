@@ -791,3 +791,78 @@ slam), confetti, and the small pops of a ticked row or an earned star. The album
 at 480×360, so the close-up is a little soft. The legibility pass measures font size times scale; it
 doesn't judge contrast. The L3 toggle is checked with a simulated pad only, and the close-up's D-pad and
 bumper flipping isn't exercised by the autopilot at all (the keyboard arrows and A / D are).
+
+## Round 7 scope (2026-10-07, branch `improvements-7`)
+
+**Baseline.** Round-6 `main` was rebuilt (0 errors) and benchmarked at the start of the round
+(`Recordings/round7/bench-main.log`). Load climbed from 9 to 17 during the run as other sessions started,
+and every screen read 6–10 ms (1.6–1.9 ms on a quiet machine in round 6), with 0 KB allocated per frame. That
+is contention, not a regression; the round ends with a back-to-back A/B instead.
+
+Rounds 1–6 covered how to play, getting unstuck, not losing work, and accessibility of motion, size and
+colour. Round 7 picks up what's still rough for a real player: menus on a controller, the album's soft
+close-ups, text contrast (the legibility check measures size only), and a reason to go back to a trip you
+didn't finish.
+
+### A. D-pad menu navigation (controller)
+
+On a pad, every menu works only by steering the stick cursor onto a button. On a Deck that's slow, and the
+D-pad does nothing outside packing.
+
+- **Acceptance:** whenever you're not packing (title, menus, settings, trip map, story, pause, postcard,
+  album), a D-pad press jumps the gamepad cursor to the nearest button, switch, slider or polaroid in that
+  direction that's on top and can be clicked, and A clicks it as before. Holding a direction repeats.
+  On a settings slider, D-pad left/right changes the value in steps instead of moving away. While packing
+  (no menu open) the D-pad keeps its packing jobs (shelf, hint, close); the pause menu over a trip
+  navigates. In the album close-up the D-pad and bumpers still flip photos. The stick cursor is unchanged.
+- **Verify:** `GamepadChecks` gains: on the main menu, D-pad down moves the cursor onto a different
+  button and A on it opens that screen; in Settings → Audio, D-pad onto the master volume slider and
+  D-pad right raises it (restored afterwards); in the pause menu, D-pad down reaches a button. The
+  close-up's D-pad right, D-pad left and RB/LB flipping (owed from round 6) gets checks too. The
+  keyboard/mouse checks pass unchanged.
+
+### B. Sharper album photos
+
+Each trunk is photographed at 480×360 and shown up to 920 units wide in the close-up, so it's soft, and
+the 130-unit polaroids are minified without mipmaps.
+
+- **Acceptance:** new photos are 1024×768, rendered with 4× MSAA, and saved as JPEG (quality 92) so a full
+  album stays small and decodes quickly; textures get mipmaps so the small polaroids don't shimmer. Old
+  480×360 PNG photos still load and show until that trip's trunk is closed again (then the PNG is
+  replaced). Closing the trunk still never stalls a frame (read-back and encoding stay asynchronous).
+- **Verify:** autopilot check that a freshly closed trunk's photo is 1024×768 on disk and in the album; a
+  legacy PNG placed in the sandboxed album loads; file size and decode time logged. Close-up screenshot
+  before/after at 1600×900.
+
+### C. Text contrast check (and fixes)
+
+- **Acceptance:** a contrast check runs alongside `LegibilityChecks` on the same 15 screens. For every
+  visible text it reads the rendered pixels: the background is the median colour of a thin band just
+  outside the glyphs, the text colour the glyph pixels furthest from it, and the WCAG contrast ratio is
+  computed. Body text must reach **4.5:1**, large text (24 px or more on screen) **3:1**. Anything below is
+  fixed (colour or backing), or listed in the results with a reason if it's decorative.
+- **Verify:** the check's per-screen minimum before and after at 1600×900 and 1280×800 (layout-only
+  runs), and screenshots of anything changed.
+
+### D. Your best so far, on the trip card
+
+Once a trip is closed, nothing tells you what you'd gain by packing it again.
+
+- **Acceptance:** starting a trip you've closed before, the trip card adds one line: with fewer than 3
+  stars, the best stars and what that best run left on the curb ("Best: 2 stars. Left on the curb: tuba,
+  lamp"); with 3 stars and no seal, that Grandpa's seal is still there to earn; with both, nothing extra.
+  A fresh trip is unchanged. The left-behind list is saved with the best result only (a worse replay
+  doesn't overwrite it) and fits the card at every interface size.
+- **Verify:** autopilot checks: close the wagon with an extra left out, start it again, the card names
+  that extra and the star count; close it with everything, the line asks for the seal (or is gone if
+  sealed). Layout and legibility passes stay clean. Screenshot.
+
+### E. Housekeeping
+
+`build-mac` is re-run on the round-7 code and checked with `file`. The round ends with `build-linux`
+(0 errors), the solver, a full autopilot (0 FAIL, real save untouched, load noted), the crash test, and a
+back-to-back `-pttBench` A/B against round-6 `main` if the machine is quiet enough.
+
+Each item ends with `build-linux`, the solver and a quick autopilot (load checked first), with
+screenshots in `docs/media/improvements/round7/`. If an item turns out bigger or riskier than planned,
+the others land first and it's reported rather than half-landed.
