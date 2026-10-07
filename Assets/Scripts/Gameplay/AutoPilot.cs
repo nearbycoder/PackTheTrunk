@@ -1729,23 +1729,24 @@ namespace PackTheTrunk
             Uncap();
             Log($"legibility {size}: interface size {GameSettings.UiScale * 100f:0}% by default");
             static string Short(string text) => text.Length > 28 ? text.Substring(0, 28) + "…" : text;
-            void Measure(string screen)
+            IEnumerator Measure(string screen)
             {
                 var sizes = game.Ui.VisibleTextSizes();
-                if (sizes.Count == 0) { Check(false, $"legibility {size} {screen}: no text found"); return; }
+                if (sizes.Count == 0) { Check(false, $"legibility {size} {screen}: no text found"); yield break; }
                 var (name, text, px) = sizes[0];
                 var small = sizes.Where(x => x.Px < MinPx - 0.05f).Select(x => $"{x.Name} {x.Px:0.0}").Distinct().Take(8).ToList();
                 Check(small.Count == 0, $"legibility {size} {screen}: smallest text {px:0.0} px (\"{Short(text.Replace("\n", " "))}\" in {name}), {sizes.Count} texts" +
                     (small.Count > 0 ? "; under 12 px: " + string.Join(", ", small) : ""));
+                yield return ContrastCheck($"{size} {screen}");
             }
 
             PerfProbe.Begin("menus");
             game.AutoShowTitle();
             yield return Wait(3f);
-            Measure("title");
+            yield return Measure("title");
             yield return Press(Key.Space);
             yield return Wait(1.6f);
-            Measure("main menu");
+            yield return Measure("main menu");
             yield return Shot($"legibility-{size}-menu");
             yield return ClickUi("Settings");
             yield return Wait(1f);
@@ -1753,21 +1754,21 @@ namespace PackTheTrunk
             {
                 yield return ClickUi("Tab " + tab);
                 yield return Wait(0.8f);
-                Measure("settings " + tab.ToLowerInvariant());
+                yield return Measure("settings " + tab.ToLowerInvariant());
             }
             yield return Shot($"legibility-{size}-settings");
             yield return Press(Key.Escape);
             yield return Wait(0.6f);
             yield return ClickUi("Trip Map");
             yield return Wait(1.6f);
-            Measure("trip map");
+            yield return Measure("trip map");
             yield return Shot($"legibility-{size}-map");
             yield return Press(Key.Escape);
             yield return Wait(1f);
 
             game.AutoBeginTrip(LevelIndex("grandma"));
             yield return Wait(7f);
-            Measure("story");
+            yield return Measure("story");
             yield return Shot($"legibility-{size}-story");
 
             PerfProbe.Begin("playing");
@@ -1777,13 +1778,13 @@ namespace PackTheTrunk
             game.Ui.ShowTip("Grandpa's tip for the legibility check, about as long as a real one.");
             game.Ui.Toast("A toast for the legibility check.", 30f);
             yield return Wait(1.2f);
-            Measure("packing");
+            yield return Measure("packing");
             yield return Shot($"legibility-{size}-packing");
             game.Ui.HideTip();
             game.AutoPutBack();
             game.AutoPause();
             yield return Wait(1f);
-            Measure("pause");
+            yield return Measure("pause");
             game.AutoResume();
             yield return Wait(0.5f);
 
@@ -1794,23 +1795,112 @@ namespace PackTheTrunk
                 yield return PackAll("wagon", wagon);
                 yield return CloseAndWait();
                 yield return Wait(3f);
-                Measure("postcard");
+                yield return Measure("postcard");
                 yield return Shot($"legibility-{size}-postcard");
             }
             game.AutoShowMenuAlbum();
             yield return WaitForAlbum();
-            Measure("album");
+            yield return Measure("album");
             if (Visible("Polaroid wagon"))
             {
                 yield return ClickUi("Polaroid wagon");
                 yield return Wait(0.6f);
-                Measure("album close-up");
+                yield return Measure("album close-up");
                 yield return Shot($"legibility-{size}-album-zoom");
                 yield return Press(Key.Escape);
                 yield return Wait(0.5f);
             }
             yield return Press(Key.Escape);
             yield return Wait(1f);
+        }
+
+        static readonly float[] SrgbToLinear = Enumerable.Range(0, 256).Select(v =>
+        {
+            float c = v / 255f;
+            return c <= 0.04045f ? c / 12.92f : Mathf.Pow((c + 0.055f) / 1.055f, 2.4f);
+        }).ToArray();
+
+        /// <summary>
+        /// WCAG contrast of every visible text against what's actually behind it. The background is read from the
+        /// screen: the median luminance of a thin band just outside the glyphs. The text is its own colour
+        /// (blended by its alpha over that background), as WCAG defines it; when the rendered glyphs measure
+        /// higher (99.5th-percentile pixel), or a solid outline (which WCAG counts as part of a letter) stands out
+        /// from the background more, the best of those counts.
+        /// Body text needs 4.5:1; large text (24 px, or 18.7 px bold) and single symbols 3:1. Text that's covered
+        /// by an overlay, faded below 60% (a locked trip's polaroid) or part of a control that can't be used (a locked
+        /// trip's pin) is skipped, like WCAG's inactive parts. A stamp's
+        /// text is checked against its own fill (<see cref="TextBacking"/>), since its letters nearly touch the border.
+        /// </summary>
+        IEnumerator ContrastCheck(string screen)
+        {
+            yield return new WaitForEndOfFrame();
+            int w = Screen.width, h = Screen.height;
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            tex.Apply(false);
+            var pixels = tex.GetPixels32();
+            Destroy(tex);
+            PerfProbe.Ignore();
+            float Lum(int x, int y)
+            {
+                var c = pixels[y * w + x];
+                return 0.2126f * SrgbToLinear[c.r] + 0.7152f * SrgbToLinear[c.g] + 0.0722f * SrgbToLinear[c.b];
+            }
+            static float LumOf(Color c) =>
+                0.2126f * SrgbToLinear[Mathf.Clamp(Mathf.RoundToInt(c.r * 255f), 0, 255)] + 0.7152f * SrgbToLinear[Mathf.Clamp(Mathf.RoundToInt(c.g * 255f), 0, 255)] +
+                0.0722f * SrgbToLinear[Mathf.Clamp(Mathf.RoundToInt(c.b * 255f), 0, 255)];
+            static float Ratio(float a, float b) => (Mathf.Max(a, b) + 0.05f) / (Mathf.Min(a, b) + 0.05f);
+            var band = new List<float>();
+            var inner = new List<float>();
+            var low = new List<string>();
+            float worst = float.MaxValue;
+            string worstWhat = "";
+            int measured = 0, covered = 0, faded = 0;
+            foreach (var t in game.Ui.VisibleTextSamples())
+            {
+                if (t.Covered) { covered++; continue; }
+                if (t.Alpha < 0.6f || t.Inactive) { faded++; continue; }
+                var r = t.Glyphs;
+                int x0 = Mathf.FloorToInt(r.xMin), y0 = Mathf.FloorToInt(r.yMin), x1 = Mathf.CeilToInt(r.xMax), y1 = Mathf.CeilToInt(r.yMax);
+                int m = Mathf.Max(3, Mathf.RoundToInt(t.Px * 0.12f));
+                band.Clear();
+                inner.Clear();
+                for (int y = Mathf.Max(0, y0 - m); y < Mathf.Min(h, y1 + m); y++)
+                for (int x = Mathf.Max(0, x0 - m); x < Mathf.Min(w, x1 + m); x++)
+                {
+                    bool inGlyphs = x >= x0 && x < x1 && y >= y0 && y < y1;
+                    bool nearGlyphs = x >= x0 - 1 && x < x1 + 1 && y >= y0 - 1 && y < y1 + 1;
+                    if (inGlyphs) inner.Add(Lum(x, y));
+                    else if (!nearGlyphs) band.Add(Lum(x, y));
+                }
+                if (band.Count < 16 || inner.Count < 16) continue;
+                band.Sort();
+                float bg = band[band.Count / 2];
+                inner.Sort((a, b) => Mathf.Abs(a - bg).CompareTo(Mathf.Abs(b - bg)));
+                float rendered = Ratio(bg, inner[Mathf.Min(inner.Count - 1, Mathf.FloorToInt(inner.Count * 0.995f))]);
+                float own = LumOf(t.Color);
+                float specified = Ratio(bg, Mathf.Lerp(bg, own, Mathf.Clamp01(t.Alpha)));
+                float halo = t.Halo.HasValue ? Ratio(bg, LumOf(t.Halo.Value)) : 0f;
+                // A stamp's letters nearly touch its border, so the band reads the border; its fill is known.
+                if (t.Backing.HasValue)
+                {
+                    float fill = LumOf(t.Backing.Value);
+                    specified = Ratio(fill, Mathf.Lerp(fill, own, Mathf.Clamp01(t.Alpha)));
+                }
+                float ratio = Mathf.Max(specified, rendered, halo);
+                float need = t.Px >= 24f || (t.Bold && t.Px >= 18.66f) || t.Text.Trim().Length <= 1 ? 3f : 4.5f;
+                measured++;
+                string what = $"{t.Name} \"{(t.Text.Length > 24 ? t.Text.Substring(0, 24) + "…" : t.Text).Replace("\n", " ")}\" {ratio:0.0}:1";
+                if (ratio / need < worst) { worst = ratio / need; worstWhat = what + $" (needs {need:0.#})"; }
+                if (ratio < need)
+                {
+                    low.Add(what + $" (needs {need:0.#})");
+                    Log($"contrast detail {screen} | {t.Name} | {x0},{y0},{x1},{y1} | bg {bg:0.000} specified {specified:0.0} rendered {rendered:0.0} halo {halo:0.0} | {ratio:0.0}");
+                }
+            }
+            var shown = low.Distinct().Take(10).ToList();
+            Check(low.Count == 0, $"contrast {screen}: {measured} texts (skipped {covered} covered, {faded} faded or inactive), lowest against its target {worstWhat}" +
+                (low.Count > 0 ? $"; {low.Count} below: " + string.Join("; ", shown) : ""));
         }
 
         /// <summary>

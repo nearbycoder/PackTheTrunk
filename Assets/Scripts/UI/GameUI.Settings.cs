@@ -211,7 +211,7 @@ namespace PackTheTrunk
             bindLabels.Clear();
             rebinding = null;
 
-            var kbHeader = UiTheme.Label("Keyboard", grid, "KEYBOARD  ·  click a key to change it", UiTheme.Display, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
+            var kbHeader = UiTheme.Label("Keyboard", grid, "KEYBOARD  ·  click a key to change it", UiTheme.Display, 24, UiTheme.AccentInk, TextAnchor.MiddleLeft);
             kbHeader.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -40), new Vector2(0, -4));
             // Three columns of four: "Turn  [R]".
             var actions = Bindings.All;
@@ -228,7 +228,7 @@ namespace PackTheTrunk
                 bindLabels.Add((action, label));
             }
 
-            var padHeader = UiTheme.Label("Gamepad", grid, "GAMEPAD (Xbox layout)", UiTheme.Display, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
+            var padHeader = UiTheme.Label("Gamepad", grid, "GAMEPAD (Xbox layout)", UiTheme.Display, 24, UiTheme.AccentInk, TextAnchor.MiddleLeft);
             padHeader.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -330), new Vector2(0, -294));
             var padLeft = UiKit.Rect("Pad A", grid).Place(new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(20, 0), new Vector2(-10, -334));
             var padRight = UiKit.Rect("Pad B", grid).Place(new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(10, 0), new Vector2(0, -334));
@@ -416,7 +416,7 @@ namespace PackTheTrunk
                 bool on = get();
                 anim.On = on;
                 state.text = on ? "ON" : "OFF";
-                state.color = on ? UiTheme.Teal : UiTheme.InkSoft;
+                state.color = on ? UiTheme.TealInk : UiTheme.InkSoft;
             }
             settingsRefresh.Add(Refresh);
             Refresh();
@@ -448,7 +448,7 @@ namespace PackTheTrunk
         void ButtonRow(string label, string hint, string text, Color color, Action onClick)
         {
             Row(label, hint, out var control);
-            var b = UiTheme.Pill("Row Button", control, text, color, 24, () => onClick());
+            var b = UiTheme.Pill("Row Button", control, text, color, 26, () => onClick());
             ((RectTransform)b.transform).Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(200, 52));
         }
 

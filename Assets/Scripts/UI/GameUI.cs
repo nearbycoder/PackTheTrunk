@@ -140,6 +140,8 @@ namespace PackTheTrunk
             foreach (Transform child in parent)
             {
                 if (!child.gameObject.activeInHierarchy) continue;
+                // Decoration outside the layout (the main menu's soft shade) isn't part of what has to fit.
+                if (child.TryGetComponent<LayoutElement>(out var element) && element.ignoreLayout) continue;
                 var r = ScreenRect((RectTransform)child);
                 union = union is Rect u ? Rect.MinMaxRect(Mathf.Min(u.xMin, r.xMin), Mathf.Min(u.yMin, r.yMin), Mathf.Max(u.xMax, r.xMax), Mathf.Max(u.yMax, r.yMax)) : r;
             }
@@ -190,6 +192,101 @@ namespace PackTheTrunk
             }
             sizes.Sort((a, b) => a.Item3.CompareTo(b.Item3));
             return sizes;
+        }
+
+        /// <summary>One visible text, for the contrast check.</summary>
+        public struct TextSample
+        {
+            public string Name, Text;
+            /// <summary>Glyph bounds on screen, from the generated quads, so it hugs the letters.</summary>
+            public Rect Glyphs;
+            public float Px;
+            /// <summary>Lilita One is a heavy display face: it counts as bold.</summary>
+            public bool Bold;
+            /// <summary>The text's own colour, and its alpha including faded parents.</summary>
+            public Color Color;
+            public float Alpha;
+            /// <summary>A solid outline around the letters (alpha 0.9 or more), if any. WCAG counts a narrow border as part of the letter.</summary>
+            public Color? Halo;
+            /// <summary>The flat colour it sits on, when it's known (stamps).</summary>
+            public Color? Backing;
+            /// <summary>Part of a control that can't be used right now (a locked trip): WCAG doesn't hold inactive parts to a ratio.</summary>
+            public bool Inactive;
+            /// <summary>Something drawn on top covers the middle of it (an overlay or a dim).</summary>
+            public bool Covered;
+        }
+
+        readonly List<UnityEngine.EventSystems.RaycastResult> sampleHits = new List<UnityEngine.EventSystems.RaycastResult>();
+
+        /// <summary>Every visible text (the same ones as <see cref="VisibleTextSizes"/>), for the contrast check.</summary>
+        public List<TextSample> VisibleTextSamples()
+        {
+            var list = new List<TextSample>();
+            var screen = new Rect(0, 0, Screen.width, Screen.height);
+            var events = UnityEngine.EventSystems.EventSystem.current;
+            foreach (var t in (IsAlbumZoomOpen ? albumZoom : root).GetComponentsInChildren<Text>(false))
+            {
+                if (!t.enabled || string.IsNullOrWhiteSpace(t.text) || t.canvasRenderer.cull) continue;
+                float alpha = t.color.a * t.canvasRenderer.GetInheritedAlpha();
+                if (alpha < 0.35f) continue;
+                if (!ScreenRect(t.rectTransform).Overlaps(screen)) continue;
+                var verts = t.cachedTextGenerator.verts;
+                float ppu = Mathf.Max(0.0001f, t.pixelsPerUnit);
+                Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
+                for (int i = 0; i + 3 < verts.Count; i += 4)
+                {
+                    Vector3 a = verts[i].position, c = verts[i + 2].position;
+                    if (Mathf.Abs(a.x - c.x) < 0.01f || Mathf.Abs(a.y - c.y) < 0.01f) continue;
+                    for (int k = 0; k < 4; k++)
+                    {
+                        Vector2 w = t.transform.TransformPoint(verts[i + k].position / ppu);
+                        min = Vector2.Min(min, w);
+                        max = Vector2.Max(max, w);
+                    }
+                }
+                if (min.x > max.x) continue;
+                int size = t.fontSize;
+                if (t.supportRichText)
+                    foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(t.text, "<size=(\\d+)>"))
+                        size = Mathf.Min(size, int.Parse(m.Groups[1].Value));
+                Color? halo = null;
+                foreach (var effect in t.GetComponents<Outline>())
+                    if (effect.enabled && effect.effectColor.a >= 0.9f) halo = effect.effectColor;
+                bool covered = false;
+                if (events != null)
+                {
+                    sampleHits.Clear();
+                    events.RaycastAll(new UnityEngine.EventSystems.PointerEventData(events) { position = (min + max) * 0.5f }, sampleHits);
+                    var canvas = t.canvas;
+                    foreach (var hit in sampleHits)
+                    {
+                        if (hit.gameObject == t.gameObject || t.transform.IsChildOf(hit.gameObject.transform)) continue;
+                        var g = hit.gameObject.GetComponent<Graphic>();
+                        if (g == null) continue;
+                        bool sameCanvas = g.canvas != null && canvas != null && g.canvas.rootCanvas == canvas.rootCanvas;
+                        if (sameCanvas ? g.depth > t.depth : g.canvas != null && canvas != null && g.canvas.rootCanvas.sortingOrder > canvas.rootCanvas.sortingOrder)
+                        {
+                            covered = true;
+                            break;
+                        }
+                    }
+                }
+                list.Add(new TextSample
+                {
+                    Name = t.transform.parent != null ? t.transform.parent.name + "/" + t.name : t.name,
+                    Text = t.text,
+                    Glyphs = Rect.MinMaxRect(min.x, min.y, max.x, max.y),
+                    Px = size * Mathf.Abs(t.transform.lossyScale.y),
+                    Bold = t.font == UiTheme.Display || t.fontStyle == FontStyle.Bold,
+                    Color = t.color,
+                    Alpha = alpha,
+                    Halo = halo,
+                    Backing = t.TryGetComponent<TextBacking>(out var backing) ? backing.Color : null,
+                    Covered = covered,
+                    Inactive = t.GetComponentInParent<Selectable>() is Selectable control && !control.IsInteractable(),
+                });
+            }
+            return list;
         }
 
         /// <summary>
@@ -576,7 +673,7 @@ namespace PackTheTrunk
             sea.sprite = UiTheme.Circle;
             sea.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(250, -300), new Vector2(300, 190));
             sea.raycastTarget = false;
-            mapChapter = UiTheme.Label("Chapter", map, "", UiTheme.Body, 20, UiTheme.Accent, TextAnchor.MiddleCenter);
+            mapChapter = UiTheme.Label("Chapter", map, "", UiTheme.Body, 20, UiTheme.AccentInk, TextAnchor.MiddleCenter);
             mapChapter.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -62), new Vector2(0, -32));
             mapTitle = UiTheme.Label("Title", map, "", UiTheme.Display, 46, UiTheme.Ink, TextAnchor.MiddleCenter);
             mapTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -116), new Vector2(0, -58));
@@ -777,7 +874,7 @@ namespace PackTheTrunk
                 string when = level.Year > 0 ? $"{month} {level.Year}" : month;
                 int waiting = open && WaitingFor != null ? WaitingFor(index) : 0;
                 if (waiting > 0) when += $"  ·  {waiting} PACKED, WAITING";
-                var sub = UiTheme.Label("When", labelCard, open ? when : "LOCKED", UiTheme.Body, 18, waiting > 0 ? UiTheme.Accent : UiTheme.InkSoft, TextAnchor.UpperLeft);
+                var sub = UiTheme.Label("When", labelCard, open ? when : "LOCKED", UiTheme.Body, 18, waiting > 0 ? UiTheme.AccentInk : UiTheme.InkSoft, TextAnchor.UpperLeft);
                 sub.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -58), new Vector2(-10, -38));
                 sub.horizontalOverflow = HorizontalWrapMode.Overflow;
                 // A long "waiting" line drops the date rather than shrinking or running off the card.
@@ -844,7 +941,7 @@ namespace PackTheTrunk
             UiMotion.Intro(card.parent, new Vector2(0, 700), 0.15f, 0.9f, 12f, 0.7f);
             tripNumber = UiTheme.Label("Number", card, "", UiTheme.Body, 20, UiTheme.InkSoft, TextAnchor.UpperLeft);
             tripNumber.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(40, -80), new Vector2(-30, -46));
-            tripPlace = UiTheme.Label("Place", card, "", UiTheme.Hand, 34, UiTheme.Accent, TextAnchor.UpperLeft);
+            tripPlace = UiTheme.Label("Place", card, "", UiTheme.Hand, 34, UiTheme.AccentInk, TextAnchor.UpperLeft);
             tripPlace.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(40, -126), new Vector2(-30, -78));
             tripTitle = UiTheme.Label("Title", card, "", UiTheme.Display, 66, UiTheme.Ink, TextAnchor.UpperLeft);
             tripTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(38, -220), new Vector2(-30, -124));
@@ -858,7 +955,9 @@ namespace PackTheTrunk
             var startSlot = UiKit.Rect("Start Slot", story).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(330, -250), new Vector2(380, 92));
             startButton = UiTheme.Pill("Start", startSlot, "LET'S PACK!", UiTheme.Accent, 38, () => StartPressed?.Invoke(), out startLabel);
             ((RectTransform)startButton.transform).Fill();
-            var startKey = UiTheme.Label("Key", startSlot, "or press SPACE", UiTheme.Body, 18, new Color(1f, 0.95f, 0.88f, 0.85f), TextAnchor.UpperCenter);
+            var startKey = UiTheme.Label("Key", startSlot, "or press SPACE", UiTheme.Body, 18, new Color(1f, 0.95f, 0.88f), TextAnchor.UpperCenter);
+            // It sits over the driveway, so it gets a solid dark outline like the title's.
+            startKey.gameObject.AddComponent<Outline>().effectColor = new Color(UiTheme.Ink.r, UiTheme.Ink.g, UiTheme.Ink.b, 0.9f);
             startKey.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, -30), new Vector2(0, -4));
             startKey.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.55f);
             UiMotion.Intro(startButton.transform.parent, new Vector2(0, -30), 0f, 0.3f, -8f, 0.55f);
@@ -1115,7 +1214,7 @@ namespace PackTheTrunk
             UiKit.Horizontal(meterRect.gameObject, 3, TextAnchor.MiddleRight);
             meterStars = new Image[3];
             for (int i = 0; i < 3; i++) meterStars[i] = UiKit.StarImage(meterRect, false, 30);
-            listFrom = UiTheme.Label("From", list, "", UiTheme.Hand, 24, UiTheme.Accent, TextAnchor.MiddleLeft);
+            listFrom = UiTheme.Label("From", list, "", UiTheme.Hand, 24, UiTheme.AccentInk, TextAnchor.MiddleLeft);
             listFrom.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(84, -108), new Vector2(-26, -76));
 
             // The rows scroll (wheel over the list) when a big trip doesn't fit at a readable size.
@@ -1138,11 +1237,11 @@ namespace PackTheTrunk
             listScroll.movementType = ScrollRect.MovementType.Clamped;
             listScroll.inertia = false;
             listScroll.scrollSensitivity = 28f;
-            moreBelow = UiTheme.Label("More", list, "more below  ▾", UiTheme.Hand, 21, UiTheme.Accent, TextAnchor.MiddleRight);
+            moreBelow = UiTheme.Label("More", list, "more below  ▾", UiTheme.Hand, 21, UiTheme.AccentInk, TextAnchor.MiddleRight);
             moreBelow.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(30, 194), new Vector2(-28, 216));
             moreBelow.raycastTarget = false;
             moreBelow.gameObject.SetActive(false);
-            moreAbove = UiTheme.Label("More Above", list, "▴  more above", UiTheme.Hand, 21, UiTheme.Accent, TextAnchor.MiddleRight);
+            moreAbove = UiTheme.Label("More Above", list, "▴  more above", UiTheme.Hand, 21, UiTheme.AccentInk, TextAnchor.MiddleRight);
             moreAbove.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(30, -108), new Vector2(-28, -80));
             moreAbove.raycastTarget = false;
             moreAbove.gameObject.SetActive(false);
@@ -1517,7 +1616,7 @@ namespace PackTheTrunk
             tipGroup.interactable = false;
             tipGroup.alpha = 0f;
             UiTheme.Tape(card, new Vector2(0.5f, 1f), new Vector2(0, -4), -3f, 120f);
-            var header = UiTheme.Label("Header", card, "GRANDPA'S TIP", UiTheme.Display, 20, UiTheme.Accent, TextAnchor.UpperLeft);
+            var header = UiTheme.Label("Header", card, "GRANDPA'S TIP", UiTheme.Display, 20, UiTheme.AccentInk, TextAnchor.UpperLeft);
             header.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(30, -50), new Vector2(-24, -20));
             tipText = UiTheme.Label("Text", card, "", UiTheme.Hand, 30, UiTheme.Ink, TextAnchor.UpperLeft);
             tipText.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(30, 10), new Vector2(-24, -48));
@@ -1873,7 +1972,7 @@ namespace PackTheTrunk
 
             greetings = UiTheme.Label("Greetings", card, "Greetings from", UiTheme.Hand, 36, UiTheme.InkSoft, TextAnchor.UpperLeft);
             greetings.rectTransform.Place(new Vector2(0, 1), new Vector2(0.58f, 1), new Vector2(50, -96), new Vector2(0, -40));
-            placeText = UiTheme.Label("Place", card, "", UiTheme.Display, 76, UiTheme.Accent, TextAnchor.UpperLeft);
+            placeText = UiTheme.Label("Place", card, "", UiTheme.Display, 76, UiTheme.AccentInk, TextAnchor.UpperLeft);
             placeText.rectTransform.Place(new Vector2(0, 1), new Vector2(0.58f, 1), new Vector2(46, -196), new Vector2(0, -88));
             placeText.horizontalOverflow = HorizontalWrapMode.Overflow;
             var po = placeText.gameObject.AddComponent<Shadow>();

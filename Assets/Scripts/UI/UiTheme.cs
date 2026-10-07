@@ -10,6 +10,15 @@ namespace PackTheTrunk
     /// pill buttons. Fonts are bundled OFL fonts (Lilita One, Varela Round, Patrick Hand);
     /// every sprite is generated at startup so there are no texture assets to manage.
     /// </summary>
+    /// <summary>
+    /// The flat colour a text sits on, when it's tucked so tightly into a shape (a stamp) that the contrast check
+    /// can't read the background from the pixels around the letters.
+    /// </summary>
+    public class TextBacking : MonoBehaviour
+    {
+        public Color Color;
+    }
+
     public static class UiTheme
     {
         public static readonly Color Paper = new Color(1f, 0.968f, 0.91f);
@@ -24,6 +33,33 @@ namespace PackTheTrunk
         public static readonly Color Gold = new Color(0.97f, 0.72f, 0.18f);
         public static readonly Color Night = new Color(0.16f, 0.19f, 0.3f);
         public static readonly Color Marker = new Color(1f, 0.9f, 0.3f, 0.55f);
+
+        /// <summary>The accent and teal for text on paper (the bright ones are 2.4:1 and 2.7:1 there): 4.5:1 or better.</summary>
+        public static readonly Color AccentInk = new Color(0.75f, 0.28f, 0.07f);
+        public static readonly Color TealInk = Deepen(Teal, Paper, 4.6f);
+
+        static float Luminance(Color c)
+        {
+            static float Lin(float v) => v <= 0.04045f ? v / 12.92f : Mathf.Pow((v + 0.055f) / 1.055f, 2.4f);
+            return 0.2126f * Lin(c.r) + 0.7152f * Lin(c.g) + 0.0722f * Lin(c.b);
+        }
+
+        /// <summary>WCAG contrast ratio of two opaque colours (1 to 21).</summary>
+        public static float Contrast(Color a, Color b)
+        {
+            float la = Luminance(a), lb = Luminance(b);
+            return (Mathf.Max(la, lb) + 0.05f) / (Mathf.Min(la, lb) + 0.05f);
+        }
+
+        /// <summary>The colour darkened just enough to reach a contrast ratio against a lighter one.</summary>
+        public static Color Deepen(Color c, Color against, float ratio)
+        {
+            var d = c;
+            for (float t = 0f; t < 1f && Contrast(d, against) < ratio; t += 0.01f)
+                d = new Color(c.r * (1f - t), c.g * (1f - t), c.b * (1f - t), c.a);
+            return d;
+        }
+
 
         static Font display, body, hand;
         static Sprite paper, shadow, tape, circle, ring, check, keycap, dot;
@@ -105,8 +141,10 @@ namespace PackTheTrunk
             fill.rectTransform.Fill(3);
             fill.color = Color.Lerp(color, Color.white, 0.86f);
             fill.raycastTarget = false;
-            var t = Label("Text", rt, text, Display, size, color, TextAnchor.MiddleCenter);
+            // The ink is deepened against the pale fill so even a small stamp reads at 4.5:1.
+            var t = Label("Text", rt, text, Display, size, Deepen(color, fill.color, 4.6f), TextAnchor.MiddleCenter);
             t.rectTransform.Fill(2);
+            t.gameObject.AddComponent<TextBacking>().Color = fill.color;
             float width = t.preferredWidth + 22f;
             rt.sizeDelta = new Vector2(width, size + padding);
             var le = rt.gameObject.AddComponent<LayoutElement>();
@@ -166,6 +204,11 @@ namespace PackTheTrunk
             rt.gameObject.AddComponent<PillHover>();
             label = Label("Label", face.transform, text, Display, size, Color.white, TextAnchor.MiddleCenter);
             label.rectTransform.Fill(4);
+            // A thin ink outline, like the title's lettering: white alone is only about 2:1 on the bright orange,
+            // teal and green faces, and the outline (which counts as part of the letter) is 6:1 or more on them.
+            var outline = label.gameObject.AddComponent<Outline>();
+            outline.effectColor = Ink;
+            outline.effectDistance = new Vector2(1.6f, -1.6f);
             var sh = label.gameObject.AddComponent<Shadow>();
             sh.effectColor = new Color(0, 0, 0, 0.25f);
             sh.effectDistance = new Vector2(0, -2);

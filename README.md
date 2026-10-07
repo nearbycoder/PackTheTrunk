@@ -203,6 +203,9 @@ Also in the box:
 - **Readable on small screens.** Until you pick an interface size, it follows the screen: a Steam
   Deck–sized 1280×800 window starts at 110%, and every text in the game comes out at 12 screen
   pixels or more there (Valve's recommended minimum), checked screen by screen by the self-test.
+  The same pass measures every text's contrast against what's actually behind it on screen and
+  holds it to WCAG's 4.5:1 (3:1 for large or bold text): orange and teal words use deeper inks,
+  button labels carry a thin ink outline, and the main menu has a soft shade behind it.
 - **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
   glass), spatial panning, music that crossfades between screens, muffles behind the story texts
   and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.

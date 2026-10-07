@@ -74,6 +74,13 @@ namespace PackTheTrunk
 
             titleMenu = UiKit.Rect("Main Menu", title).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(110, 96), new Vector2(760, 540));
             var v = UiKit.Vertical(titleMenu.gameObject, 4, null, TextAnchor.LowerLeft);
+            // A soft shade behind the menu, so its small captions stay readable over bright grass or a parked car.
+            var scrim = UiKit.Image("Menu Scrim", titleMenu, new Color(0f, 0f, 0f, 0.4f), false);
+            scrim.sprite = UiTheme.ShadowSprite;
+            scrim.type = Image.Type.Sliced;
+            scrim.raycastTarget = false;
+            scrim.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(-80, -60), new Vector2(60, 40));
+            scrim.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
             v.childForceExpandHeight = false;
             int n = 0;
             MenuEntry(titleMenu, "Continue", "CONTINUE", "", () => ContinuePressed?.Invoke(), n++, out continueSub, true);
@@ -88,7 +95,7 @@ namespace PackTheTrunk
             pressKeyText.gameObject.AddComponent<Outline>().effectColor = new Color(0.1f, 0.07f, 0.16f, 0.8f);
             pressKeyGroup = pressKeyText.gameObject.AddComponent<CanvasGroup>();
 
-            var version = UiTheme.Label("Version", title, $"v{Application.version}  ·  Made with Unity and Blender", UiTheme.Body, 18, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerRight);
+            var version = UiTheme.Label("Version", title, $"v{Application.version}  ·  Made with Unity and Blender", UiTheme.Body, 18, new Color(1f, 1f, 1f, 0.85f), TextAnchor.LowerRight);
             version.rectTransform.Pin(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-40, 26), new Vector2(700, 30));
             title.gameObject.SetActive(false);
         }
@@ -385,7 +392,7 @@ namespace PackTheTrunk
             Line("A family, thirty years and one very full trunk.", UiTheme.Hand, 38, new Color(1f, 0.85f, 0.6f));
             void Section(string head, params string[] lines)
             {
-                Line(head, UiTheme.Body, 24, UiTheme.Accent, 70f);
+                Line(head, UiTheme.Body, 24, UiTheme.AccentInk, 70f);
                 foreach (var l in lines) Line(l, UiTheme.Hand, 38, cream);
             }
             Section("THE FAMILY",
