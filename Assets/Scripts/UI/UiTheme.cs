@@ -34,9 +34,9 @@ namespace PackTheTrunk
         public static readonly Color Night = new Color(0.16f, 0.19f, 0.3f);
         public static readonly Color Marker = new Color(1f, 0.9f, 0.3f, 0.55f);
 
-        /// <summary>The accent and teal for text on paper (the bright ones are 2.4:1 and 2.7:1 there): 4.5:1 or better.</summary>
+        /// <summary>The accent and teal for text on paper (the bright ones are 2.4:1 and 2.7:1 there): 4.8:1 and 5.2:1, with room for a shaded row.</summary>
         public static readonly Color AccentInk = new Color(0.75f, 0.28f, 0.07f);
-        public static readonly Color TealInk = Deepen(Teal, Paper, 4.6f);
+        public static readonly Color TealInk = Deepen(Teal, Paper, 5.2f);
 
         static float Luminance(Color c)
         {

@@ -448,7 +448,7 @@ namespace PackTheTrunk
         void ButtonRow(string label, string hint, string text, Color color, Action onClick)
         {
             Row(label, hint, out var control);
-            var b = UiTheme.Pill("Row Button", control, text, color, 26, () => onClick());
+            var b = UiTheme.Pill("Row Button", control, text, color, 28, () => onClick());
             ((RectTransform)b.transform).Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(200, 52));
         }
 
