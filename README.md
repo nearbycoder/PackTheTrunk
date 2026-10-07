@@ -48,20 +48,21 @@ the family album.
 
 ## How to play
 
-Pick something up off the blanket, turn it until it fits, and drop it into the trunk. A green
+Pick something up off the blanket, turn it until it fits, and drop it into the trunk (click to
+pick up and click to drop, or press, drag it in and let go). A green
 ghost shows where it will land; a red, striped one means it won't fit, and the game tells you
 why. (Settings → Gameplay → Placement colours switches to blue / orange; the stripes stay either
 way.)
 
 | Input | Action |
 | --- | --- |
-| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in |
+| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in. Or press on it, drag, and let go over the trunk |
 | **`R`** or **right click** | Turn it (hold **`Shift`** to turn the other way) |
 | **`T`** | Tip it over, away from the camera |
 | **`F`** | Roll it sideways |
 | **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
 | **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
-| **`Z`** / **`Backspace`** | Undo |
+| **`Z`** / **`Backspace`** | Undo (hold **`Shift`** to redo) |
 | **RESTART** button | Unpack everything back onto the blanket (one undo puts it all back) |
 | **`H`** or the **HINT** button | Ask Grandpa: an orange ghost shows where one thing goes |
 | **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
@@ -74,7 +75,7 @@ way.)
 **Gamepad (new):** the left stick moves a cursor and **A** clicks, so every menu and button works
 by pointing. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
 way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the **left stick** in is X-ray, **D-pad right** closes the
-trunk, **View** undoes, **B** puts back or backs out, **Menu** pauses (and moves on from story
+trunk, **View** undoes (**LB** + **View** redoes), **B** puts back or backs out, **Menu** pauses (and moves on from story
 texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
 the tips switch to controller buttons as soon as you touch the pad, and back when you move the
 mouse. It has only been tested with a simulated gamepad in the autopilot, not on a physical
@@ -99,6 +100,12 @@ trunk is somewhere that packing doesn't have it, he tells you to move it (or to 
 only ever shown when you ask, and they never place anything for you. They never cost stars either,
 but pack a trip to three stars **without** asking and Grandpa stamps his **seal** on the postcard.
 The trip map and the album show which trips have one, so there's a reason to go back.
+
+**Your trunk waits for you.** Every change to the trunk is saved, so leaving a trip half-packed
+(the trip map, the main menu, quitting, even a crash) costs nothing: start that trip again and
+everything is back where it was, and the title's CONTINUE says how much is waiting. Each trip keeps
+its own trunk until you close it. (Asking Grandpa is remembered too, so leaving and coming back
+doesn't earn the seal.)
 
 On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
 aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →
@@ -125,7 +132,8 @@ Gameplay turns them off, and turning them back on shows them all again.
 **A tactile packing puzzle.** 116 objects modelled in Blender, each filling exactly the grid cells
 it occupies, so what you see is what you pack. Turn, tip and roll anything with three keys that
 follow the camera, choose between shelves and gaps, and orbit the trunk to find the space you
-missed. Undo is unlimited, and anything can be lifted back out.
+missed. Undo and redo are unlimited, anything can be lifted back out, and a half-packed trunk
+waits for you if you leave.
 
 </td>
 </tr>
@@ -213,7 +221,7 @@ Also in the box:
 | ![Everyone, Everything: a minivan nearly full, 23 of 25 things packed](docs/media/screenshots/07-everyone-everything.jpg) | ![The postcard: two stars, with the garden gnome and the box of cables left on the curb](docs/media/screenshots/08-postcard.jpg) |
 | ![The trip map, paged by chapter, with stars for every trip](docs/media/screenshots/09-trip-map.jpg) | ![The family album, with a polaroid of every trunk from 1998 to 2027](docs/media/screenshots/10-family-album.jpg) |
 | ![Ask Grandpa: an orange ghost in the SUV's trunk shows where the sleeping bag goes](docs/media/screenshots/11-ask-grandpa.jpg) | ![One of Grandpa's tips explaining the green ghost while the first suitcase is aimed into the sedan](docs/media/screenshots/12-grandpas-tip.jpg) |
-| ![X-ray: a nearly full minivan with every packed thing see-through and the toy box's ghost showing where it fits](docs/media/screenshots/13-x-ray.jpg) | |
+| ![X-ray: a nearly full minivan with every packed thing see-through and the toy box's ghost showing where it fits](docs/media/screenshots/13-x-ray.jpg) | ![The honeymoon postcard: three stars and Grandpa's seal for packing it without a hint](docs/media/screenshots/14-grandpas-seal.jpg) |
 
 ## Play it
 
@@ -256,6 +264,7 @@ python3 Tools/solve_levels.py grandma    # print one level's solution (spoilers)
 Tools/autopilot.sh                       # self-test: menus, settings, pause and all 33 trips, PASS/FAIL + screenshots
 PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about three minutes)
 PTT_LAYOUT=1 PTT_SIZE=1200x900 Tools/autopilot.sh   # only the HUD layout check, at a 4:3 window
+Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL the player, check a new one restores it
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
 ```
 
@@ -265,6 +274,8 @@ from the solver's solutions, closes every trunk, opens the ending and the album,
 screenshots to `Recordings/autopilot` (about 9 minutes). Like the recorders and the benchmark, it
 plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings and progress in memory,
 photos in a cache folder), and `autopilot.sh` checks that your own save is byte-for-byte untouched.
+`resume_test.sh` keeps its sandbox in a file instead (`-pttPrefsFile`), so a second player can pick
+up where the killed one left off; it makes the same check on your save.
 
 ### Regenerating assets
 
@@ -293,7 +304,8 @@ Tools/package_release.sh 0.1.0 mac  # zip the macOS app (with Gatekeeper instruc
 
 Both recorders run the real game at a locked 30 fps (`Time.captureFramerate`) and capture its
 audio in lockstep with `AudioRenderer`, so every take is identical and nothing stutters. They
-start from a sandboxed fresh save and leave yours alone. The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
+start from a sandboxed fresh save and leave yours alone (`record_trailer.sh` hashes your save
+folder before and after to prove it). The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
 re-taken without the rest: `PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/retake`,
 then pass both folders to `make_trailer.py` (later folders win). To refresh only the README
 screenshots, capture stills-only and run `make_trailer.py <all capture folders> Recordings/stills --only stills`.

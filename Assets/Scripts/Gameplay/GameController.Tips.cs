@@ -76,7 +76,7 @@ namespace PackTheTrunk
         /// <summary>Has the player just done what the tip on screen is asking for?</summary>
         bool TipDone(Tip tip)
         {
-            float shown = Time.unscaledTime - tipShownAt;
+            float shown = UiTime.Now - tipShownAt;
             switch (tip)
             {
                 case Tip.Pickup: return held != null;
@@ -109,17 +109,17 @@ namespace PackTheTrunk
             if (activeTip is Tip current && TipDone(current))
             {
                 activeTip = null;
-                tipHiddenAt = Time.unscaledTime;
+                tipHiddenAt = UiTime.Now;
                 ui.HideTip();
             }
-            if (activeTip == null && tipQueue.Count > 0 && Time.unscaledTime - tipHiddenAt > 0.45f)
+            if (activeTip == null && tipQueue.Count > 0 && UiTime.Now - tipHiddenAt > 0.45f)
             {
                 // Most urgent first (enum order): the camera tip waits until nothing else is pending.
                 var next = tipQueue.Min();
                 tipQueue.Remove(next);
                 if (Prefs.GetInt(TipKey(next)) != 0) return;
                 activeTip = next;
-                tipShownAt = Time.unscaledTime;
+                tipShownAt = UiTime.Now;
                 tipRotated = tipShelfPicked = tipOrbited = false;
                 Prefs.SetInt(TipKey(next), 1);
                 Prefs.Save();

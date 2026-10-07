@@ -358,7 +358,8 @@ namespace PackTheTrunk
 
         /// <summary>
         /// README stills for the newer features (no video): a Grandpa's tip on a new player's second
-        /// trip, Ask Grandpa's ghost on a half-packed SUV, and X-ray in a mostly packed minivan.
+        /// trip, Ask Grandpa's ghost on a half-packed SUV, X-ray in a mostly packed minivan, and a
+        /// postcard with Grandpa's seal.
         /// </summary>
         IEnumerator FeatureStills()
         {
@@ -430,6 +431,17 @@ namespace PackTheTrunk
             InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
             yield return Hold(0.3f);
             game.AutoPutBack();
+
+            // ---- Grandpa's seal: the honeymoon convertible packed to three stars without a hint.
+            game.AutoStartLevel(ids.IndexOf("honeymoon"));
+            yield return Hold(2.8f);
+            foreach (var p in solutions["honeymoon"]) Place(p);
+            yield return Hold(1.2f);
+            game.AutoClose();
+            for (float t = 0f; t < 12f && !game.IsShowingResults; t += UiTime.Delta) yield return null;
+            // The stars land first, then the seal is stamped.
+            yield return Hold(5f);
+            yield return Still("seal");
         }
 
         /// <summary>

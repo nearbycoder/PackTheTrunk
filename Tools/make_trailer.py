@@ -498,7 +498,7 @@ STILLS = {  # capture still name -> README screenshot name
     "title": "01-title", "packing": "02-packing", "slam": "03-slam", "story": "04-story",
     "fragile": "05-fragile", "clown": "06-clown-car", "late": "07-everyone-everything", "postcard": "08-postcard",
     "map": "09-trip-map", "album": "10-family-album",
-    "hint": "11-ask-grandpa", "tip": "12-grandpas-tip", "xray": "13-x-ray",
+    "hint": "11-ask-grandpa", "tip": "12-grandpas-tip", "xray": "13-x-ray", "seal": "14-grandpas-seal",
 }
 
 

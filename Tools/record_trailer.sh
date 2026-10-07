@@ -13,23 +13,20 @@
 #   PTT_STILLS_ONLY=1 Tools/record_trailer.sh Recordings/stills
 #       plays the same script but saves only the stills (no frames or audio): refreshes the README
 #       screenshots in a few minutes; then make_trailer.py <all folders> --only stills.
-# The capture plays on a sandboxed fresh save (Prefs.cs) and never touches yours; as a safety net
-# your save folder is still backed up first and restored after.
+# The capture plays on a sandboxed fresh save (Prefs.cs) and never touches yours; the script hashes
+# your save folder before and after to prove it (it never writes there itself).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$(mkdir -p "${1:-$ROOT/Recordings/trailer-capture}" && cd "${1:-$ROOT/Recordings/trailer-capture}" && pwd)"
 SAVE="$HOME/.config/unity3d/Nearby Games/Pack The Trunk"
-BACKUP="$(mktemp -d)"
+save_hash() { [ -d "$SAVE" ] && (cd "$SAVE" && find . -path ./Unity -prune -o -type f -print0 | sort -z | xargs -0 sha256sum) | sha256sum || echo none; }
+BEFORE="$(save_hash)"
+# Scratch (the solver's solutions) lives next to the capture, not on the shared /tmp.
+WORK="$OUT/work"
+mkdir -p "$WORK"
 
-[ -d "$SAVE" ] && cp -a "$SAVE" "$BACKUP/save"
-restore() {
-  if [ -d "$BACKUP/save" ]; then rm -rf "$SAVE"; cp -a "$BACKUP/save" "$SAVE"; fi
-  rm -rf "$BACKUP"
-}
-trap restore EXIT
-
-python3 "$ROOT/Tools/solve_levels.py" --dump "$BACKUP/solutions.json" > /dev/null
-python3 - "$BACKUP" <<'PY'
+python3 "$ROOT/Tools/solve_levels.py" --dump "$WORK/solutions.json" > /dev/null
+python3 - "$WORK" <<'PY'
 import json, sys
 work = sys.argv[1]
 with open(f"{work}/solutions.txt", "w") as f:
@@ -43,11 +40,12 @@ for attempt in 1 2; do
   rm -rf "$OUT"/frame_*.jpg "$OUT/stills" "$OUT/audio.wav" "$OUT/beats.tsv"
   timeout 3600 "$ROOT/Tools/play.sh" -screen-width 1920 -screen-height 1080 -logFile "$OUT/player.log" \
     -pttShowcase "$OUT" -pttTrailer ${PTT_TRAILER_ONLY:+-pttTrailerOnly "$PTT_TRAILER_ONLY"} ${PTT_STILLS_ONLY:+-pttStillsOnly} \
-    -pttSolutions "$BACKUP/solutions.txt" > /dev/null 2>&1 || true
+    -pttSolutions "$WORK/solutions.txt" > /dev/null 2>&1 || true
   grep -q "\[Showcase\] done" "$OUT/player.log" && break
   cp "$OUT/player.log" "$OUT/player-attempt-$attempt.log" 2>/dev/null || true
   echo "trailer capture attempt $attempt did not finish (log: $OUT/player-attempt-$attempt.log)" >&2
 done
 grep -E "\[Showcase\]|Exception" "$OUT/player.log" || true
+[ "$(save_hash)" = "$BEFORE" ] && echo "your save is untouched" || echo "WARNING: your save folder changed during the capture" >&2
 grep -q "\[Showcase\] done" "$OUT/player.log"
 echo "$OUT"
