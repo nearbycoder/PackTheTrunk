@@ -273,8 +273,8 @@ same build entry points (`Assets/Editor/BuildScript.cs`).
 python3 Tools/solve_levels.py            # prove every level packs 100% under the game's rules
 python3 Tools/solve_levels.py grandma    # print one level's solution (spoilers)
 Tools/autopilot.sh                       # self-test: menus, settings, pause and all 33 trips, PASS/FAIL + screenshots
-PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about three minutes)
-PTT_LAYOUT=1 PTT_SIZE=1200x900 Tools/autopilot.sh   # only the HUD layout check, at a 4:3 window
+PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about eight minutes)
+PTT_LAYOUT=1 PTT_SIZE=1280x800 Tools/autopilot.sh   # only the layout and text-size checks, at a Deck-sized window
 Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL the player, check a new one restores it (and its undo history)
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
 ```
@@ -282,7 +282,8 @@ Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
 `-pttAutopilot`. It clicks, rotates, drops and undoes with real input events, packs all 33 trips
 from the solver's solutions, closes every trunk, opens the ending and the album, and writes
-screenshots to `Recordings/autopilot` (about 9 minutes). Like the recorders and the benchmark, it
+screenshots to `Recordings/autopilot` (about 14 minutes). It also checks the HUD and menu layout at
+three interface sizes and measures every visible text's size in screen pixels on each screen. Like the recorders and the benchmark, it
 plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings and progress in memory,
 photos in a cache folder), and `autopilot.sh` checks that your own save is byte-for-byte untouched.
 `resume_test.sh` keeps its sandbox in a file instead (`-pttPrefsFile`), so a second player can pick
@@ -416,15 +417,15 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus five rounds of improvements since that release (see
+Version **0.1.0** plus six rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, and the autopilot (228 checks) passes every trip. Still rough or missing:
+settings are complete, and the autopilot (262 checks) passes every trip. Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
   `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
-  and isn't published**. Round 4 last re-ran the build (universal, 0 errors); round 5 didn't.
+  and isn't published**. Round 6 re-ran the build (universal, 0 errors).
   Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't installed
   here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
@@ -446,6 +447,9 @@ settings are complete, and the autopilot (228 checks) passes every trip. Still r
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
   meter, Grandpa's seal or dragging. The README screenshots were refreshed in round 4 and show the
   meter and the seal.
+- **Small screens are checked, not seen.** Text size was measured at 1280×800 (Steam Deck), 1440×900,
+  1600×900, 1200×900 and 2100×900, but nobody has looked at the game on a real Deck, and windows
+  smaller than 1280×720 weren't measured. Contrast isn't part of the check.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
   autopilot's queued input stopped registering and every input check failed. Re-run when it's
   quieter.

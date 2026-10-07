@@ -737,3 +737,57 @@ can't be run on a Mac here.
 Each item ends with `build-linux` (0 errors), the solver, a quick autopilot (load checked first), and
 screenshots in `docs/media/improvements/round6/`. The round ends with a full autopilot (0 FAIL, save
 untouched), the crash test, and a `-pttBench` run if the machine is still quiet.
+
+## Round 6 results (2026-10-07)
+
+All four scope items shipped, and the round-5 benchmark debt is paid (see the scope above). The final
+full autopilot (`Tools/autopilot.sh`, all 33 trips) had **262 PASS, 0 FAIL** (228 before, plus 34 new
+checks). There were no exceptions and no player crash, and the real save was untouched. The load average
+was 12 at the start and 8 at the end. The solver proves all 33 levels, and `build-linux` has 0 errors and
+0 warnings, and `build-mac` gives a universal (x86_64 + arm64, checked with `file`) 161 MB `.app` with 0
+errors (still not run on a Mac). The crash test (`Tools/resume_test.sh`) passed 5/5. Screenshots are in
+`docs/media/improvements/round6/`.
+
+**Benchmark (`-pttBench`, 1600×900, High).** The first run of the round-6 build read 3.2–3.9 ms on every
+screen at load 6–9, against 1.6–1.9 ms for round-5 `main` in the morning, but that slowdown was flat across
+screens round 6 doesn't touch and in boot steps it doesn't change (audio setup 50 → 126 ms), with 0 KB
+allocated per frame. So both builds were benchmarked back to back at load 4–7 (`Recordings/round6/`
+`bench-main-ab.log`, `bench-after-3.log`): **round-5 `main` and round 6 both average 1.6–1.8 ms on every
+screen**, and the 25-item minivan is 1.8 ms packing and 1.8 ms holding in both. No frames over 33 ms, about
+one GC per phase. Round 6 costs nothing measurable; the first reading was the shared machine.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| B. X-ray: hold or toggle | `2c0c1e7` | `SeeThroughChecks` + 1 gamepad check (5). In Toggle, one Tab press turns X-ray on and it stays on after the key is let go (every packed thing see-through, the aim reaches the covered gap, the key hint reads "x-ray on", a toast says how to turn it off); a second press turns it off; the pause card says "(press)"; leaving through the pause menu turns it off. A simulated pad's L3 click does the same. Hold is unchanged (the existing checks pass). `b-xray-toggle-on.jpg`, `b-settings-accessibility.jpg` |
+| A. Album close-ups | `7581bf2` | `AlbumChecks` (6). Clicking a polaroid opens its photo 6.1× as wide as the polaroid, with title, date, car, stars, seal and "photo 1 of N". → goes to the next photo, A back, ← from the first wraps to the last; Escape and a click outside close it with the album still open; a polaroid without a photo doesn't open; Escape then leaves the album as before. `a-album-zoom.jpg` |
+| C. Readable on a Steam Deck–sized screen | `ed91295` | New `LegibilityChecks` measure every visible text in screen pixels on 15 screens. **Before** at 1280×800: the packing list's stamps 8.9 px, album captions 8.7 px, map dates and the now-playing caption 10 px. **After**: 12 px or more on every screen at 1280×800, 1440×900, 1600×900, 1200×900 and 2100×900 (layout-only runs, 25/25 each). New `MenuLayoutChecks` (main menu and trip map at 80/100/120%) and the now-playing cassette in the HUD layout pass, all clean at those five sizes. `c-1280x800-packing-before-after.jpg`, `c-1280x800-album.jpg`, `c-1600x900-120-menus.jpg` |
+| D. Reduce motion | `ac0f13b` | `ReduceMotionChecks` (3) run the same steps with it off and on. Off: the title letters bob, the settings card slides in, the wipe moves, the camera sweeps in, CLOSE THE TRUNK pulses and the slam shakes. On: none of those move, while the card and the scene change still fade (sheet alpha down to 0). `d-settings-reduce-motion.jpg` |
+
+Things round 6 turned up along the way:
+
+- **Interface sizes above 100% had never worked on the menus.** The round-2 layout pass only covered the
+  HUD. At 110–120% on a 16:9 screen the canvas is shorter than 1080 units, so the main menu ran into the
+  tagline, and the trip map's page covered the story note. The now-playing cassette also covered the
+  HINT button whenever the canvas was 1600 units wide (120% at 16:9), for the 4.5 s it shows. All three
+  now fit (the menu and page shrink, the cassette moves under the trip tag or gives way to Grandpa's
+  tip), and checks cover them.
+- **So the automatic interface size stops at 110%.** The first version gave a 1280×800 screen 120%,
+  which exposed the menu problems above. It now goes only as far as the menus keep their full layout
+  (110% at 16:10 and 4:3, 100% at 16:9 and 21:9). The handful of fixed small labels went up to 18 units,
+  and the packing list and polaroids size their smallest text from the screen, so 110% is enough.
+- **Accessibility settings moved to their own tab.** The Gameplay tab had no room for two more rows, so
+  placement colours, X-ray, screen shake, reduce motion and story text speed are now under
+  Settings → Accessibility (six tabs, slightly narrower).
+- **The full autopilot now takes about 14 minutes**, close to `autopilot.sh`'s 15-minute player timeout,
+  so the timeout is now 20 minutes.
+- **A section-order dependency bit again.** `InputReportChecks` assumed the section before it left a trip
+  in progress; after the new legibility pass (which ends on the title) its toast check failed in a quick
+  run. It now starts its own trip.
+- **`[Audio]`:** 3.7 dBFS before the limiter and −1.5 dBFS after (round 5: 2.3 / −1.5). The new sections
+  close extra trunks (more slams and star chimes); the limiter holds the output at −1.5 dBFS.
+
+Known limits: Reduce motion leaves the car's own movement (arriving in the driveway, driving off after the
+slam), confetti, and the small pops of a ticked row or an earned star. The album photos are still captured
+at 480×360, so the close-up is a little soft. The legibility pass measures font size times scale; it
+doesn't judge contrast. The L3 toggle is checked with a simulated pad only, and the close-up's D-pad and
+bumper flipping isn't exercised by the autopilot at all (the keyboard arrows and A / D are).
