@@ -405,16 +405,17 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus three rounds of improvements since that release (see
+Version **0.1.0** plus four rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, and the autopilot (194 checks) passes every trip. Still rough or missing:
+settings are complete, and the autopilot (216 checks) passes every trip. Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
   `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
-  and isn't published**. Windows (`build-windows`) needs Unity's Windows Build Support module,
-  which isn't installed here, and WebGL hasn't been built or tested.
+  and isn't published**. Round 4 re-ran the build on the current code (universal, 0 errors).
+  Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't installed
+  here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
   checks (pointing, every packing action, undo, hint, pause, menu clicks, handing back to the
   mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
@@ -429,10 +430,11 @@ settings are complete, and the autopilot (194 checks) passes every trip. Still r
   recording, once in the autopilot). The crash log from the autopilot one shows it on the main
   thread inside `wl_display_dispatch_queue_pending`, which is Unity's native Wayland backend handling
   compositor events, not game code. It hasn't been reproduced on demand. The recorders and
-  `autopilot.sh` keep the log and retry once.
+  `autopilot.sh` keep the log and retry once. Since round 4 a crash doesn't cost the trunk you
+  were packing: it's saved after every change and comes back when you start the trip again.
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
-  meter or Grandpa's seal. The README screenshots are from round 2, so they don't show the meter
-  or the seal either (`docs/media/improvements/round3/` has round-3 shots).
+  meter, Grandpa's seal or dragging. The README screenshots were refreshed in round 4 and show the
+  meter and the seal.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
   autopilot's queued input stopped registering and every input check failed. Re-run when it's
   quieter.

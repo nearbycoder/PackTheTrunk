@@ -506,3 +506,48 @@ the trunk, and the game only understands click-to-pick-up, click-to-drop. Undo h
 Each item ends with `build-linux` (0 errors), the solver, a quick autopilot (load checked first),
 and screenshots in `docs/media/improvements/round4/`. The round ends with a full autopilot (0 FAIL,
 save untouched) and a `-pttBench` run if the machine is quiet.
+
+## Round 4 results (2026-10-06)
+
+All four scope items shipped. The final full autopilot (`Tools/autopilot.sh`, all 33 trips) had
+**216 PASS, 0 FAIL** (194 before, plus 22 new checks). There were no exceptions and no player
+crash, and the real save was untouched. The load average was 17 at the start and 53 at the end,
+because other sessions were running builds. The solver proves all 33 levels. `build-linux` and
+`build-mac` both have 0 errors and 0 warnings. Screenshots are in `docs/media/improvements/round4/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| A. Your trunk waits for you | `52d22ab` | `ResumeChecks` (10). It half-packs Grandma's Big Move after a hint and leaves through the pause menu's TRIP MAP while holding something lifted out of the trunk. Starting the trip again puts all 9 back in the same cells and orientations, with the hint mark and a toast on screen. The title's Continue line reads "2 packed, waiting for you", and CONTINUE brings them back. Closing the trunk clears the saved trunk, and a saved trunk that no longer fits is dropped. **Crash test** `Tools/resume_test.sh`: the player is SIGKILLed mid-trip on a sandboxed save file, and a second player restores 9/9 with the hint mark (run on the first build and again on the final build). `a-resume-*.jpg` |
+| B. Drag to pack | `16563f2` | `DragChecks` (7), with real mouse events on Grocery Run. Press, drag and release drops the item at the ghost's cell. A plain click still only picks up. Releasing on a blocked spot keeps the item in hand and shows the reason. Releasing off the trunk puts it back, and packed things drag to a new spot. The existing click-based run is unchanged. `b-drag-holding.jpg` |
+| C. Redo | `30aefb5` | `RedoChecks` (4) plus 1 gamepad check. Three Z then three Shift+Z gives back the same trunk. A new drop clears redo ("Nothing to redo"). Redoing an undone RESTART empties the trunk again and clears the hint mark, and Z restores both. LB + View redoes on the simulated pad. `c-pause-redo.jpg` |
+| D. Screenshots and the macOS build | `a618280` | A stills-only capture regenerated 11 README screenshots and added `14-grandpas-seal`. The meter, the seals on the map and album, and the sealed postcard were checked by eye. All are under the 1.4 MB cap (the largest is 670 KB). `build-mac` on the final code produces a universal (x86_64 + arm64, checked with `file`) 161 MB `.app`. **Still not run on a Mac.** |
+
+Things round 4 turned up along the way:
+
+- **The restore toast was invisible at first.** `ShowHud` clears the toast, and the restore called
+  `Toast` just before it. The first check only looked for the text in the hierarchy, so it passed.
+  The toast now comes after `ShowHud`, and the check requires a visible toast (`ToastShowing`).
+- **Grandpa's tips timed out early in captures.** Tips measured time with `Time.unscaledTime`, while
+  a frame-locked capture follows `UiTime`. On a loaded machine the README tip still had faded half
+  away. Tips now use `UiTime.Now`, which is the same clock for a player.
+- **`record_trailer.sh` used to copy a backup over the real save on exit**, and kept its scratch in
+  `/tmp`. Since round 1 the capture runs on a sandbox, so the script now only hashes the save before
+  and after, and its scratch stays in the capture folder.
+- **Pillow isn't installed for this machine's Python 3.14** (it was there in round 2), and
+  `make_trailer.py` needs it. Round 4 used a throwaway venv in `Recordings/round4/` (gitignored) and
+  deleted it afterwards. Nothing was installed system-wide.
+- **No quiet-machine benchmark this round.** The load average stayed at 15–50 all session. The
+  full run's `[Perf]` table (packing 9.8 ms average) reflects that load, not the game: round 3
+  measured 1.9 ms at load 3–7. The new per-frame work is one mouse-distance check while dragging.
+  Saving the trunk writes the prefs file once per drop, undo, redo or RESTART, never per frame.
+  A `-pttBench` run on a quiet machine is still owed.
+- **`[Audio]`:** 2.6 dBFS before the limiter and −1.5 dBFS after (round 3: 2.7 / −1.5).
+
+Known limits of the new features: the title screen's parked car shows the next trip's blanket, not
+the waiting trunk. A restored trunk has no undo history (RESTART still unpacks it as one undoable
+step). Releasing a drag over the HUD keeps the item in hand rather than putting it back.
+
+Still open after round 4: Windows (needs the module), WebGL and hosting, signing and notarization,
+releases and re-cutting the trailer (all owner decisions); a physical gamepad / Steam Deck test
+(`docs/GAMEPAD-TEST.md`); a quiet-machine `-pttBench`; and the bigger replayability ideas from
+ranked #12.
