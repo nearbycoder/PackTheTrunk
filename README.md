@@ -103,9 +103,11 @@ The trip map and the album show which trips have one, so there's a reason to go 
 
 **Your trunk waits for you.** Every change to the trunk is saved, so leaving a trip half-packed
 (the trip map, the main menu, quitting, even a crash) costs nothing: start that trip again and
-everything is back where it was, and the title's CONTINUE says how much is waiting. Each trip keeps
-its own trunk until you close it. (Asking Grandpa is remembered too, so leaving and coming back
-doesn't earn the seal.)
+everything is back where it was, with your undo and redo history (the last 50 steps), so `Z` still
+takes back what you did before you left, even a RESTART. The title's parked car shows the waiting
+trunk, CONTINUE and the trip map say how much is waiting, and coming back skips straight past the
+texts you've already read (BACK TO PACKING). Each trip keeps its own trunk until you close it.
+(Asking Grandpa is remembered too, so leaving and coming back doesn't earn the seal.)
 
 On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
 aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →

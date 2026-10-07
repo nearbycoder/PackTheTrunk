@@ -233,6 +233,7 @@ namespace PackTheTrunk
             yield return RestartChecks(solutions);
             yield return ResumeChecks(solutions);
             yield return ResumeHistoryChecks(solutions);
+            yield return WaitingTrunkChecks(solutions);
             yield return DragChecks(solutions);
             yield return RedoChecks(solutions);
             yield return StarMeterChecks(solutions);
@@ -1221,6 +1222,77 @@ namespace PackTheTrunk
             Log($"history: {bigId} fully packed ({game.UndoDepth} undo steps) saves {size} characters");
             Check(game.UndoDepth == big.Count && size > 0 && size < 64 * 1024, $"history: {bigId}'s saved trunk with {game.UndoDepth} steps stays small ({size / 1024f:0.0} KB)");
             game.AutoStartLevel(biggest);
+            yield return Wait(1f);
+        }
+
+        /// <summary>
+        /// A waiting trunk you can see: leave the next trip half-packed and the title's parked car has those
+        /// things in its trunk (not on the blanket), and the Trip Map's label says how many are waiting. On a
+        /// trip that opens a chapter, coming back skips the chapter card and the typing: BACK TO PACKING is
+        /// there at once, where a fresh start is still on the chapter card.
+        /// </summary>
+        IEnumerator WaitingTrunkChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            int next = game.NextTrip;
+            string nextId = GameDatabase.Levels[next].Id;
+            game.AutoStartLevel(next);
+            yield return Wait(2.5f);
+            if (!solutions.TryGetValue(nextId, out var placements)) { Check(false, "waiting: the next trip has a solution"); yield break; }
+            foreach (var (itemId, cells) in placements.Take(3))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            var left = Snapshot();
+            game.AutoPause();
+            yield return Wait(0.8f);
+            yield return ClickUi("Pause Title");
+            yield return Wait(3f);
+            Check(Visible("Continue") && game.Items.Count(i => i.State == ItemState.Packed) == 3 && SameLayout(left),
+                $"waiting: the title's parked car has the 3 waiting things in its trunk, where they were left ({GameDatabase.Levels[next].Title})");
+            yield return Shot("waiting-title");
+            yield return ClickUi("Trip Map");
+            yield return Wait(2.5f);
+            Check(Visible("Map Back") && AnyText("3 PACKED, WAITING"), "waiting: the Trip Map's label says 3 packed, waiting");
+            yield return Shot("waiting-map");
+            yield return ClickUi("Map Back");
+            yield return Wait(1f);
+            game.AutoStartLevel(next);
+            yield return Wait(1f);
+
+            // A trip that opens a chapter: fresh, the chapter card plays first; with a waiting trunk, straight back.
+            int chapterStart = Enumerable.Range(1, GameDatabase.Levels.Count - 1).First(i => GameDatabase.Levels[i].IsFirstInChapter);
+            string chapterId = GameDatabase.Levels[chapterStart].Id;
+            GameController.AutoForgetTrunk(chapterId);
+            game.AutoTransitionTrip(chapterStart);
+            yield return Wait(2.3f);
+            bool freshWaits = game.IsInStory && !game.Ui.StoryReady;
+            yield return StoryToPacking();
+            yield return Wait(1f);
+            if (!solutions.TryGetValue(chapterId, out var chapterPlacements)) { Check(false, "waiting: the chapter's first trip has a solution"); yield break; }
+            foreach (var (itemId, cells) in chapterPlacements.Take(2))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            game.AutoPause();
+            yield return Wait(0.8f);
+            yield return ClickUi("Pause Map");
+            yield return Wait(2.5f);
+            game.AutoTransitionTrip(chapterStart);
+            yield return Wait(2.3f);
+            Check(freshWaits && game.IsInStory && game.Ui.StoryReady && AnyText("BACK TO PACKING") && AnyText("Your trunk is waiting: 2 packed"),
+                $"waiting: {GameDatabase.Levels[chapterStart].Title} with a waiting trunk skips the chapter card and the typing (fresh: still on the chapter card)");
+            yield return Shot("waiting-story");
+            yield return StoryToPacking();
+            yield return Wait(1f);
+            Check(game.IsPlaying && game.Items.Count(i => i.State == ItemState.Packed) == 2, "waiting: BACK TO PACKING puts the 2 back in");
+            game.AutoStartLevel(chapterStart);
             yield return Wait(1f);
         }
 

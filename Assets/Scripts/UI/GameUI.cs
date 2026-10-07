@@ -227,6 +227,9 @@ namespace PackTheTrunk
         Func<int, int> menuStars;
         /// <summary>Has this trip (by index) earned Grandpa's seal? Set by the game controller.</summary>
         public Func<int, bool> SealedFor;
+
+        /// <summary>How many things are packed in a trip's waiting trunk (0 if none).</summary>
+        public Func<int, int> WaitingFor;
         Text mapSeals;
 
         int SealCount(IReadOnlyList<LevelDef> levels) => SealedFor == null ? 0 : levels.Count(l => SealedFor(l.Index));
@@ -639,7 +642,9 @@ namespace PackTheTrunk
                 while (tt.fontSize > 18 && tt.preferredWidth > 262f) tt.fontSize--;
                 string month = (level.Trip ?? "").Split('·')[0].Trim().ToUpperInvariant();
                 string when = level.Year > 0 ? $"{month} {level.Year}" : month;
-                var sub = UiTheme.Label("When", labelCard, open ? when : "LOCKED", UiTheme.Body, 15, UiTheme.InkSoft, TextAnchor.UpperLeft);
+                int waiting = open && WaitingFor != null ? WaitingFor(index) : 0;
+                if (waiting > 0) when += $"  ·  {waiting} PACKED, WAITING";
+                var sub = UiTheme.Label("When", labelCard, open ? when : "LOCKED", UiTheme.Body, 15, waiting > 0 ? UiTheme.Accent : UiTheme.InkSoft, TextAnchor.UpperLeft);
                 sub.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -58), new Vector2(-10, -38));
                 var starRow = UiKit.Rect("Stars", labelCard).Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(14, 4), new Vector2(-10, 28));
                 UiKit.Horizontal(starRow.gameObject, 3, TextAnchor.MiddleLeft);
@@ -791,12 +796,16 @@ namespace PackTheTrunk
             chapterCard.gameObject.SetActive(false);
         }
 
-        /// <summary>The person you're packing for texts (or writes to) you about the trip.</summary>
-        public void ShowStory(LevelDef level, int tripIndex, int tripCount)
+        /// <summary>
+        /// The person you're packing for texts (or writes to) you about the trip. Coming back to a waiting
+        /// trunk, the texts are all there at once (no chapter card) and the button goes straight back to it.
+        /// </summary>
+        public void ShowStory(LevelDef level, int tripIndex, int tripCount, int waiting = 0)
         {
             ShowOnly(story);
             string sender = string.IsNullOrEmpty(level.Sender) ? "Mom" : level.Sender;
-            ShowConversation(sender, level.Messages, "LET'S PACK!", true, level.IsNote, level.IsFirstInChapter ? level.Chapter : null);
+            ShowConversation(sender, level.Messages, waiting > 0 ? "BACK TO PACKING" : "LET'S PACK!", true, level.IsNote,
+                waiting > 0 || !level.IsFirstInChapter ? null : level.Chapter, waiting > 0);
             tripNumber.text = $"CHAPTER {level.Chapter.Numeral}  ·  TRIP {tripIndex + 1} OF {tripCount}";
             tripPlace.text = level.Year > 0 ? $"{level.Trip} · {level.Year}" : level.Trip;
             tripTitle.text = level.Title;
@@ -804,7 +813,8 @@ namespace PackTheTrunk
             while (tripTitle.fontSize > 34 && tripTitle.preferredWidth > 560f) tripTitle.fontSize--;
             int req = level.Required.Count, bonus = level.Bonus.Count;
             tripDetails.text = $"Today's ride: <b>{level.Vehicle}</b>\nTrunk: {level.Size.x} wide, {level.Size.y} tall, {level.Size.z} deep\n" +
-                               $"To pack: {req} essentials + {bonus} extras";
+                               $"To pack: {req} essentials + {bonus} extras" +
+                               (waiting > 0 ? $"\n<color=#{ColorUtility.ToHtmlStringRGB(UiTheme.Accent)}><b>Your trunk is waiting: {waiting} packed</b></color>" : "");
             ((RectTransform)tripTitle.transform.parent.parent).gameObject.SetActive(true);
         }
 
@@ -822,7 +832,7 @@ namespace PackTheTrunk
             ((RectTransform)tripTitle.transform.parent.parent).gameObject.SetActive(false);
         }
 
-        void ShowConversation(string sender, string[] messages, string buttonText, bool showBack, bool asNote = false, ChapterDef chapter = null)
+        void ShowConversation(string sender, string[] messages, string buttonText, bool showBack, bool asNote = false, ChapterDef chapter = null, bool instant = false)
         {
             noteMode = asNote;
             phone.gameObject.SetActive(!asNote);
@@ -835,7 +845,7 @@ namespace PackTheTrunk
             startLabel.text = buttonText;
             backButton.gameObject.SetActive(showBack);
             startButton.transform.parent.gameObject.SetActive(false);
-            skipMessages = false;
+            skipMessages = instant;
             UiKit.Clear(messageList);
             if (messageRoutine != null) StopCoroutine(messageRoutine);
             messageRoutine = StartCoroutine(RevealMessages(messages ?? new string[0], chapter));

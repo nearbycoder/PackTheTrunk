@@ -109,6 +109,7 @@ namespace PackTheTrunk
             ui = gameObject.AddComponent<GameUI>();
             long tUi = bootWatch.ElapsedMilliseconds;
             ui.SealedFor = Sealed;
+            ui.WaitingFor = i => SavedTrunkCount(GameDatabase.Levels[i].Id);
             // A controller Unity only sees as a generic joystick can't drive the game: say so (the log has details).
             InputReport.UnsupportedController += name => ui.Toast($"{name} isn't a gamepad the game understands. Try Steam Input or its Xbox mode.", 5f);
             music.TrackStarted += (title, artist) => ui.ShowNowPlaying(title, artist);
@@ -296,6 +297,9 @@ namespace PackTheTrunk
             {
                 BuildLevel(preview, true);
                 previewIndex = preview;
+                // A half-packed trunk waits in the driveway, packed as it was left.
+                var waiting = ReadSavedTrunk();
+                if (waiting != null) PlaceLayout(waiting.Packed, true);
             }
             rig.Attract = true;
             rig.InputEnabled = false;
@@ -364,6 +368,7 @@ namespace PackTheTrunk
                 Debug.LogWarning("[Album] could not clear photos: " + e.Message);
             }
             ui.HideSettings();
+            previewIndex = -1;
             if (mode == Mode.Title || mode == Mode.Menu) ui.Transition(() => ShowTitle(false));
             else ui.Toast("Progress erased.", 2f);
         }
@@ -425,7 +430,7 @@ namespace PackTheTrunk
             music.Play(level.Music);
             music.SetMuffled(true);
             arrival = StartCoroutine(Arrive());
-            ui.ShowStory(level, index, GameDatabase.Levels.Count);
+            ui.ShowStory(level, index, GameDatabase.Levels.Count, SavedTrunkCount(level.Id));
         }
 
         void ShowEnding()

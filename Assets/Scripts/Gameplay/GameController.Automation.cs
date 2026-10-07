@@ -23,6 +23,9 @@ namespace PackTheTrunk
             StartLevel(index);
         }
 
+        /// <summary>Forget a trip's saved trunk, so its next start is a fresh one.</summary>
+        public static void AutoForgetTrunk(string levelId) => ForgetTrunk(levelId);
+
         /// <summary>The trunk saved for a trip, as stored ("" if none).</summary>
         public static string SavedTrunk(string levelId) => Prefs.GetString(TrunkKey(levelId), "");
 
