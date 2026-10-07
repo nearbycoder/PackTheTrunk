@@ -17,7 +17,30 @@ namespace PackTheTrunk
         readonly HashSet<PackItem> wantSeeThrough = new HashSet<PackItem>();
         readonly List<PackItem> seeThroughScratch = new List<PackItem>();
         readonly RaycastHit[] rayHits = new RaycastHit[32];
-        bool xray, xrayLatched;
+        bool xray, xrayLatched, xrayClicked;
+
+        /// <summary>A click on a key hint acts on what's in your hands; with empty hands it says so.</summary>
+        bool CanClickHeld()
+        {
+            if (mode != Mode.Playing || paused) return false;
+            if (held != null) return true;
+            ui.Toast("Pick something up first.", 1.4f);
+            return false;
+        }
+
+        /// <summary>
+        /// Clicking the X-ray key hint: on for as long as something is in your hands (a click, not a
+        /// held key, so the mouse alone can aim through a stack). It goes off with the next click, or
+        /// when the item is dropped or put back, so it never leaves empty hands unable to pick packed
+        /// things back out. If X-ray is already on (a toggled key), the click turns it off.
+        /// </summary>
+        void ToggleClickedXRay()
+        {
+            bool on = xrayLatched || xrayClicked;
+            xrayLatched = false;
+            xrayClicked = !on;
+            ui.Toast(xrayClicked ? "X-ray on until you let go of it." : "X-ray off.", 1.6f);
+        }
 
         bool XRayHeld =>
             Bindings.Held(Bindings.Action.XRay) ||
@@ -36,14 +59,17 @@ namespace PackTheTrunk
             {
                 if (XRayPressed)
                 {
-                    xrayLatched = !xrayLatched;
+                    // The key turns off X-ray however it was turned on (a click on its key hint too).
+                    xrayLatched = !(xrayLatched || xrayClicked);
+                    xrayClicked = false;
                     string key = GamepadCursor.Active ? "L3" : Bindings.Label(Bindings.Action.XRay);
                     ui.Toast(xrayLatched ? $"X-ray on. {key} again turns it off." : "X-ray off.", 1.6f);
                 }
             }
             else xrayLatched = false;
-            xray = xrayLatched || XRayHeld;
-            ui.SetXRayOn(xrayLatched);
+            if (held == null) xrayClicked = false;
+            xray = xrayLatched || xrayClicked || XRayHeld;
+            ui.SetXRayOn(xrayLatched || xrayClicked);
             wantSeeThrough.Clear();
             if (xray)
             {
@@ -95,7 +121,7 @@ namespace PackTheTrunk
             foreach (var item in seeThrough)
                 if (item != null) item.SetSeeThrough(false);
             seeThrough.Clear();
-            xray = xrayLatched = false;
+            xray = xrayLatched = xrayClicked = false;
             ui.SetXRayOn(false);
         }
 

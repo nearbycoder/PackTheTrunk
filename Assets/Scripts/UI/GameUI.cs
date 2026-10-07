@@ -26,15 +26,19 @@ namespace PackTheTrunk
             UiKit.Clear(keyboardHintsRow);
             string L(Bindings.Action a) => Bindings.Label(a);
             Hint(keyboardHintsRow, "CLICK", "grab / drop", 0);
-            Hint(keyboardHintsRow, L(Bindings.Action.Turn), "turn", 1);
-            Hint(keyboardHintsRow, L(Bindings.Action.Tip), "tip", 2);
-            Hint(keyboardHintsRow, L(Bindings.Action.Roll), "roll", 3);
+            // Turn, tip, roll and X-ray can be clicked as well as pressed, so the mouse alone can pack
+            // anything (right click turns and the wheel picks a shelf; tipping, rolling and X-ray had no
+            // mouse way in). Shift + click turns the other way, as Shift + the key does.
+            Clickable(Hint(keyboardHintsRow, L(Bindings.Action.Turn), "turn", 1), () => TurnPressed?.Invoke(ShiftHeld));
+            Clickable(Hint(keyboardHintsRow, L(Bindings.Action.Tip), "tip", 2), () => TipPressed?.Invoke(ShiftHeld));
+            Clickable(Hint(keyboardHintsRow, L(Bindings.Action.Roll), "roll", 3), () => RollPressed?.Invoke(ShiftHeld));
             Hint(keyboardHintsRow, "WHEEL", "shelf", 6);
             Hint(keyboardHintsRow, "ESC", "back / pause", 9);
             Hint(keyboardHintsRow, L(Bindings.Action.Undo), "undo", 5);
             Hint(keyboardHintsRow, L(Bindings.Action.LookLeft) + " " + L(Bindings.Action.LookRight), "orbit", 8);
             keyboardXRayHint = UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.XRay), "x-ray");
-            hintRank[keyboardXRayHint] = 7;
+            hintRank[keyboardXRayHint] = 4;
+            Clickable(keyboardXRayHint, () => XRayClicked?.Invoke());
             Hint(keyboardHintsRow, L(Bindings.Action.Close), "close", 4);
             hudLayoutWidth = -1f;
             // The rebuilt hint starts out plain: put toggled X-ray's "on" back if it was showing.
@@ -60,13 +64,43 @@ namespace PackTheTrunk
                 if (caption == null) continue;
                 caption.text = on ? "x-ray on" : "x-ray";
                 caption.color = on ? UiTheme.Accent : Color.white;
-                hintRank[hint] = on ? -1 : 7;
+                hintRank[hint] = on ? -1 : 4;
             }
             hudLayoutWidth = -1f;
         }
 
         /// <summary>Key hint with a rank: when the strip doesn't fit, the highest ranks drop out first.</summary>
-        void Hint(RectTransform row, string key, string caption, int rank) => hintRank[UiTheme.KeyHint(row, key, caption)] = rank;
+        RectTransform Hint(RectTransform row, string key, string caption, int rank)
+        {
+            var hint = UiTheme.KeyHint(row, key, caption);
+            hintRank[hint] = rank;
+            return hint;
+        }
+
+        /// <summary>The key hints for turn, tip, roll (true: Shift was held, the other way) and X-ray were clicked.</summary>
+        public event Action<bool> TurnPressed, TipPressed, RollPressed;
+        public event Action XRayClicked;
+
+        static bool ShiftHeld => UnityEngine.InputSystem.Keyboard.current is var kb && kb != null && kb.shiftKey.isPressed;
+
+        /// <summary>A key hint that also works as a button: the keycap lights up under the pointer.</summary>
+        static void Clickable(RectTransform hint, UnityEngine.Events.UnityAction onClick)
+        {
+            // An invisible backing over the cap and caption, so the whole hint is the target.
+            var hit = hint.gameObject.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0f);
+            var button = hint.gameObject.AddComponent<Button>();
+            var cap = hint.Find("Cap").GetComponent<Image>();
+            button.targetGraphic = cap;
+            var colors = button.colors;
+            colors.highlightedColor = new Color(1f, 0.82f, 0.6f);
+            colors.pressedColor = new Color(0.9f, 0.62f, 0.4f);
+            colors.selectedColor = Color.white;
+            button.colors = colors;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            button.onClick.AddListener(onClick);
+            hint.gameObject.AddComponent<PillHover>().Silent = true;
+        }
 
         readonly Dictionary<RectTransform, int> hintRank = new Dictionary<RectTransform, int>();
         float hudLayoutWidth = -1f, hudLayoutHeight = -1f;
@@ -95,7 +129,7 @@ namespace PackTheTrunk
                 float Needed() { LayoutRebuilder.ForceRebuildLayoutImmediate(row); return LayoutUtility.GetPreferredWidth(row); }
                 var byRank = children.OrderByDescending(c => hintRank.TryGetValue(c, out var r) ? r : 0).ToList();
                 int dropped = 0;
-                while (Needed() > strip && dropped < byRank.Count - 5)
+                while (Needed() > strip && dropped < byRank.Count - 6)
                     byRank[dropped++].gameObject.SetActive(false);
                 float needed = Needed();
                 if (needed > strip) row.localScale = Vector3.one * Mathf.Max(0.75f, strip / needed);

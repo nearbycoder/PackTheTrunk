@@ -60,6 +60,7 @@ way.)
 | **`R`** or **right click** | Turn it (hold **`Shift`** to turn the other way) |
 | **`T`** | Tip it over, away from the camera |
 | **`F`** | Roll it sideways |
+| Click the **`R`** / **`T`** / **`F`** / **`Tab`** key hints | Turn, tip, roll or X-ray with the mouse alone (see below) |
 | **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
 | **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
 | **`Z`** / **`Backspace`** | Undo (hold **`Shift`** to redo) |
@@ -86,6 +87,13 @@ If you try it on real hardware, [docs/GAMEPAD-TEST.md](docs/GAMEPAD-TEST.md) is 
 checklist. The game logs every controller it sees (`[Input]` lines in `Player.log`), and if
 Unity only recognises a pad as a generic joystick, the game tells you and suggests Steam Input or
 the pad's Xbox mode.
+
+**Mouse only.** The whole game can be played with just a mouse. Right click turns what you're
+holding and the wheel picks a shelf, and the key hints along the bottom of the screen are buttons
+too: click **turn**, **tip** or **roll** to turn it (Shift + click goes the other way), and **x-ray**
+to see through everything packed for as long as you hold that item (it switches off when you drop
+it or put it back, so you can always click packed things back out). UNDO, HINT, RESTART and CLOSE
+THE TRUNK are on-screen buttons already. Redo still needs `Shift` + `Z`.
 
 Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
 click a key and press the new one. A key that's already taken swaps with it, and **Defaults**

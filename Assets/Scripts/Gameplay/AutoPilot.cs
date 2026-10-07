@@ -15,7 +15,7 @@ namespace PackTheTrunk
     /// Drives the game through queued mouse/keyboard events, packs levels from solver output
     /// and saves screenshots, then quits. Results are logged with a [AutoPilot] prefix.
     /// </summary>
-    public class AutoPilot : MonoBehaviour
+    public partial class AutoPilot : MonoBehaviour
     {
         string outDir;
         string solutionsPath;
@@ -243,6 +243,7 @@ namespace PackTheTrunk
             yield return StarMeterChecks(solutions);
             yield return BestSoFarChecks(solutions);
             yield return SeeThroughChecks();
+            yield return MouseOnlyChecks(solutions);
             yield return RebindChecks();
             yield return LayoutChecks();
             yield return MenuLayoutChecks();

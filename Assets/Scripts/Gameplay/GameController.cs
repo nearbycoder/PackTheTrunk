@@ -147,6 +147,11 @@ namespace PackTheTrunk
                 else ShowEnding();
             });
             ui.PutBackPressed += PutBack;
+            // Clicking the key hints: the same turns as the keys, around the same camera-snapped axes.
+            ui.TurnPressed += reverse => { if (CanClickHeld()) Rotate(Vector3.up, reverse); };
+            ui.TipPressed += reverse => { if (CanClickHeld()) Rotate(rig.SnappedRight(), reverse); };
+            ui.RollPressed += reverse => { if (CanClickHeld()) Rotate(rig.SnappedForward(), reverse); };
+            ui.XRayClicked += () => { if (CanClickHeld()) ToggleClickedXRay(); };
             ui.ItemRowClicked += OnRowClicked;
             ui.QuitPressed += Quit;
             ui.AlbumClosed += () =>
