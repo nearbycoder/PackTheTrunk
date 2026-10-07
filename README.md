@@ -466,8 +466,8 @@ settings are complete, and the autopilot (304 checks) passes every trip. Still r
   `autopilot.sh` keep the log and retry once. Since round 4 a crash doesn't cost the trunk you
   were packing: it's saved after every change and comes back when you start the trip again.
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
-  meter, Grandpa's seal or dragging. The README screenshots were refreshed in round 4 and show the
-  meter and the seal.
+  meter, Grandpa's seal, dragging or the round-7 contrast look (outlined button labels, deeper
+  orange). The README screenshots were refreshed in round 8 and show the game as it looks now.
 - **Small screens are checked, not seen.** Text size and contrast were measured at 1280×720,
   1280×800 (Steam Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has looked at the game
   on a real Deck, and windows smaller than 1280×720 weren't measured. The contrast check reads each
