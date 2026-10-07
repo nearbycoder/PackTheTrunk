@@ -64,7 +64,6 @@ namespace PackTheTrunk
             int weekend = LevelIndex("weekend");
             game.AutoStartLevel(weekend);
             yield return Wait(2.5f);
-            Vector3 Top(PackItem i) => i.transform.position + (Vector3)i.Shape.Center + Vector3.up * (i.Shape.Size.y * 0.5f - 0.1f);
 
             // 1. With empty hands a click on the turn hint says what to do instead of nothing happening.
             yield return ClickUi(HintChip(Bindings.Action.Turn));
@@ -221,5 +220,143 @@ namespace PackTheTrunk
             GameSettings.Tips = tipsWere;
             Uncap();
         }
+
+        /// <summary>
+        /// Mouse only, round 9: REDO is a button (shown only while there's something to redo), the held
+        /// thing stays over the trunk while you click a key hint, and the wheel picks a shelf.
+        /// </summary>
+        IEnumerator MouseRedoChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            bool tipsWere = GameSettings.Tips;
+            GameSettings.Tips = false;
+            Uncap();
+            int weekend = LevelIndex("weekend");
+            game.AutoStartLevel(weekend);
+            yield return Wait(2.5f);
+            var trunk = game.CurrentVehicle.transform;
+            bool hiddenAtStart = !game.Ui.RedoShowing;
+
+            // 1. A steady hand: aim into the empty trunk, click the tip hint, and the ghost stays over the
+            // same spot with the tipped shape; a click back on the trunk drops it there.
+            var size = game.TrunkSize;
+            PackItem item = null;
+            foreach (var candidate in game.Items.Where(i => i.State == ItemState.Pile && i.Def.Shape.Voxels.Length > 1))
+            {
+                var tipped = candidate.Def.Shape.Rotated(Quaternion.AngleAxis(90f, game.Rig.SnappedRight())).Size;
+                if (tipped != candidate.Def.Shape.Size && tipped.x <= size.x && tipped.y <= size.y && tipped.z <= size.z) { item = candidate; break; }
+            }
+            if (item == null) { Check(false, "mouse only: Weekend Getaway has something that changes shape when tipped"); yield break; }
+            game.AutoHold(item);
+            yield return Wait(0.2f);
+            var aimCell = new Vector3Int(size.x / 2, 0, size.z / 2);
+            var aimWorld = trunk.TransformPoint(new Vector3(aimCell.x + 0.5f, 0.02f, aimCell.z + 0.5f));
+            yield return MoveMouse(aimWorld);
+            yield return Wait(0.2f);
+            bool aimed = game.CurrentTarget(out var before, out _);
+            var shapeBefore = item.Shape.Size;
+            yield return ClickUi(HintChip(Bindings.Action.Tip));
+            yield return Wait(0.3f);
+            bool overHud = game.Ui.PointerOverUi;
+            bool still = game.CurrentTarget(out var after, out bool afterValid);
+            var s = item.Shape.Size;
+            bool covers = after.x <= aimCell.x && aimCell.x < after.x + s.x && after.z <= aimCell.z && aimCell.z < after.z + s.z;
+            var itemPos = trunk.InverseTransformPoint(item.transform.position);
+            bool inTrunk = itemPos.x > -1f && itemPos.x < size.x + 1f && itemPos.z > -1f && itemPos.z < size.z + 1f;
+            yield return Shot("mouse-only-steady-hand");
+            yield return MoveMouse(aimWorld);
+            yield return Wait(0.2f);
+            game.CurrentTarget(out var dropAt, out bool dropValid);
+            yield return Click();
+            yield return Wait(0.5f);
+            bool dropped = item.State == ItemState.Packed || item.State == ItemState.Dropping;
+            Check(aimed && overHud && still && s != shapeBefore && covers && inTrunk && dropValid && dropped && item.GridPos == dropAt,
+                $"mouse only: holding the {item.Def.Name} over the trunk ({before}) and clicking the tip hint keeps its ghost there ({after}, {(afterValid ? "fits" : "won't fit")}, tipped {shapeBefore} -> {s}); a click back on the trunk drops it at {item.GridPos}");
+
+            // 2. REDO: hidden until there's something to redo, then a click redoes exactly what Shift + Z does.
+            yield return ClickUi("Undo");
+            yield return Wait(0.4f);
+            bool shownAfterUndo = game.Ui.RedoShowing;
+            yield return Shot("mouse-only-redo");
+            yield return Press(Key.Z, Key.LeftShift);
+            yield return Wait(0.4f);
+            var byKey = (item.State, item.GridPos, item.Orientation);
+            yield return ClickUi("Undo");
+            yield return Wait(0.4f);
+            bool backOnBlanket = item.State == ItemState.Pile;
+            yield return ClickUi("Redo");
+            yield return Wait(0.5f);
+            var byClick = (item.State, item.GridPos, item.Orientation);
+            bool same = byKey.Item1 == byClick.Item1 && byKey.Item2 == byClick.Item2 && Quaternion.Angle(byKey.Item3, byClick.Item3) < 1f
+                && (byClick.Item1 == ItemState.Packed || byClick.Item1 == ItemState.Dropping);
+            Check(hiddenAtStart && shownAfterUndo && backOnBlanket && same && !game.Ui.RedoShowing,
+                $"mouse only: REDO is hidden on a fresh trip (hidden {hiddenAtStart}), shows after UNDO ({shownAfterUndo}), and a click puts the {item.Def.Name} back exactly as Shift + Z does ({byClick.Item2}); then it hides again");
+
+            // 3. The wheel picks a shelf (owed since round 8: Weekend Getaway never needed it). Build a covered
+            // gap on First Snow as the see-through checks do, hold a small thing over it and wheel down and up.
+            game.AutoStartLevel(LevelIndex("snow"));
+            yield return Wait(2.5f);
+            trunk = game.CurrentVehicle.transform;
+            var smalls = game.Items.Where(i => i.Def.Shape.Voxels.Length == 1 && !i.Def.Fragile).ToList();
+            PackItem plank = null;
+            Quaternion plankTurn = Quaternion.identity;
+            foreach (var candidate in game.Items.Where(i => i.Def.Shape.Voxels.Length >= 2 && !i.Def.Fragile))
+            {
+                var flat = candidate.Def.Shape.Orientations().FirstOrDefault(o => o.Shape.Size.y == 1 && o.Shape.Size.z == 1 && o.Shape.Size.x >= 2);
+                if (flat.Shape == null) continue;
+                plank = candidate;
+                plankTurn = flat.Rotation;
+                break;
+            }
+            bool built = false;
+            var gap = Vector3Int.zero;
+            if (smalls.Count >= 3 && plank != null)
+                for (int z = 1; z < game.TrunkSize.z && !built; z++)
+                for (int x = 0; x + 1 < game.TrunkSize.x && !built; x++)
+                {
+                    if (!game.AutoPlace(smalls[0], Quaternion.identity, new Vector3Int(x, 0, z))) continue;
+                    if (game.AutoPlace(plank, plankTurn, new Vector3Int(x, 1, z)))
+                    {
+                        if (game.AutoPlace(smalls[1], Quaternion.identity, new Vector3Int(x + 1, 0, z - 1)))
+                        {
+                            built = true;
+                            gap = new Vector3Int(x + 1, 0, z);
+                            break;
+                        }
+                        game.AutoPutBackToPile(plank);
+                    }
+                    game.AutoPutBackToPile(smalls[0]);
+                }
+            if (!built) { Check(false, "mouse only: First Snow has the pieces for a covered gap"); yield break; }
+            yield return Wait(0.8f);
+            yield return MoveMouse(Top(smalls[2]));
+            yield return Wait(0.1f);
+            yield return Click();
+            yield return Wait(0.3f);
+            yield return MoveMouse(trunk.TransformPoint(new Vector3(gap.x + 0.5f, 2f, gap.z + 0.5f)));
+            yield return Wait(0.3f);
+            game.CurrentTarget(out var top, out _);
+            var pos = top;
+            int down = 0;
+            for (int i = 0; i < 4 && pos.y > 0; i++)
+            {
+                yield return Scroll(-120f);
+                down++;
+                game.CurrentTarget(out pos, out _);
+            }
+            var tucked = pos;
+            yield return Scroll(120f);
+            game.CurrentTarget(out var up, out _);
+            Check(game.Held == smalls[2] && top.y > 0 && tucked == gap && up.y > 0,
+                $"mouse only: the wheel picks a shelf: over the {plank.Def.Name} at {top}, {down} wheel step(s) down tucks it into the gap ({tucked}), one up puts it back on top ({up})");
+            yield return Press(Key.Escape);
+            yield return Wait(0.3f);
+            GameController.AutoForgetTrunk("weekend");
+            GameController.AutoForgetTrunk("snow");
+            GameSettings.Tips = tipsWere;
+            Uncap();
+        }
+
+        static Vector3 Top(PackItem i) => i.transform.position + (Vector3)i.Shape.Center + Vector3.up * (i.Shape.Size.y * 0.5f - 0.1f);
     }
 }

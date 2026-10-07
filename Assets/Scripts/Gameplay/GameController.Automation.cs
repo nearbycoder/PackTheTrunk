@@ -157,6 +157,7 @@ namespace PackTheTrunk
             problem = null;
             if (held == null) return false;
             var saved = (hasTarget, targetValid, targetPos, lastColumn, heightBias);
+            var savedAim = lastAimCell;
             Physics.SyncTransforms();
             UpdateTarget(cam.ScreenPointToRay(screen), false);
             bool ok = hasTarget;
@@ -164,6 +165,7 @@ namespace PackTheTrunk
             valid = targetValid;
             problem = targetValid || !ok ? null : ExplainProblem(held.Shape, targetPos.x, targetPos.z);
             (hasTarget, targetValid, targetPos, lastColumn, heightBias) = saved;
+            lastAimCell = savedAim;
             return ok;
         }
 

@@ -68,6 +68,10 @@ namespace PackTheTrunk
         int heightBias;
         float scrollCooldown;
 
+        // Where the pointer last aimed into the trunk while holding something. Over the HUD (clicking the
+        // tip hint, say) the held thing stays there and its ghost follows the turn.
+        Vector3Int? lastAimCell;
+
         /// <summary>Running a self-test, benchmark or recording rather than being played.</summary>
         public static readonly bool Automated = System.Environment.GetCommandLineArgs()
             .Any(a => a == "-pttAutopilot" || a == "-pttShowcase" || a == "-pttBench");
@@ -132,6 +136,7 @@ namespace PackTheTrunk
                 else Play();
             };
             ui.UndoPressed += () => { if (mode == Mode.Playing) Undo(); };
+            ui.RedoPressed += () => { if (mode == Mode.Playing) Redo(); };
             ui.HintPressed += AskGrandpa;
             // While packing, RESTART unpacks in place as one undo step; on the postcard the car has gone, so rebuild.
             ui.RestartPressed += () =>
@@ -896,13 +901,21 @@ namespace PackTheTrunk
         void UpdateTarget(Ray ray, bool overUi)
         {
             hasTarget = false;
-            if (overUi) return;
-
             var size = grid.Size;
+            var shape = held.Shape;
             Vector3Int cell = default;
             bool found = false;
 
-            if (AimRaycast(ray, out var hit))
+            if (overUi)
+            {
+                // Over the HUD (a key-hint button, the list): stay where the pointer last aimed.
+                if (lastAimCell is Vector3Int last)
+                {
+                    cell = last;
+                    found = true;
+                }
+            }
+            else if (AimRaycast(ray, out var hit))
             {
                 var item = hit.collider.GetComponentInParent<PackItem>();
                 bool trunk = hit.collider.GetComponentInParent<TrunkSurface>() != null || (item != null && item.State == ItemState.Packed);
@@ -914,7 +927,7 @@ namespace PackTheTrunk
                 }
             }
 
-            if (!found)
+            if (!found && !overUi)
             {
                 var plane = new Plane(Vector3.up, new Vector3(0f, size.y, 0f));
                 if (plane.Raycast(ray, out float enter))
@@ -927,9 +940,9 @@ namespace PackTheTrunk
                     }
                 }
             }
+            if (!overUi) lastAimCell = found ? cell : (Vector3Int?)null;
             if (!found) return;
 
-            var shape = held.Shape;
             cell.x = Mathf.Clamp(cell.x, 0, size.x - 1);
             cell.y = Mathf.Clamp(cell.y, 0, size.y);
             cell.z = Mathf.Clamp(cell.z, 0, size.z - 1);
@@ -1072,6 +1085,8 @@ namespace PackTheTrunk
             Fx.Twinkle(item.transform.position + item.Shape.Center);
             lastColumn = new Vector2Int(-99, -99);
             heightBias = 0;
+            hasTarget = false;
+            lastAimCell = null;
             sfx.Pickup(item);
             ui.ShowHeld(item);
             RefreshHud();
@@ -1366,6 +1381,7 @@ namespace PackTheTrunk
             if (mode != Mode.Playing) return;
             starsAnnounced = Mathf.Min(starsAnnounced, CurrentStars());
             ui.RefreshHud(items, held, CanClose(), AllPacked(), grid.FreeCellCount());
+            ui.SetRedoAvailable(redo.Count > 0);
         }
 
         IEnumerator CloseTrunk()

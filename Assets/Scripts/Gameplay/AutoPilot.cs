@@ -244,6 +244,7 @@ namespace PackTheTrunk
             yield return BestSoFarChecks(solutions);
             yield return SeeThroughChecks();
             yield return MouseOnlyChecks(solutions);
+            yield return MouseRedoChecks(solutions);
             yield return RebindChecks();
             yield return LayoutChecks();
             yield return MenuLayoutChecks();
@@ -1702,6 +1703,8 @@ namespace PackTheTrunk
             {
                 GameSettings.UiScale = scale;
                 Uncap();
+                // REDO widens the button row while there's something to redo: measure it at its widest.
+                game.Ui.SetRedoAvailable(true);
                 game.Ui.ShowTip("Grandpa's tip for the layout check: a sentence about as long as the longest real tip is.");
                 game.Ui.Toast("A toast for the layout check, as long as the longest real one is.", 30f);
                 yield return Wait(1.2f);
@@ -1774,6 +1777,7 @@ namespace PackTheTrunk
             GameSettings.Tips = tips;
             Uncap();
             game.Ui.HideTip();
+            game.Ui.SetRedoAvailable(false);
             game.AutoPutBack();
             yield return Wait(0.5f);
         }

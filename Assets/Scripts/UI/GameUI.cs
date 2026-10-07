@@ -457,6 +457,21 @@ namespace PackTheTrunk
 
         /// <summary>The HINT button only shows on trips that have a usable solution.</summary>
         public void SetHintAvailable(bool available) => hintButton.gameObject.SetActive(available);
+
+        Button redoButton;
+        RectTransform hudButtons;
+        const float HudButtonsWidth = 546f, RedoWidth = 116f;
+
+        /// <summary>REDO sits beside UNDO only while there's something to redo; the row grows to the left for it.</summary>
+        public void SetRedoAvailable(bool available)
+        {
+            if (redoButton == null || redoButton.gameObject.activeSelf == available) return;
+            redoButton.gameObject.SetActive(available);
+            hudButtons.sizeDelta = new Vector2(HudButtonsWidth + (available ? RedoWidth + 12f : 0f), hudButtons.sizeDelta.y);
+        }
+
+        public bool RedoShowing => redoButton != null && redoButton.gameObject.activeSelf;
+        public event Action RedoPressed;
         public event Action UndoPressed, RestartPressed, MenuPressed, ClosePressed, NextPressed, PutBackPressed, QuitPressed;
         public event Action StartPressed;
         public event Action<PackItem> ItemRowClicked;
@@ -1283,11 +1298,15 @@ namespace PackTheTrunk
             tagBlurb = UiTheme.Label("Blurb", tag, "", UiTheme.Hand, 27, new Color(0.25f, 0.18f, 0.12f), TextAnchor.UpperLeft);
             tagBlurb.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(70, 10), new Vector2(-20, -104));
 
-            var buttons = UiKit.Rect("Buttons", hud).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -36), new Vector2(546, 60));
+            var buttons = hudButtons = UiKit.Rect("Buttons", hud).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -36), new Vector2(HudButtonsWidth, 60));
             UiKit.Horizontal(buttons.gameObject, 12, TextAnchor.MiddleRight).childForceExpandWidth = true;
             hintButton = UiTheme.Pill("Hint", buttons, "HINT", UiTheme.Accent, 24, () => HintPressed?.Invoke());
             UiKit.Size(hintButton, 104, 56);
             UiKit.Size(UiTheme.Pill("Undo", buttons, "UNDO", UiTheme.Teal, 24, () => UndoPressed?.Invoke()), 130, 56);
+            // Shift + Z redoes; the button is there for a player using only the mouse.
+            redoButton = UiTheme.Pill("Redo", buttons, "REDO", UiTheme.Teal, 24, () => RedoPressed?.Invoke());
+            UiKit.Size(redoButton, RedoWidth, 56);
+            redoButton.gameObject.SetActive(false);
             UiKit.Size(UiTheme.Pill("Restart", buttons, "RESTART", UiTheme.Night, 24, () => RestartPressed?.Invoke()), 150, 56);
             UiKit.Size(UiTheme.Pill("Pause", buttons, "MENU", UiTheme.Night, 24, () => PausePressed?.Invoke()), 110, 56);
             UiMotion.Intro(buttons, new Vector2(0, 140), 0.12f, 1f, 0f, 0.5f);
@@ -2000,15 +2019,17 @@ namespace PackTheTrunk
         /// </summary>
         bool PlaceNowPlaying()
         {
-            const float Width = 430f, TagRight = 40f + 680f, ButtonsWidth = 40f + 546f;
+            const float Width = 430f, TagRight = 40f + 680f;
+            // The button row is wider while REDO shows.
+            float buttonsWidth = 40f + hudButtons.sizeDelta.x;
             float w = root.rect.width;
             nowPlayingFromLeft = false;
             nowPlayingY = -112f;
             if (!hud.gameObject.activeSelf) { nowPlayingX = -140f; return true; }
-            float gap = w - TagRight - ButtonsWidth;
+            float gap = w - TagRight - buttonsWidth;
             if (gap >= Width + 24f)
             {
-                nowPlayingX = (TagRight - ButtonsWidth) * 0.5f;
+                nowPlayingX = (TagRight - buttonsWidth) * 0.5f;
                 return true;
             }
             nowPlayingFromLeft = true;
