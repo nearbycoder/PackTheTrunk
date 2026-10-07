@@ -56,7 +56,7 @@ namespace PackTheTrunk
                     case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. A drops it.";
                     case Tip.Turn: return "Won't fit like that? X turns it, Y tips it over and RB rolls it sideways.";
                     case Tip.Shelf: return "There's room underneath too! D-pad up / down picks the shelf.";
-                    case Tip.Undo: return "Changed your mind? VIEW undoes, and anything packed can be picked back out.";
+                    case Tip.Undo: return "Changed your mind? VIEW undoes (LB + VIEW redoes), and anything packed can be picked back out.";
                     case Tip.Orbit: return "Can't see the gap? The right stick walks you around the car.";
                 }
             switch (tip)
@@ -66,7 +66,7 @@ namespace PackTheTrunk
                 case Tip.Turn: return $"Won't fit like that? {K(Bindings.Action.Turn)} turns it, {K(Bindings.Action.Tip)} tips it over and {K(Bindings.Action.Roll)} rolls it sideways.";
                 case Tip.Shelf: return $"There's room underneath too! The mouse wheel or {K(Bindings.Action.ShelfUp)} / {K(Bindings.Action.ShelfDown)} picks the shelf.";
                 case Tip.Fragile: return "Fragile! Nothing can go on top of it, so it rides up top.";
-                case Tip.Undo: return $"Changed your mind? {K(Bindings.Action.Undo)} undoes, and anything packed can be clicked back out.";
+                case Tip.Undo: return $"Changed your mind? {K(Bindings.Action.Undo)} undoes (SHIFT + {K(Bindings.Action.Undo)} redoes), and anything packed can be clicked back out.";
                 default: return $"Can't see the gap? Right-drag or {K(Bindings.Action.LookLeft)} / {K(Bindings.Action.LookRight)} walks you around the car.";
             }
         }

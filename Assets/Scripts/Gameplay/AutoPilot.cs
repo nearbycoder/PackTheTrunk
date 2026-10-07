@@ -233,6 +233,7 @@ namespace PackTheTrunk
             yield return RestartChecks(solutions);
             yield return ResumeChecks(solutions);
             yield return DragChecks(solutions);
+            yield return RedoChecks(solutions);
             yield return StarMeterChecks(solutions);
             yield return SeeThroughChecks();
             yield return RebindChecks();
@@ -921,6 +922,75 @@ namespace PackTheTrunk
             Check(a.State == ItemState.Packed && a.GridPos == moveGhost && a.GridPos != from, $"drag: a packed thing drags to a new spot ({from} -> {a.GridPos})");
         }
 
+        /// <summary>Hold Shift, then press the key with it.</summary>
+        IEnumerator PressShift(Key key)
+        {
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(Key.LeftShift));
+            yield return null;
+            yield return null;
+            yield return Press(key, Key.LeftShift);
+        }
+
+        /// <summary>
+        /// Redo (Shift + undo): three drops, three Z and three Shift+Z give back the same trunk; anything new
+        /// clears what could be redone; redoing a RESTART empties the trunk again and starts a fresh attempt
+        /// for the seal, as RESTART does.
+        /// </summary>
+        IEnumerator RedoChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("grandma"));
+            yield return Wait(2.5f);
+            if (!solutions.TryGetValue("grandma", out var placements)) { Check(false, "redo: grandma has a solution"); yield break; }
+            void Pack(int count)
+            {
+                foreach (var (itemId, cells) in placements)
+                {
+                    if (count == 0) return;
+                    var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                    if (item == null || game.Items.Any(it => it.State == ItemState.Packed && it.Def.Id == itemId && it.GridPos == cells.Aggregate(Vector3Int.Min))) continue;
+                    if (game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min))) count--;
+                }
+            }
+            string Layout() => string.Join(";", game.Items.Select(i => i.State == ItemState.Packed ? $"{i.GridPos}{i.Orientation.eulerAngles}" : "-"));
+
+            Pack(3);
+            yield return Wait(0.8f);
+            string three = Layout();
+            for (int i = 0; i < 3; i++) { yield return Press(Key.Z); yield return Wait(0.3f); }
+            bool emptied = game.Items.All(i => i.State == ItemState.Pile);
+            for (int i = 0; i < 3; i++) { yield return PressShift(Key.Z); yield return Wait(0.3f); }
+            yield return Wait(0.5f);
+            Check(emptied && Layout() == three && game.UndoDepth == 3, "redo: three Z then three Shift+Z gives back the same trunk");
+
+            yield return Press(Key.Z);
+            yield return Wait(0.3f);
+            Pack(1);
+            yield return Wait(0.6f);
+            string afterNew = Layout();
+            yield return PressShift(Key.Z);
+            yield return Wait(0.3f);
+            Check(Layout() == afterNew && game.Ui.ToastShowing("Nothing to redo"), "redo: a new drop clears what could be redone (\"Nothing to redo\")");
+
+            game.AutoAskGrandpa();
+            yield return Wait(0.3f);
+            game.AutoClearHint();
+            string beforeRestart = Layout();
+            yield return ClickUi("Restart");
+            yield return Wait(0.6f);
+            bool restartFresh = !game.HintedThisTry;
+            yield return Press(Key.Z);
+            yield return Wait(0.6f);
+            bool undoneHinted = game.HintedThisTry && Layout() == beforeRestart;
+            yield return PressShift(Key.Z);
+            yield return Wait(0.6f);
+            Check(restartFresh && undoneHinted && game.Items.All(i => i.State == ItemState.Pile) && !game.HintedThisTry,
+                "redo: redoing an undone RESTART empties the trunk again and is a fresh attempt for the seal");
+            yield return Press(Key.Z);
+            yield return Wait(0.6f);
+            Check(Layout() == beforeRestart && game.HintedThisTry, "redo: and Z brings that trunk (and its hint mark) back once more");
+        }
+
         IEnumerator StoryToPacking()
         {
             for (float t = 0f; t < 20f && !game.IsPlaying; t += 0.5f)
@@ -1368,6 +1438,18 @@ namespace PackTheTrunk
             yield return PadPress(pad, GamepadButton.Select);
             yield return Wait(0.6f);
             Check(item.State == ItemState.Pile, "gamepad: View undoes");
+            InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftShoulder));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftShoulder).WithButton(GamepadButton.Select));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            yield return null;
+            yield return Wait(0.8f);
+            Check(item.State == ItemState.Packed, "gamepad: LB + View redoes");
+            yield return PadPress(pad, GamepadButton.Select);
+            yield return Wait(0.6f);
             yield return PadPress(pad, GamepadButton.DpadLeft);
             yield return Wait(0.4f);
             Check(game.HintItem != null, "gamepad: D-pad left asks Grandpa");
@@ -1529,9 +1611,9 @@ namespace PackTheTrunk
             yield return null;
         }
 
-        IEnumerator Press(Key key)
+        IEnumerator Press(Key key, params Key[] held)
         {
-            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(key));
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(held.Append(key).ToArray()));
             yield return null;
             yield return null;
             InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());

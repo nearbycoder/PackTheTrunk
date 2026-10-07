@@ -265,12 +265,12 @@ namespace PackTheTrunk
                 string L(Bindings.Action a) => Bindings.Label(a);
                 return new[]
                 {
-                    ("CLICK", "pick up · drop into the trunk"),
+                    ("CLICK", "pick up · drop (or drag it in)"),
                     ($"{L(Bindings.Action.Turn)}  {L(Bindings.Action.Tip)}  {L(Bindings.Action.Roll)}", "turn · tip · roll (hold SHIFT to reverse)"),
                     ($"WHEEL / {L(Bindings.Action.ShelfUp)} {L(Bindings.Action.ShelfDown)}", "choose a shelf when there's a gap"),
                     ($"{L(Bindings.Action.LookLeft)}  {L(Bindings.Action.LookRight)} / RIGHT-DRAG", "look around the car"),
                     ($"{L(Bindings.Action.XRay)} (hold)", "see through everything packed"),
-                    ($"{L(Bindings.Action.Undo)}  ·  {L(Bindings.Action.Hint)}", "undo · ask Grandpa for a hint"),
+                    ($"{L(Bindings.Action.Undo)}  ·  {L(Bindings.Action.Hint)}", "undo (SHIFT: redo) · ask Grandpa"),
                     (L(Bindings.Action.Close), "close the trunk"),
                     ("ESC", "put back · pause"),
                     (L(Bindings.Action.Music), "music on / off"),
@@ -285,7 +285,7 @@ namespace PackTheTrunk
             ("D-PAD UP / DOWN", "choose a shelf"),
             ("R-STICK  ·  LT RT", "look around · zoom"),
             ("L-STICK CLICK (hold)", "see through everything packed"),
-            ("VIEW  ·  D-PAD LEFT", "undo · ask Grandpa"),
+            ("VIEW  ·  D-PAD LEFT", "undo (LB: redo) · ask Grandpa"),
             ("D-PAD RIGHT", "close the trunk"),
             ("B  ·  MENU", "put back / back · pause"),
         };

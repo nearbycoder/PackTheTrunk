@@ -51,6 +51,9 @@ namespace PackTheTrunk
         Quaternion heldOriginOrientation;
         List<SavedItem> pendingSnapshot;
         readonly Stack<List<SavedItem>> undo = new Stack<List<SavedItem>>();
+        // What undo took back (and whether that step was a RESTART), for Shift + undo to redo.
+        readonly Stack<(List<SavedItem> Step, bool Restart)> redo = new Stack<(List<SavedItem>, bool)>();
+        readonly HashSet<List<SavedItem>> restartSteps = new HashSet<List<SavedItem>>();
 
         Transform ghost;
         MeshFilter ghostFilter;
@@ -549,6 +552,8 @@ namespace PackTheTrunk
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             items.Clear();
             undo.Clear();
+            redo.Clear();
+            restartSteps.Clear();
             starsAnnounced = 0;
             hintedThisTry = false;
             trunkResumeChecked = false;
@@ -665,7 +670,11 @@ namespace PackTheTrunk
             // D-pad right close. Pointing and A-to-click go through GamepadCursor's virtual mouse.
             if (Pad.Current != null)
             {
-                if (Pad.Down(p => p.selectButton)) Undo();
+                if (Pad.Down(p => p.selectButton))
+                {
+                    if (Pad.Held(p => p.leftShoulder)) Redo();
+                    else Undo();
+                }
                 if (Pad.Down(p => p.dpad.left)) AskGrandpa();
                 if (held != null)
                 {
@@ -685,7 +694,11 @@ namespace PackTheTrunk
 
             if (keyboard != null)
             {
-                if (Bindings.Pressed(Bindings.Action.Undo)) Undo();
+                if (Bindings.Pressed(Bindings.Action.Undo))
+                {
+                    if (keyboard.shiftKey.isPressed) Redo();
+                    else Undo();
+                }
                 if (Bindings.Pressed(Bindings.Action.Hint)) AskGrandpa();
                 if (held != null)
                 {
@@ -1056,6 +1069,7 @@ namespace PackTheTrunk
             held = null;
 
             undo.Push(pendingSnapshot);
+            redo.Clear();
             pendingSnapshot = null;
             OnPlacedTips();
             grid.Place(item, pos);
@@ -1173,7 +1187,35 @@ namespace PackTheTrunk
                 return;
             }
             var step = undo.Pop();
+            redo.Push((Capture(), restartSteps.Remove(step)));
             if (restartsAfterHint.Remove(step)) hintedThisTry = true;
+            Restore(step);
+            starsAnnounced = CurrentStars();
+            sfx.PutBack(vehicle.transform.position);
+            RefreshHud();
+            SaveTrunk();
+        }
+
+        /// <summary>Shift + undo: put back what undo took away. Redoing a RESTART starts a fresh attempt again, as RESTART does.</summary>
+        void Redo()
+        {
+            if (held != null) PutBack();
+            if (redo.Count == 0)
+            {
+                sfx.Error();
+                ui.Toast("Nothing to redo.", 1.2f);
+                return;
+            }
+            var (step, restart) = redo.Pop();
+            var back = Capture();
+            undo.Push(back);
+            if (restart)
+            {
+                restartSteps.Add(back);
+                if (hintedThisTry) restartsAfterHint.Add(back);
+                hintedThisTry = false;
+                ClearHint();
+            }
             Restore(step);
             starsAnnounced = CurrentStars();
             sfx.PutBack(vehicle.transform.position);
@@ -1197,6 +1239,8 @@ namespace PackTheTrunk
             }
             var step = Capture();
             undo.Push(step);
+            redo.Clear();
+            restartSteps.Add(step);
             if (hintedThisTry) restartsAfterHint.Add(step);
             hintedThisTry = false;
             foreach (var item in items)
