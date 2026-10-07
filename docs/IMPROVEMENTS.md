@@ -1018,3 +1018,75 @@ quick autopilot (load checked first) and screenshots in `docs/media/improvements
 full autopilot (0 FAIL, real save untouched, load noted), the crash test, and a back-to-back `-pttBench` A/B
 against round-7 `main` if the machine is quiet enough. If an item turns out bigger or riskier than planned, the
 others land first and it's reported rather than half-landed.
+
+## Round 8 results (2026-10-07)
+
+Three of the four scope items shipped as planned and one (A) shipped in a different form than planned (see
+below). The final full autopilot (`Tools/autopilot.sh`, all 33 trips) had **317 PASS, 0 FAIL** (304 before, plus
+13 new checks). There were no exceptions and no player crash, and the real save was untouched. Load average was
+5.3 at the start and 18 at the end. The crash test (`Tools/resume_test.sh`) passed 5/5. The solver proves all 33
+levels. Each item's commit was built on its own (`build-linux`, 0 errors, 0 warnings) and tested with a quick
+autopilot (load 17–21) before the next item started. `build-mac` wasn't re-run (round 8 is platform-independent
+C#). Screenshots are in `docs/media/improvements/round8/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| Quiet-machine benchmark (round-7 debt) | `26a5562` | `-pttBench` on round-7 `main` at load 3–8: every screen 1.7–2.6 ms, the minivan 2.3 ms packing / 2.1 ms holding, 0 KB per frame (see the scope). |
+| A. Play with the mouse alone | `a675a28` | `MouseOnlyChecks` (5). With empty hands, clicking turn says to pick something up first. Clicking the R / T / F hints gives exactly the orientation the keys give, and Shift + click matches Shift + key (6 of 6). Clicking the X-ray hint makes everything packed see-through and the hint reads "x-ray on"; a second click turns it off; putting the item back or dropping it turns it off too. **Weekend Getaway packed 8/8 and closed for three stars with mouse events only** (10 hint clicks, 6 of them tip or roll). The HUD layout pass is 50/50 at 1600×900, 1200×900, 2100×900 and 1280×800. `a-mouse-only-xray-on.jpg`, `a-mouse-only-packed.jpg` |
+| B. Readable at 1280×720 | `4656bd9` | Layout-only runs on round-7 `main` at 1280×720: 2 FAIL (the title tagline, 3.5:1 and 4.3:1). After: 50/50 at 1280×720, 1600×900, 1280×800, 1200×900 and 2100×900. |
+| C. Gamepad button remapping | `eec672e` | `PadRebindChecks` (8) with a simulated pad and the pad only: Settings → Controls lists the pad buttons; A on an action waits for a button and A itself isn't taken; B cancels and Settings stays open; R3 binds turn; R3 then turns the held item and X doesn't; the controller hints show R3; binding R3 to undo swaps it with turn (turn becomes VIEW); Defaults restores every button and the hints. Every existing gamepad and D-pad menu check still passes. Controls tab legibility and contrast pass at 1280×720 and 1200×900. **Not tested on a physical controller.** `c-pad-controls-rebound.jpg` |
+| D. README screenshots | `f6c00bd` | A stills-only capture (16 stills; it took about 25 minutes rather than 3, since it waited for load and ran under load) and `make_trailer.py --only stills`. All 14 gallery images were regenerated with the current look and checked by eye. The alt texts still match. The largest is 586 KB, under the 1.4 MB cap. The capture script confirmed the save was untouched. |
+
+**How A changed from the plan.** The scope put TURN / TIP / ROLL / X-RAY buttons on the held-item card. That
+needed a taller card. At 1280×720 the card already reaches the minivan's rear bumper, and 50 more units would
+have covered the near-left cells of the biggest trunk's floor. So the existing key hints along the bottom became
+the buttons instead. They take no new space, they show the key as they teach it, and the layout already fits
+them at every size. The turn tip now says the keys can be clicked. One trade-off: with Settings → Gameplay → Key
+hints switched off, there are no on-screen tip / roll / X-ray buttons. The X-ray hint now outranks undo and
+shelf when the strip is too narrow, so it stays visible.
+
+**What B actually fixed.** The tagline is ink on a pale yellow card, about 13:1. It "failed" only because the
+check sampled the background in a screen-aligned box around the text. The card is tilted 2°, so at 720p that
+box's corners fell off the card onto the dark road. The check now classifies each pixel in the text's own
+(rotated) space, so the band hugs the card. No colours changed, and the contrast style waiting on the owner is
+untouched. Every other tilted text (the luggage tag, the packing list, the tip card) is measured the same way now,
+and all still pass at five sizes.
+
+**Benchmark (`-pttBench`, 1600×900, High), back to back.** The machine never stayed quiet through an A/B. Round 8
+read 1.9–2.2 ms on most screens at load 6–13. The album (3.8 ms) and credits (2.7 ms, 3 frames over 33 ms) were
+higher, at the end of the run as load climbed. Round-7 `main` straight after read a flat 3.1–3.4 ms at load
+8–10. A second round-8 run read a flat 4.6–5.3 ms at load 7.5, with no frames over 33 ms. All three runs had 0 KB
+allocated per frame and 1.3–2.4 ms of CPU per frame in both builds. The spread follows the shared GPU, not the
+build (`Recordings/round8/bench-ab-*.log`). Round 8 adds no per-frame work beyond reading cached pad bindings.
+No measurable cost.
+
+Things round 8 turned up along the way:
+
+- **The toast's x position was overwritten every frame.** `PlaceToast` centres it in the space left of the list,
+  but `UpdateHudMotion` reset x to −200 each frame. It's harmless today: the intended position works out to −250
+  at every width, and the layout pass is clean. A fix was written for the held-card layout and then dropped
+  with it, so the code is unchanged.
+- **The full-trip mouse check never needed the wheel.** On Weekend Getaway, aiming at the right column already
+  gave the solver's height for all 8 placements (0 wheel steps). The wheel's shelf choice is covered by the
+  existing `SeeThroughChecks` (W/S) and is unchanged, but this section doesn't exercise it.
+- **`[Audio]`:** 2.8 dBFS before the limiter and −1.5 dBFS after (round 7's full run: 3.7 / −1.5).
+
+Known limits:
+
+- Mouse only: redo still needs Shift + Z. Clicking a hint moves the pointer off the trunk, so the held item
+  follows it down to the strip until you point back in.
+- Gamepad remapping covers the packing actions only. A, B, Menu, LB, the sticks and the triggers can't be moved,
+  and menu navigation stays on the D-pad. The labels are Xbox names (PlayStation and Nintendo pads show the same
+  positions under other names). It has only been driven by a simulated pad.
+- The contrast check still doesn't check a `<color>` part inside a line separately, and windows smaller than
+  1280×720 aren't measured.
+
+Still open after round 8:
+
+- **Owner decisions:** the contrast look from round 7 (now also in the README gallery), Windows (needs the
+  module), WebGL and hosting, signing and notarization, licences, releases and re-cutting the trailer (the
+  trailer, poster and teaser are still the v0.1.0 cut).
+- **Needs hardware:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`, now including
+  remapping) and a Mac run.
+- **Bigger ideas:** replayability from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
+- **Measurement:** an A/B benchmark with both builds on a quiet machine (load < 6 throughout).
