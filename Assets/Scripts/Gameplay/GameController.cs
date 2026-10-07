@@ -778,6 +778,12 @@ namespace PackTheTrunk
                     {
                         dragArmed = false;
                         dragDrop = dragMoved && !overUi;
+                        // Let go over the HUD after a real drag: back where it came from, as anywhere off the trunk.
+                        if (dragMoved && overUi)
+                        {
+                            PutBack();
+                            return;
+                        }
                     }
                 }
 

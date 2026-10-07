@@ -906,6 +906,21 @@ namespace PackTheTrunk
             yield return Wait(0.6f);
             Check(game.Held == null && b.State == ItemState.Pile, "drag: letting go off the trunk puts it back on the blanket");
 
+            // 4b. Drag onto the HUD (the packing list) and let go: back on the blanket too.
+            var list = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).FirstOrDefault(r => r.name == "Packing List");
+            if (list == null) { Check(false, "drag: the packing list is on screen"); yield break; }
+            var corners = new Vector3[4];
+            list.GetWorldCorners(corners);
+            var overList = (Vector2)(corners[0] + corners[2]) * 0.5f;
+            yield return MouseDown(Centre(b));
+            bool heldOverList = game.Held == b;
+            yield return DragTo(overList, false);
+            heldOverList &= game.Held == b;
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = overList });
+            yield return null;
+            yield return null;
+            yield return Wait(0.6f);
+            Check(heldOverList && game.Held == null && b.State == ItemState.Pile, "drag: letting go over the HUD (the packing list) puts it back on the blanket");
 
             // 5. Things already in the trunk drag too.
             var from = a.GridPos;

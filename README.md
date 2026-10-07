@@ -56,7 +56,7 @@ way.)
 
 | Input | Action |
 | --- | --- |
-| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in. Or press on it, drag, and let go over the trunk |
+| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in. Or press on it, drag, and let go over the trunk (anywhere else puts it back) |
 | **`R`** or **right click** | Turn it (hold **`Shift`** to turn the other way) |
 | **`T`** | Tip it over, away from the camera |
 | **`F`** | Roll it sideways |
