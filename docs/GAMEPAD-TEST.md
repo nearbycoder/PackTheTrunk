@@ -39,11 +39,14 @@ and keep `Player.log`. Where the log lives:
 | 12 | Press **B** holding something, then again with empty hands | Puts it back, then pauses (like Esc); B again resumes |
 | 13 | Pack the essentials, press **D-pad right** twice | The trunk closes (once if no extra still fits) |
 | 14 | On the postcard, **Menu** / **X** / **B** | Next trip / try again / map |
-| 15 | Press **Menu** while packing, steer to **Resume**, **A** | Pauses, resumes |
-| 16 | Move the real mouse | The pad cursor hides, the hints go back to keys |
-| 17 | Unplug or switch off the controller mid-trip, then reconnect | Log shows `[Input] removed` then `added` (or `disconnected` / `reconnected`); the game keeps working with the mouse, and the pad works again after reconnecting |
+| 15 | Press **Menu** while packing, then **D-pad up / down** onto **Resume**, **A** | Pauses; the cursor jumps between the pause menu's buttons; resumes |
+| 16 | In the main menu, press **D-pad down** a few times (try holding it), then **A** | The cursor jumps from button to button (repeating while held); A opens the one it's on |
+| 17 | In **Settings**, D-pad onto a volume slider, then **D-pad right / left**; on a switch and a `<` `>` choice too | The slider moves in 5% steps; the switch turns on (right) / off (left); the choice steps |
+| 18 | In the **Family album**, D-pad onto a polaroid, **A**, then **D-pad left / right** and **LB / RB**; **B** | The close-up opens and flips between photos; B closes it |
+| 19 | Move the real mouse | The pad cursor hides, the hints go back to keys |
+| 20 | Unplug or switch off the controller mid-trip, then reconnect | Log shows `[Input] removed` then `added` (or `disconnected` / `reconnected`); the game keeps working with the mouse, and the pad works again after reconnecting |
 
 Things worth noting even if everything works: stick dead-zone (does the cursor drift?), cursor
-speed, whether **A**'s and **B**'s positions match the labels on your pad (Nintendo-layout pads swap
+speed, whether the D-pad ever jumps somewhere you didn't expect (which screen, which button), whether **A**'s and **B**'s positions match the labels on your pad (Nintendo-layout pads swap
 them), and whether the Deck's on-screen text is readable at 1280×800 (Settings → Display →
 Interface size).

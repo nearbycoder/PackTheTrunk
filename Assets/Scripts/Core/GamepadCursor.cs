@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
@@ -40,10 +42,20 @@ namespace PackTheTrunk
     }
 
     /// <summary>
+    /// On a control that has a value (a settings slider, switch or choice), D-pad left / right changes
+    /// the value instead of moving the cursor away. Step gets -1 or +1.
+    /// </summary>
+    public class PadStep : MonoBehaviour
+    {
+        public Action<int> Step;
+    }
+
+    /// <summary>
     /// Lets a gamepad point and click: the left stick moves a drawn cursor and A clicks, through a
     /// virtual mouse, so the game's mouse picking and every uGUI button work unchanged. The virtual
     /// mouse only appears once a gamepad is actually used; moving the real mouse or typing hands
-    /// control straight back (and shows the system cursor again).
+    /// control straight back (and shows the system cursor again). In menus the D-pad jumps the cursor
+    /// to the nearest button in that direction (holding it repeats).
     /// </summary>
     [DefaultExecutionOrder(-500)]
     public class GamepadCursor : MonoBehaviour
@@ -56,11 +68,23 @@ namespace PackTheTrunk
         /// <summary>The drawn cursor's screen position.</summary>
         public static Vector2 Position { get; private set; }
 
+        /// <summary>Set by the game: whether the D-pad moves between buttons right now (not while packing, where it has its own jobs).</summary>
+        public static Func<bool> MenuNavigation;
+
+        /// <summary>The last D-pad jump, for the log and the self-test: the control it landed on, or what it stepped.</summary>
+        public static string LastNavigation { get; private set; } = "";
+
+        const float RepeatDelay = 0.42f, RepeatInterval = 0.12f;
+
         Mouse virtualMouse;
         RectTransform cursor, canvasRect;
         Canvas canvas;
         Vector2 position;
         bool aDown;
+        Vector2? glide;
+        Vector2Int heldDirection;
+        float repeatAt;
+        readonly List<RaycastResult> hits = new List<RaycastResult>();
 
         void Awake()
         {
@@ -111,14 +135,23 @@ namespace PackTheTrunk
             if (Active && (RealMouseMoved() || (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)))
                 SetActive(false);
             if (padUsed && !Active) SetActive(true);
+            var dpad = DpadStep(pad);
             if (!Active)
             {
                 aDown = a;
                 return;
             }
 
+            if (dpad != Vector2Int.zero && MenuNavigation != null && MenuNavigation()) Navigate(dpad);
+
             // Speed scales with the screen, eases in for fine aiming.
             float speed = Screen.height * 1.25f;
+            if (stick != Vector2.zero) glide = null;
+            if (glide.HasValue)
+            {
+                position = Vector2.Lerp(position, glide.Value, 1f - Mathf.Exp(-30f * Time.unscaledDeltaTime));
+                if ((position - glide.Value).sqrMagnitude < 1f) { position = glide.Value; glide = null; }
+            }
             position += stick.normalized * Mathf.Pow(stick.magnitude, 1.6f) * speed * Time.unscaledDeltaTime;
             position = new Vector2(Mathf.Clamp(position.x, 0f, Screen.width - 1), Mathf.Clamp(position.y, 0f, Screen.height - 1));
             Position = position;
@@ -135,6 +168,105 @@ namespace PackTheTrunk
             cursor.anchoredPosition = local;
             float press = a ? 0.82f : 1f;
             cursor.localScale = Vector3.Lerp(cursor.localScale, Vector3.one * press, 1f - Mathf.Exp(-25f * Time.unscaledDeltaTime));
+        }
+
+        /// <summary>A D-pad direction this frame: on the press, then repeating while it's held.</summary>
+        Vector2Int DpadStep(Gamepad pad)
+        {
+            var d = Vector2Int.zero;
+            if (pad != null)
+            {
+                d.x = (pad.dpad.right.isPressed ? 1 : 0) - (pad.dpad.left.isPressed ? 1 : 0);
+                if (d.x == 0) d.y = (pad.dpad.up.isPressed ? 1 : 0) - (pad.dpad.down.isPressed ? 1 : 0);
+            }
+            if (d == Vector2Int.zero)
+            {
+                heldDirection = d;
+                return d;
+            }
+            float now = Time.unscaledTime;
+            if (d != heldDirection)
+            {
+                heldDirection = d;
+                repeatAt = now + RepeatDelay;
+                return d;
+            }
+            if (now < repeatAt) return Vector2Int.zero;
+            repeatAt = now + RepeatInterval;
+            return d;
+        }
+
+        /// <summary>
+        /// Jump to the nearest clickable control in that direction (on top, on screen), or step the value
+        /// of the control under the cursor. Nothing under the cursor and nothing that way: the nearest one.
+        /// </summary>
+        void Navigate(Vector2Int step)
+        {
+            var from = glide ?? position;
+            var current = SelectableAt(from);
+            if (current != null && step.y == 0 && current.TryGetComponent<PadStep>(out var stepper) && stepper.Step != null)
+            {
+                stepper.Step(step.x);
+                LastNavigation = "step " + current.name;
+                return;
+            }
+            Vector2 dir = step;
+            Selectable best = null, nearest = null;
+            Vector2 bestCentre = default, nearestCentre = default;
+            float bestScore = float.MaxValue, nearestDistance = float.MaxValue;
+            foreach (var s in Selectable.allSelectablesArray)
+            {
+                if (s == current || !Reachable(s, out var centre, out var min, out var max)) continue;
+                var d = centre - from;
+                if (d.magnitude < nearestDistance) { nearestDistance = d.magnitude; nearest = s; nearestCentre = centre; }
+                float along = Vector2.Dot(d, dir);
+                if (along < 2f) continue;
+                // Sideways distance counts from the control's edge, so a wide button straight below is "below".
+                float across = step.x != 0 ? Mathf.Max(0f, min.y - from.y, from.y - max.y) : Mathf.Max(0f, min.x - from.x, from.x - max.x);
+                float score = along + 2f * across;
+                if (score < bestScore) { bestScore = score; best = s; bestCentre = centre; }
+            }
+            if (best == null && current == null) { best = nearest; bestCentre = nearestCentre; }
+            if (best == null) return;
+            glide = bestCentre;
+            LastNavigation = best.name;
+        }
+
+        /// <summary>The control a click at this point would reach, if any.</summary>
+        Selectable SelectableAt(Vector2 point)
+        {
+            var top = TopHit(point);
+            return top != null ? top.GetComponentInParent<Selectable>() : null;
+        }
+
+        GameObject TopHit(Vector2 point)
+        {
+            var events = EventSystem.current;
+            if (events == null) return null;
+            hits.Clear();
+            events.RaycastAll(new PointerEventData(events) { position = point }, hits);
+            return hits.Count > 0 ? hits[0].gameObject : null;
+        }
+
+        /// <summary>Clickable, on screen, and nothing covering its middle.</summary>
+        bool Reachable(Selectable s, out Vector2 centre, out Vector2 min, out Vector2 max)
+        {
+            centre = min = max = default;
+            if (!s.isActiveAndEnabled || !s.IsInteractable() || s.transform is not RectTransform rect) return false;
+            var canvas = s.GetComponentInParent<Canvas>();
+            if (canvas == null) return false;
+            var root = canvas.rootCanvas;
+            var cam = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector2 a = RectTransformUtility.WorldToScreenPoint(cam, corners[0]), b = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+            min = Vector2.Min(a, b);
+            max = Vector2.Max(a, b);
+            centre = (min + max) * 0.5f;
+            if (max.x - min.x < 4f || max.y - min.y < 4f) return false;
+            if (centre.x < 0f || centre.y < 0f || centre.x >= Screen.width || centre.y >= Screen.height) return false;
+            var top = TopHit(centre);
+            return top != null && top.transform.IsChildOf(s.transform);
         }
 
         static bool AnyPadInput(Gamepad pad)

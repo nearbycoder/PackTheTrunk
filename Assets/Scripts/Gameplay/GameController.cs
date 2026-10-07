@@ -178,6 +178,9 @@ namespace PackTheTrunk
                 if (!focused && !Automated && mode == Mode.Playing && !paused) PauseGame();
             };
 
+            // In menus the D-pad jumps between buttons; while packing it keeps its packing jobs.
+            GamepadCursor.MenuNavigation = () => (mode != Mode.Playing || paused) && !ui.InTransition && !ui.IsAlbumZoomOpen && !ui.IsRebinding;
+
             ShowTitle(true);
             // On its own host: level changes stop this controller's coroutines.
             new GameObject("Album Loader").AddComponent<CoroutineHost>().StartCoroutine(WarmAlbum());

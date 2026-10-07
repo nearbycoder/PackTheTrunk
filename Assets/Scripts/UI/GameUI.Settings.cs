@@ -361,6 +361,19 @@ namespace PackTheTrunk
                     Sfx.Instance?.Tick();
                 }
             });
+            // D-pad left / right in 5% steps (a few rows round their value, so keep going until it changes).
+            area.gameObject.AddComponent<PadStep>().Step = dir =>
+            {
+                float before = get();
+                for (int k = 1; k <= 20; k++)
+                {
+                    float v = Mathf.Clamp(before + dir * k * (max - min) / 20f, min, max);
+                    set(v);
+                    if (!Mathf.Approximately(get(), before) || v <= min || v >= max) break;
+                }
+                Refresh();
+                Sfx.Instance?.Tick();
+            };
             settingsRefresh.Add(Refresh);
             Refresh();
         }
@@ -392,6 +405,11 @@ namespace PackTheTrunk
                 set(v);
                 Sfx.Instance?.Toggle(v);
             });
+            // D-pad right switches it on, left off.
+            sw.gameObject.AddComponent<PadStep>().Step = dir =>
+            {
+                if (get() != dir > 0) button.onClick.Invoke();
+            };
 
             void Refresh()
             {
@@ -417,6 +435,9 @@ namespace PackTheTrunk
             // Don't collide with the results "Next" button the automation looks for.
             left.name = "Choice Prev";
             right.name = "Choice Next";
+            // On either arrow, D-pad left / right steps the choice.
+            left.gameObject.AddComponent<PadStep>().Step = dir => (dir < 0 ? left : right).onClick.Invoke();
+            right.gameObject.AddComponent<PadStep>().Step = dir => (dir < 0 ? left : right).onClick.Invoke();
             var value = UiTheme.Label("Value", control, "", UiTheme.Display, 29, UiTheme.Ink, TextAnchor.MiddleCenter);
             value.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(216, 0), new Vector2(-66, 0));
             void Refresh() => value.text = get();

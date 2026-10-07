@@ -2108,6 +2108,7 @@ namespace PackTheTrunk
             yield return PadPress(pad, GamepadButton.East);
             yield return Wait(0.6f);
             Check(!game.IsPaused, "gamepad: B backs out of the pause menu");
+            yield return PadMenuChecks(pad);
 
             // Touch the real mouse again: control and the hints go back to mouse and keyboard.
             var p = realMouse.position.ReadValue();
@@ -2119,6 +2120,119 @@ namespace PackTheTrunk
             Check(!GamepadCursor.Active && Cursor.visible && !game.Ui.PadHintsShown && Mouse.current == realMouse,
                 "gamepad: moving the mouse hands control back");
             InputSystem.RemoveDevice(pad);
+        }
+
+        /// <summary>
+        /// D-pad menu navigation: while packing the D-pad keeps its jobs and the cursor stays put; in the pause
+        /// menu, the main menu, Settings and the album it jumps the cursor from button to button and A clicks;
+        /// on a settings slider left / right change the value. Then the album close-up's D-pad and bumper
+        /// flipping (owed since round 6).
+        /// </summary>
+        IEnumerator PadMenuChecks(Gamepad pad)
+        {
+            var visited = new List<string>();
+            IEnumerator Nav(GamepadButton direction)
+            {
+                yield return PadPress(pad, direction);
+                yield return Wait(0.25f);
+                visited.Add(GamepadCursor.LastNavigation);
+            }
+            // Keep pressing one way, then the next, until the cursor lands on that control.
+            IEnumerator NavTo(string name, params GamepadButton[] directions)
+            {
+                foreach (var direction in directions)
+                    for (int i = 0; i < 8 && GamepadCursor.LastNavigation != name; i++) yield return Nav(direction);
+            }
+            bool CursorOn(string name)
+            {
+                var b = FindButton(name);
+                if (b == null) return false;
+                var rt = (RectTransform)b.transform;
+                var corners = new Vector3[4];
+                rt.GetWorldCorners(corners);
+                var p = GamepadCursor.Position;
+                return p.x >= corners[0].x && p.x <= corners[2].x && p.y >= corners[0].y && p.y <= corners[2].y;
+            }
+
+            var before = GamepadCursor.Position;
+            yield return PadPress(pad, GamepadButton.DpadUp);
+            yield return Wait(0.3f);
+            Check(game.IsPlaying && !game.IsPaused && (GamepadCursor.Position - before).magnitude < 1f,
+                "gamepad menus: while packing, the D-pad doesn't move the cursor");
+
+            yield return PadPress(pad, GamepadButton.Start);
+            yield return Wait(1f);
+            visited.Clear();
+            yield return Nav(GamepadButton.DpadDown);
+            yield return Nav(GamepadButton.DpadDown);
+            yield return NavTo("Resume", GamepadButton.DpadUp, GamepadButton.DpadDown);
+            bool onResume = CursorOn("Resume");
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Wait(0.6f);
+            Check(onResume && !game.IsPaused, $"gamepad menus: the D-pad walks the pause menu ({string.Join(" > ", visited)}) and A on RESUME resumes");
+
+            game.AutoShowMainMenu();
+            yield return Wait(2f);
+            visited.Clear();
+            yield return NavTo("Settings", GamepadButton.DpadDown, GamepadButton.DpadUp);
+            bool onSettings = CursorOn("Settings");
+            yield return Shot("gamepad-dpad-menu");
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Wait(1.2f);
+            Check(onSettings && Visible("Settings Back"), $"gamepad menus: D-pad down walks the main menu ({string.Join(" > ", visited)}) and A on SETTINGS opens it");
+
+            visited.Clear();
+            yield return NavTo("Tab AUDIO", GamepadButton.DpadUp, GamepadButton.DpadLeft);
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Wait(0.8f);
+            float master = GameSettings.Master;
+            yield return Nav(GamepadButton.DpadDown);
+            bool onSlider = GamepadCursor.LastNavigation == "Slider";
+            yield return Nav(GamepadButton.DpadRight);
+            float raised = GameSettings.Master;
+            yield return Nav(GamepadButton.DpadLeft);
+            float lowered = GameSettings.Master;
+            Check(onSlider && raised > master + 0.01f && Mathf.Abs(lowered - master) < 0.011f,
+                $"gamepad menus: on the master volume slider D-pad right raises it ({master:0.00} > {raised:0.00}) and left lowers it ({lowered:0.00}); {string.Join(" > ", visited)}");
+            GameSettings.Master = master;
+            Uncap();
+            yield return PadPress(pad, GamepadButton.East);
+            yield return Wait(0.8f);
+            Check(!Visible("Settings Back"), "gamepad menus: B closes Settings");
+
+            game.AutoShowMenuAlbum();
+            yield return WaitForAlbum();
+            var withPhoto = GameDatabase.Levels.Where(l => FindButton("Polaroid " + l.Id) != null).ToList();
+            if (withPhoto.Count < 2) { Check(false, $"gamepad album: at least two polaroids have photos ({withPhoto.Count})"); yield break; }
+            visited.Clear();
+            foreach (var direction in new[] { GamepadButton.DpadUp, GamepadButton.DpadLeft, GamepadButton.DpadDown })
+                for (int i = 0; i < 8 && !GamepadCursor.LastNavigation.StartsWith("Polaroid "); i++) yield return Nav(direction);
+            string landed = GamepadCursor.LastNavigation;
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Wait(0.6f);
+            int at = withPhoto.FindIndex(l => l.Id == game.Ui.AlbumZoomTrip);
+            Check(landed.StartsWith("Polaroid ") && at >= 0 && "Polaroid " + game.Ui.AlbumZoomTrip == landed,
+                $"gamepad album: the D-pad reaches a polaroid ({landed}) and A opens its close-up");
+            if (at < 0) yield break;
+            string Step(int k) => withPhoto[(at + k + withPhoto.Count) % withPhoto.Count].Id;
+            yield return PadPress(pad, GamepadButton.DpadRight);
+            yield return Wait(0.3f);
+            bool right = game.Ui.AlbumZoomTrip == Step(1);
+            yield return PadPress(pad, GamepadButton.RightShoulder);
+            yield return Wait(0.3f);
+            bool rb = game.Ui.AlbumZoomTrip == Step(2);
+            yield return PadPress(pad, GamepadButton.LeftShoulder);
+            yield return Wait(0.3f);
+            bool lb = game.Ui.AlbumZoomTrip == Step(1);
+            yield return PadPress(pad, GamepadButton.DpadLeft);
+            yield return Wait(0.3f);
+            bool left = game.Ui.AlbumZoomTrip == Step(0);
+            Check(right && rb && lb && left, $"gamepad album: in the close-up D-pad right / RB go forward and LB / D-pad left go back (right {right}, RB {rb}, LB {lb}, left {left})");
+            yield return PadPress(pad, GamepadButton.East);
+            yield return Wait(0.5f);
+            Check(!game.Ui.IsAlbumZoomOpen && game.Ui.IsAlbumOpen, "gamepad album: B closes the close-up, the album stays open");
+            yield return PadPress(pad, GamepadButton.East);
+            yield return Wait(1f);
         }
 
         /// <summary>

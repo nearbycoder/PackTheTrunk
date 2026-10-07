@@ -73,7 +73,9 @@ way.)
 | **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
 
 **Gamepad (new):** the left stick moves a cursor and **A** clicks, so every menu and button works
-by pointing. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
+by pointing. In menus (the title, settings, the trip map, story texts, pause, the postcard and the
+album) the **D-pad** also jumps the cursor to the next button in that direction (hold it to keep
+going), and on a settings slider, switch or choice D-pad left / right changes the value. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
 way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the **left stick** in is X-ray (or one click, with X-ray set to Toggle), **D-pad right** closes the
 trunk, **View** undoes (**LB** + **View** redoes), **B** puts back or backs out, **Menu** pauses (and moves on from story
 texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
