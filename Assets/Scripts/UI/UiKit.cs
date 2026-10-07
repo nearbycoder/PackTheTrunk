@@ -103,6 +103,7 @@ namespace PackTheTrunk
             t.raycastTarget = false;
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Overflow;
+            ReadableText.Register(t);
             return t;
         }
 

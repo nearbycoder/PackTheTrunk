@@ -216,8 +216,10 @@ Also in the box:
   scrolls (and follows whatever you're holding).
 - **Readable on small screens.** Until you pick an interface size, it follows the screen: a Steam
   Deck–sized 1280×800 window starts at 110%, and every text in the game comes out at 12 screen
-  pixels or more there and in a 1280×720 window (Valve's recommended minimum), checked screen by
-  screen by the self-test.
+  pixels or more there, in a 1280×720 window and in a 1024×768 one (the smallest Settings offers),
+  checked screen by screen by the self-test (Valve's recommended minimum). On windows that small the
+  tiniest labels grow just enough to stay at 12 pixels; picking a smaller interface size still shrinks
+  everything evenly.
   The same pass measures every text's contrast against what's actually behind it on screen and
   holds it to WCAG's 4.5:1 (3:1 for large or bold text): orange and teal words use deeper inks,
   button labels carry a thin ink outline, and the main menu has a soft shade behind it.
@@ -474,9 +476,10 @@ settings are complete, and the autopilot (317 checks) passes every trip. Still r
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
   meter, Grandpa's seal, dragging or the round-7 contrast look (outlined button labels, deeper
   orange). The README screenshots were refreshed in round 8 and show the game as it looks now.
-- **Small screens are checked, not seen.** Text size and contrast were measured at 1280×720,
+- **Small screens are checked, not seen.** Text size and contrast were measured at 1024×768, 1280×720,
   1280×800 (Steam Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has looked at the game
-  on a real Deck, and windows smaller than 1280×720 weren't measured. The contrast check reads each
+  on a real Deck. Windows narrower than 1024 pixels (which Settings doesn't offer, but a resized window
+  can be) aren't measured. The contrast check reads each
   text's background from the screen, along the text's own tilt, and uses the text's own colour (a
   `<color>` part inside a line isn't checked separately), and it covers the screens the self-test
   visits, not every possible moment.

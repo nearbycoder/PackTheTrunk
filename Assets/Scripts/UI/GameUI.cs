@@ -367,7 +367,7 @@ namespace PackTheTrunk
         /// The smallest font size, in canvas units, that still comes out at 12 screen pixels (Valve's
         /// recommended minimum on a Steam Deck) at this screen size and interface size.
         /// </summary>
-        int MinReadableFont => Mathf.CeilToInt(12f / Mathf.Max(0.01f, root.GetComponent<Canvas>().scaleFactor) - 0.05f);
+        int MinReadableFont => ReadableText.Floor(root.GetComponent<Canvas>().scaleFactor);
 
         /// <summary>Canvas units per screen pixel (screen shape and interface size).</summary>
         public float UnitsPerPixel => 1f / root.GetComponent<Canvas>().scaleFactor;
@@ -464,6 +464,9 @@ namespace PackTheTrunk
         RectTransform root;
         RectTransform menu, story, hud, results;
         CanvasScaler scaler;
+        // Screen pixels per canvas unit at the default interface size: the 12 px text floor is measured
+        // there, so picking a smaller interface size still shrinks everything evenly.
+        float readableFactor = 1f;
         RectTransform keyHints;
         bool hudHidden;
         int escConsumedFrame = -1;
@@ -624,6 +627,7 @@ namespace PackTheTrunk
             }
 
             FollowScreenSize();
+            ReadableText.Follow(readableFactor);
             UpdateNowPlaying();
             UpdateTitle();
             UpdateHudMotion();
@@ -1978,7 +1982,7 @@ namespace PackTheTrunk
 
         public void ShowNowPlaying(string title, string artist)
         {
-            nowPlayingTitle.text = $"{title}  <size=20><color={UiKit.Hex(UiTheme.InkSoft)}>· {artist}</color></size>";
+            nowPlayingTitle.text = $"{title}  <size={Mathf.Max(20, ReadableText.Floor(readableFactor))}><color={UiKit.Hex(UiTheme.InkSoft)}>· {artist}</color></size>";
             nowPlayingTimer = 4.5f;
             // No room beside Grandpa's tip: the music is heard anyway, so skip the cassette this time.
             if (!PlaceNowPlaying()) { RetractNowPlaying(); return; }
