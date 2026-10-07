@@ -237,16 +237,21 @@ namespace PackTheTrunk
             rules.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(46, -250), new Vector2(-40, -104));
             var keys = UiKit.Rect("Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(keys.gameObject, 8).childControlHeight = false;
+            var padKeys = UiKit.Rect("Pad Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
+            UiKit.Vertical(padKeys.gameObject, 8).childControlHeight = false;
+            bool filledToggle = false;
             void FillKeys()
             {
+                filledToggle = GameSettings.XRayToggle;
                 UiKit.Clear(keys);
                 foreach (var (k, what) in ControlsList) ControlRow(keys, k, what, 22);
+                UiKit.Clear(padKeys);
+                foreach (var (k, what) in PadControlsList) ControlRow(padKeys, k, what, 22);
             }
             FillKeys();
             Bindings.Changed += FillKeys;
-            var padKeys = UiKit.Rect("Pad Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
-            UiKit.Vertical(padKeys.gameObject, 8).childControlHeight = false;
-            foreach (var (k, what) in PadControlsList) ControlRow(padKeys, k, what, 22);
+            // "(hold)" or "(press)" follows the X-ray setting.
+            GameSettings.Changed += () => { if (GameSettings.XRayToggle != filledToggle) FillKeys(); };
             void ShowPadKeys()
             {
                 keys.gameObject.SetActive(!GamepadCursor.Active);
@@ -269,7 +274,7 @@ namespace PackTheTrunk
                     ($"{L(Bindings.Action.Turn)}  {L(Bindings.Action.Tip)}  {L(Bindings.Action.Roll)}", "turn · tip · roll (hold SHIFT to reverse)"),
                     ($"WHEEL / {L(Bindings.Action.ShelfUp)} {L(Bindings.Action.ShelfDown)}", "choose a shelf when there's a gap"),
                     ($"{L(Bindings.Action.LookLeft)}  {L(Bindings.Action.LookRight)} / RIGHT-DRAG", "look around the car"),
-                    ($"{L(Bindings.Action.XRay)} (hold)", "see through everything packed"),
+                    ($"{L(Bindings.Action.XRay)} ({(GameSettings.XRayToggle ? "press" : "hold")})", "see through everything packed"),
                     ($"{L(Bindings.Action.Undo)}  ·  {L(Bindings.Action.Hint)}", "undo (SHIFT: redo) · ask Grandpa"),
                     (L(Bindings.Action.Close), "close the trunk"),
                     ("ESC", "put back · pause"),
@@ -278,13 +283,13 @@ namespace PackTheTrunk
             }
         }
 
-        internal static readonly (string, string)[] PadControlsList =
+        internal static (string, string)[] PadControlsList => new[]
         {
             ("L-STICK  ·  A", "point · pick up · drop · click"),
             ("X  Y  RB", "turn · tip · roll (hold LB to reverse)"),
             ("D-PAD UP / DOWN", "choose a shelf"),
             ("R-STICK  ·  LT RT", "look around · zoom"),
-            ("L-STICK CLICK (hold)", "see through everything packed"),
+            ($"L-STICK CLICK ({(GameSettings.XRayToggle ? "press" : "hold")})", "see through everything packed"),
             ("VIEW  ·  D-PAD LEFT", "undo (LB: redo) · ask Grandpa"),
             ("D-PAD RIGHT", "close the trunk"),
             ("B  ·  MENU", "put back / back · pause"),

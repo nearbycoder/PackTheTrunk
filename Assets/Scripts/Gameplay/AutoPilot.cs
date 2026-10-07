@@ -85,7 +85,7 @@ namespace PackTheTrunk
             yield return Wait(1.2f);
             Check(Visible("Settings Back"), "Settings opens");
             yield return Shot("settings-audio");
-            foreach (var tab in new[] { "DISPLAY", "GRAPHICS", "GAMEPLAY", "CONTROLS" })
+            foreach (var tab in new[] { "DISPLAY", "GRAPHICS", "GAMEPLAY", "ACCESSIBILITY", "CONTROLS" })
             {
                 yield return ClickUi("Tab " + tab);
                 yield return Wait(0.9f);
@@ -1404,6 +1404,29 @@ namespace PackTheTrunk
             Check(!game.XRayActive && game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough),
                 "see-through: letting go of Tab and putting the item back restores everything");
 
+            // Toggle mode (Settings → Accessibility): one press turns X-ray on and it stays on after the
+            // key is let go; the next press turns it off. Aiming still passes through to the gap.
+            GameSettings.XRayToggle = true;
+            Uncap();
+            game.AutoHold(item);
+            yield return MoveMouse(floor);
+            yield return Wait(0.3f);
+            yield return Press(Key.Tab);
+            yield return Wait(0.5f);
+            yield return MoveMouse(floor);
+            yield return Wait(0.3f);
+            game.CurrentTarget(out var toggled, out _);
+            Check(game.XRayActive && game.Items.Where(i => i.State == ItemState.Packed).All(i => i.SeeThrough) && toggled == gap
+                && game.Ui.XRayOnShown && game.Ui.ToastShowing("X-ray on") && game.Ui.KeyboardHintCaptions().Contains("x-ray on"),
+                $"x-ray toggle: one Tab press turns X-ray on and it stays on after letting go (aim {toggled}, hint reads \"x-ray on\")");
+            yield return Shot("xray-toggle-on");
+            yield return Press(Key.Tab);
+            yield return Wait(0.4f);
+            Check(!game.XRayActive && !game.Ui.XRayOnShown && game.Ui.KeyboardHintCaptions().Contains("x-ray"),
+                "x-ray toggle: a second Tab press turns it off");
+            yield return Press(Key.Escape);
+            yield return Wait(0.4f);
+
             // Grandpa's hint ghost in the same gap, with empty hands: whatever hides it goes see-through
             // too (round 2 only checked this by eye), and comes back once the hint is gone.
             game.AutoShowHint(item, gap, Quaternion.identity);
@@ -1415,6 +1438,19 @@ namespace PackTheTrunk
             game.AutoClearHint();
             yield return Wait(0.3f);
             Check(game.SeeThroughCount == 0 && game.Items.All(i => !i.SeeThrough), "see-through: clearing the hint restores everything");
+
+            // Toggled X-ray doesn't outlive the trip: on, then leave through the pause menu.
+            yield return Press(Key.Tab);
+            yield return Wait(0.3f);
+            bool wasOn = game.XRayActive;
+            game.AutoPause();
+            yield return Wait(0.8f);
+            Check(AnyText($"{Bindings.Label(Bindings.Action.XRay)} (press)"), "x-ray toggle: the pause card says press, not hold");
+            yield return ClickUi("Pause Map");
+            yield return Wait(2.5f);
+            Check(wasOn && !game.XRayActive && !game.Ui.XRayOnShown && game.SeeThroughCount == 0, "x-ray toggle: leaving the trip turns it off");
+            GameSettings.XRayToggle = false;
+            Uncap();
         }
 
         /// <summary>
@@ -1660,6 +1696,19 @@ namespace PackTheTrunk
             yield return PadPress(pad, GamepadButton.DpadLeft);
             yield return Wait(0.4f);
             Check(game.HintItem != null, "gamepad: D-pad left asks Grandpa");
+
+            // Toggled X-ray: one click of the left stick turns it on (no holding the stick in while
+            // pointing with it), the next turns it off.
+            GameSettings.XRayToggle = true;
+            Uncap();
+            yield return PadPress(pad, GamepadButton.LeftStick);
+            yield return Wait(0.4f);
+            bool padOn = game.XRayActive && game.Ui.XRayOnShown && game.Ui.PadHintCaptions().Contains("x-ray on");
+            yield return PadPress(pad, GamepadButton.LeftStick);
+            yield return Wait(0.4f);
+            Check(padOn && !game.XRayActive && !game.Ui.XRayOnShown, "gamepad: in toggle mode one L3 click turns X-ray on (the hint says so) and the next turns it off");
+            GameSettings.XRayToggle = false;
+            Uncap();
 
             yield return PadPress(pad, GamepadButton.Start);
             yield return Wait(1f);

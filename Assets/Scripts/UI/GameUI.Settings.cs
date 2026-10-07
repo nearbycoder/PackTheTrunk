@@ -16,7 +16,7 @@ namespace PackTheTrunk
         int settingsTab;
         readonly List<Action> settingsRefresh = new List<Action>();
         readonly List<(Image face, Text label)> settingsTabs = new List<(Image, Text)>();
-        static readonly string[] TabNames = { "AUDIO", "DISPLAY", "GRAPHICS", "GAMEPLAY", "CONTROLS" };
+        static readonly string[] TabNames = { "AUDIO", "DISPLAY", "GRAPHICS", "GAMEPLAY", "ACCESSIBILITY", "CONTROLS" };
         float lastTick;
         int rowCount;
 
@@ -42,7 +42,8 @@ namespace PackTheTrunk
             {
                 int tab = i;
                 var b = UiTheme.Pill("Tab " + TabNames[i], tabs, TabNames[i], UiTheme.Night, 26, () => SelectTab(tab, true), out var label);
-                UiKit.Size(b, 236, 60);
+                UiKit.Size(b, 214, 60);
+                while (label.fontSize > 18 && label.preferredWidth > 190f) label.fontSize--;
                 settingsTabs.Add((b.transform.GetChild(1).GetComponent<Image>(), label));
             }
             var rule = UiKit.Image("Rule", card, new Color(UiTheme.InkSoft.r, UiTheme.InkSoft.g, UiTheme.InkSoft.b, 0.25f), false);
@@ -113,6 +114,7 @@ namespace PackTheTrunk
                 case 1: BuildDisplayTab(); break;
                 case 2: BuildGraphicsTab(); break;
                 case 3: BuildGameplayTab(); break;
+                case 4: BuildAccessibilityTab(); break;
                 default: BuildControlsTab(); break;
             }
         }
@@ -172,18 +174,25 @@ namespace PackTheTrunk
             SliderRow("Camera speed", $"How fast {Bindings.Label(Bindings.Action.LookLeft)} / {Bindings.Label(Bindings.Action.LookRight)} and right-drag swing the camera.", () => GameSettings.OrbitSpeed, v => GameSettings.OrbitSpeed = Mathf.Round(v * 10f) / 10f,
                 0.4f, 2f, v => $"{v:0.0}×");
             ToggleRow("Invert camera tilt", "Flip up and down when dragging the camera.", () => GameSettings.InvertOrbit, v => GameSettings.InvertOrbit = v);
-            ToggleRow("Screen shake", "A little bump when the trunk slams shut.", () => GameSettings.ScreenShake, v => GameSettings.ScreenShake = v);
             ToggleRow("Key hints", "Show the controls along the bottom while packing.", () => GameSettings.KeyHints, v => GameSettings.KeyHints = v);
             ToggleRow("Grandpa's tips", "A short note the first time each move matters. Switching them on shows them all again.",
                 () => GameSettings.Tips, v => { GameSettings.Tips = v; if (v) GameController.ResetTips(); });
+            ButtonRow("Erase progress", "Forget every trip, star and album photo. This can't be undone.", "ERASE", UiTheme.Stamp,
+                () => Confirm("Erase all trips, stars and photos?", "ERASE", () => ResetProgressPressed?.Invoke()));
+        }
+
+        void BuildAccessibilityTab()
+        {
             ChoiceRow("Placement colours", "Blue / orange is easier to tell apart with red-green colour blindness.",
                 () => GameSettings.PlacementPalettes[Mathf.Clamp(GameSettings.PlacementPalette, 0, 1)],
                 d => GameSettings.PlacementPalette = (GameSettings.PlacementPalette + d + 2) % 2);
+            ChoiceRow("X-ray", $"Hold {Bindings.Label(Bindings.Action.XRay)} (or the left stick) to see through what's packed, or press it once to turn it on and again to turn it off.",
+                () => GameSettings.XRayModes[GameSettings.XRayToggle ? 1 : 0],
+                d => GameSettings.XRayToggle = !GameSettings.XRayToggle);
+            ToggleRow("Screen shake", "A little bump when the trunk slams shut.", () => GameSettings.ScreenShake, v => GameSettings.ScreenShake = v);
             ChoiceRow("Story text speed", "How quickly texts and notes appear.",
                 () => GameSettings.TextSpeeds[Mathf.Clamp(GameSettings.TextSpeed, 0, 2)],
                 d => GameSettings.TextSpeed = (GameSettings.TextSpeed + d + 3) % 3);
-            ButtonRow("Erase progress", "Forget every trip, star and album photo. This can't be undone.", "ERASE", UiTheme.Stamp,
-                () => Confirm("Erase all trips, stars and photos?", "ERASE", () => ResetProgressPressed?.Invoke()));
         }
 
         Bindings.Action? rebinding;
@@ -223,9 +232,10 @@ namespace PackTheTrunk
             var padRight = UiKit.Rect("Pad B", grid).Place(new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(10, 0), new Vector2(0, -334));
             UiKit.Vertical(padLeft.gameObject, 4).childControlHeight = false;
             UiKit.Vertical(padRight.gameObject, 4).childControlHeight = false;
-            for (int i = 0; i < PadControlsList.Length; i++)
+            var pad = PadControlsList;
+            for (int i = 0; i < pad.Length; i++)
             {
-                var (k, what) = PadControlsList[i];
+                var (k, what) = pad[i];
                 ControlRow(i < 4 ? padLeft : padRight, k, what, 20);
             }
             settingsHint.text = "Mouse: right-click turns, the wheel picks a shelf, right-drag looks around. Hold SHIFT (or LB) to turn the other way.";

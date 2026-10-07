@@ -53,7 +53,7 @@ namespace PackTheTrunk
                 case Action.ShelfDown: return "Shelf down";
                 case Action.Undo: return "Undo";
                 case Action.Hint: return "Ask Grandpa";
-                case Action.XRay: return "X-ray (hold)";
+                case Action.XRay: return GameSettings.XRayToggle ? "X-ray (press)" : "X-ray (hold)";
                 case Action.LookLeft: return "Look left";
                 case Action.LookRight: return "Look right";
                 case Action.Close: return "Close the trunk";

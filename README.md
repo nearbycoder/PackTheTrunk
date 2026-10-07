@@ -51,7 +51,7 @@ the family album.
 Pick something up off the blanket, turn it until it fits, and drop it into the trunk (click to
 pick up and click to drop, or press, drag it in and let go). A green
 ghost shows where it will land; a red, striped one means it won't fit, and the game tells you
-why. (Settings → Gameplay → Placement colours switches to blue / orange; the stripes stay either
+why. (Settings → Accessibility → Placement colours switches to blue / orange; the stripes stay either
 way.)
 
 | Input | Action |
@@ -67,14 +67,14 @@ way.)
 | **`H`** or the **HINT** button | Ask Grandpa: an orange ghost shows where one thing goes |
 | **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
 | **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
-| **`Tab`** (hold) | X-ray: everything packed turns see-through, and you aim straight through it |
+| **`Tab`** (hold) | X-ray: everything packed turns see-through, and you aim straight through it (Settings → Accessibility → X-ray: Toggle makes it a press on, press off) |
 | **`M`** | Music on / off |
 | **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
 | **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
 
 **Gamepad (new):** the left stick moves a cursor and **A** clicks, so every menu and button works
 by pointing. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
-way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the **left stick** in is X-ray, **D-pad right** closes the
+way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the **left stick** in is X-ray (or one click, with X-ray set to Toggle), **D-pad right** closes the
 trunk, **View** undoes (**LB** + **View** redoes), **B** puts back or backs out, **Menu** pauses (and moves on from story
 texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
 the tips switch to controller buttons as soon as you touch the pad, and back when you move the
@@ -92,7 +92,9 @@ hints run along the bottom of the screen while you pack.
 **Seeing into the trunk.** While you hold something, anything packed that hides part of the
 ghost (say, when you tuck a thing into a gap under a shelf) turns into a faint see-through
 silhouette. Hold **`Tab`** (or click the left stick) to see through everything packed and aim at
-any spot underneath or behind it.
+any spot underneath or behind it. If holding a key or the stick while you aim is awkward, set
+Settings → Accessibility → X-ray to **Toggle**: one press turns it on (the key hint reads "x-ray on")
+and the next turns it off. It also switches off when you leave the trip.
 
 Stuck? **Ask Grandpa** (`H`) shows where one thing goes, taken from a complete 100% packing of
 the trip. Pick the hinted item up and it turns itself to match. If something already in the

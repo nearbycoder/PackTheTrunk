@@ -57,6 +57,20 @@ namespace PackTheTrunk
         public static readonly string[] TextSpeeds = { "Relaxed", "Normal", "Quick" };
         public static int TextSpeed { get => I("textspeed", 1); set => Set("textspeed", value); }
         public static float TextDelayScale => TextSpeed == 0 ? 1.45f : TextSpeed == 2 ? 0.55f : 1f;
+        public static readonly string[] XRayModes = { "Hold", "Toggle" };
+        /// <summary>X-ray turns on and off with a press instead of being held (read every packing frame, so cached).</summary>
+        public static bool XRayToggle { get { Cache(); return xrayToggle; } set => Set("xraytoggle", value); }
+
+        // Settings read every frame: cached here and re-read whenever a setting changes, so the
+        // per-frame code never touches the save or builds key strings.
+        static bool cached, xrayToggle;
+
+        static void Cache()
+        {
+            if (cached) return;
+            cached = true;
+            xrayToggle = B("xraytoggle", false);
+        }
 
         // ------------------------------------------------------------------ storage
 
@@ -99,6 +113,7 @@ namespace PackTheTrunk
         static void Commit()
         {
             unsaved = true;
+            cached = false;
             Apply();
             Changed?.Invoke();
         }
@@ -142,6 +157,7 @@ namespace PackTheTrunk
             {
                 "master", "music", "effects", "ambience", "bgmute", "vsync", "framecap", "fov", "uiscale", "preset", "renderscale",
                 "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "tips", "ghostpal", "textspeed",
+                "xraytoggle",
             })
                 Prefs.DeleteKey(Prefix + key);
             Bindings.ResetAll();

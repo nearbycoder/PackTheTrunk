@@ -33,8 +33,35 @@ namespace PackTheTrunk
             Hint(keyboardHintsRow, "ESC", "back / pause", 9);
             Hint(keyboardHintsRow, L(Bindings.Action.Undo), "undo", 5);
             Hint(keyboardHintsRow, L(Bindings.Action.LookLeft) + " " + L(Bindings.Action.LookRight), "orbit", 8);
-            Hint(keyboardHintsRow, L(Bindings.Action.XRay), "x-ray", 7);
+            keyboardXRayHint = UiTheme.KeyHint(keyboardHintsRow, L(Bindings.Action.XRay), "x-ray");
+            hintRank[keyboardXRayHint] = 7;
             Hint(keyboardHintsRow, L(Bindings.Action.Close), "close", 4);
+            hudLayoutWidth = -1f;
+            // The rebuilt hint starts out plain: put toggled X-ray's "on" back if it was showing.
+            bool on = xrayShownOn;
+            xrayShownOn = false;
+            SetXRayOn(on);
+        }
+
+        RectTransform keyboardXRayHint, padXRayHint;
+        bool xrayShownOn;
+
+        /// <summary>
+        /// Toggled X-ray is on: its key hint says so in the accent colour and is the last to drop out
+        /// of a narrow strip, so it's never on without the player being able to see why.
+        /// </summary>
+        public void SetXRayOn(bool on)
+        {
+            if (on == xrayShownOn) return;
+            xrayShownOn = on;
+            foreach (var hint in new[] { keyboardXRayHint, padXRayHint })
+            {
+                var caption = hint != null ? hint.Find("Caption")?.GetComponent<Text>() : null;
+                if (caption == null) continue;
+                caption.text = on ? "x-ray on" : "x-ray";
+                caption.color = on ? UiTheme.Accent : Color.white;
+                hintRank[hint] = on ? -1 : 7;
+            }
             hudLayoutWidth = -1f;
         }
 
@@ -180,6 +207,22 @@ namespace PackTheTrunk
             }
             return wrapped;
         }
+
+        /// <summary>Toggled X-ray is showing as on in the key hints (for the self-test).</summary>
+        public bool XRayOnShown => xrayShownOn;
+
+        static List<string> Captions(RectTransform row)
+        {
+            var captions = new List<string>();
+            if (row == null) return captions;
+            foreach (Transform hint in row)
+                if (hint.Find("Caption")?.GetComponent<Text>() is Text t) captions.Add(t.text);
+            return captions;
+        }
+
+        /// <summary>The captions in the keyboard and controller hint strips (for the self-test).</summary>
+        public List<string> KeyboardHintCaptions() => Captions(keyboardHintsRow);
+        public List<string> PadHintCaptions() => Captions(padHintsRow);
 
         /// <summary>The key caps currently shown in the keyboard hint strip (for the self-test).</summary>
         public List<string> KeyboardHintKeys()
@@ -1080,7 +1123,8 @@ namespace PackTheTrunk
             Hint(padHints, "B", "put back", 9);
             Hint(padHints, "VIEW", "undo", 5);
             Hint(padHints, "R-STICK", "look", 8);
-            Hint(padHints, "L3", "x-ray", 7);
+            padXRayHint = UiTheme.KeyHint(padHints, "L3", "x-ray");
+            hintRank[padXRayHint] = 7;
             Hint(padHints, "D-PAD >", "close", 4);
             padHintsRow = padHints;
             void ShowPadHints()

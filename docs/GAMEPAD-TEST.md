@@ -34,7 +34,7 @@ and keep `Player.log`. Where the log lives:
 | 7 | Press **View** (Back/Select) | Undo |
 | 8 | Press **D-pad left** | Grandpa's hint (orange ghost) |
 | 9 | Hold something over a stack, press **D-pad up / down** | The ghost moves between shelves |
-| 10 | Click the **left stick** in and hold it | X-ray: packed things go see-through |
+| 10 | Click the **left stick** in and hold it (then set Settings → Accessibility → X-ray to Toggle and click it once) | X-ray: packed things go see-through (with Toggle, they stay see-through until the next click) |
 | 11 | Move the **right stick**, pull the **triggers** | Camera orbits, zooms (empty hands) |
 | 12 | Press **B** holding something, then again with empty hands | Puts it back, then pauses (like Esc); B again resumes |
 | 13 | Pack the essentials, press **D-pad right** twice | The trunk closes (once if no extra still fits) |

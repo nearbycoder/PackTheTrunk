@@ -7,8 +7,9 @@ namespace PackTheTrunk
     /// <summary>
     /// Seeing into the trunk. While you hold something, packed things that hide any part of the
     /// placement ghost turn into faint silhouettes. Holding the X-ray key (Tab, or clicking the left
-    /// stick) turns everything packed see-through, and aiming passes through it to the floor and
-    /// walls, so a gap under or behind a stack can be targeted directly.
+    /// stick), or pressing it once in Toggle mode, turns everything packed see-through, and aiming
+    /// passes through it to the floor and walls, so a gap under or behind a stack can be targeted
+    /// directly.
     /// </summary>
     public partial class GameController
     {
@@ -16,16 +17,33 @@ namespace PackTheTrunk
         readonly HashSet<PackItem> wantSeeThrough = new HashSet<PackItem>();
         readonly List<PackItem> seeThroughScratch = new List<PackItem>();
         readonly RaycastHit[] rayHits = new RaycastHit[32];
-        bool xray;
+        bool xray, xrayLatched;
 
         bool XRayHeld =>
             Bindings.Held(Bindings.Action.XRay) ||
             (Gamepad.current != null && Gamepad.current.leftStickButton.isPressed);
 
+        bool XRayPressed =>
+            Bindings.Pressed(Bindings.Action.XRay) ||
+            (Gamepad.current != null && Gamepad.current.leftStickButton.wasPressedThisFrame);
+
         /// <summary>Called each playing frame (before aiming): work out what should be see-through.</summary>
         void UpdateSeeThrough()
         {
-            xray = XRayHeld;
+            // Settings → Accessibility: X-ray is held (the default), or a press turns it on and the
+            // next turns it off, so nobody has to hold a key (or click a stick) while aiming.
+            if (GameSettings.XRayToggle)
+            {
+                if (XRayPressed)
+                {
+                    xrayLatched = !xrayLatched;
+                    string key = GamepadCursor.Active ? "L3" : Bindings.Label(Bindings.Action.XRay);
+                    ui.Toast(xrayLatched ? $"X-ray on. {key} again turns it off." : "X-ray off.", 1.6f);
+                }
+            }
+            else xrayLatched = false;
+            xray = xrayLatched || XRayHeld;
+            ui.SetXRayOn(xrayLatched);
             wantSeeThrough.Clear();
             if (xray)
             {
@@ -77,7 +95,8 @@ namespace PackTheTrunk
             foreach (var item in seeThrough)
                 if (item != null) item.SetSeeThrough(false);
             seeThrough.Clear();
-            xray = false;
+            xray = xrayLatched = false;
+            ui.SetXRayOn(false);
         }
 
         /// <summary>The aiming / hover raycast: in X-ray it passes straight through packed things.</summary>
