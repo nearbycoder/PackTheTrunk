@@ -220,8 +220,8 @@ namespace PackTheTrunk
             MenuEntry(list, "Resume", "RESUME", "Back to packing", () => ResumePressed?.Invoke(), n++, out _, true);
             MenuEntry(list, "Pause Restart", "RESTART TRIP", "Unpack everything (undo puts it back)", () => PauseRestartPressed?.Invoke(), n++, out _);
             MenuEntry(list, "Pause Settings", "SETTINGS", "Sound, display, graphics and controls", () => ShowSettings(), n++, out _);
-            MenuEntry(list, "Pause Map", "TRIP MAP", "Pick a different trip", () => PauseMapPressed?.Invoke(), n++, out _);
-            MenuEntry(list, "Pause Title", "MAIN MENU", "Your progress is saved after every trip", () => PauseMainMenuPressed?.Invoke(), n++, out _);
+            MenuEntry(list, "Pause Map", "TRIP MAP", "Pick another trip (this trunk will wait)", () => PauseMapPressed?.Invoke(), n++, out _);
+            MenuEntry(list, "Pause Title", "MAIN MENU", "Everything you've packed is saved", () => PauseMainMenuPressed?.Invoke(), n++, out _);
 
             // How-to card on the right.
             var card = UiTheme.Card("How To", pause, UiTheme.Paper, 2f);

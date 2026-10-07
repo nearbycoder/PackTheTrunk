@@ -22,6 +22,7 @@ namespace PackTheTrunk
         GameController game;
         int shot;
         bool quick, layoutOnly;
+        string resumePhase;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -33,6 +34,8 @@ namespace PackTheTrunk
             pilot.outDir = args[i + 1];
             pilot.quick = Array.IndexOf(args, "-pttQuick") >= 0;
             pilot.layoutOnly = Array.IndexOf(args, "-pttLayoutOnly") >= 0;
+            int r = Array.IndexOf(args, "-pttResumeTest");
+            if (r >= 0 && r + 1 < args.Length) pilot.resumePhase = args[r + 1];
             int s = Array.IndexOf(args, "-pttSolutions");
             if (s >= 0 && s + 1 < args.Length) pilot.solutionsPath = args[s + 1];
         }
@@ -54,6 +57,15 @@ namespace PackTheTrunk
                 yield break;
             }
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            if (resumePhase != null)
+            {
+                yield return null;
+                game = FindAnyObjectByType<GameController>();
+                yield return ResumeCrashTest(resumePhase);
+                Log("done");
+                Application.Quit();
+                yield break;
+            }
             PerfProbe.Attach();
             yield return null;
             Uncap();
@@ -219,6 +231,7 @@ namespace PackTheTrunk
             yield return TipChecks(solutions);
             yield return HintChecks();
             yield return RestartChecks(solutions);
+            yield return ResumeChecks(solutions);
             yield return StarMeterChecks(solutions);
             yield return SeeThroughChecks();
             yield return RebindChecks();
@@ -707,6 +720,177 @@ namespace PackTheTrunk
                 Check(same && game.FreeCells == packedFree && game.Items.Count(i => i.State == ItemState.Packed) == packedNow.Count,
                     $"restart ({via}): one Z puts all {packedNow.Count} back exactly where they were");
             }
+        }
+
+        /// <summary>
+        /// Tools/resume_test.sh, on a sandboxed save file (-pttPrefsFile). "pack": half-pack Grandma's Big
+        /// Move after a hint, write down the layout and wait to be killed (SIGKILL, like a crash). "check":
+        /// in a new player on the same save, start the trip and compare.
+        /// </summary>
+        IEnumerator ResumeCrashTest(string phase)
+        {
+            int index = LevelIndex("grandma");
+            var expected = Path.Combine(outDir, "resume-expected.txt");
+            yield return Wait(3f);
+            if (phase == "pack")
+            {
+                game.AutoStartLevel(index);
+                yield return Wait(2.5f);
+                game.AutoAskGrandpa();
+                yield return Wait(0.3f);
+                var placements = LoadSolutions()["grandma"];
+                foreach (var (itemId, cells) in placements.Take(placements.Count / 2 + 1))
+                {
+                    var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                    if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                    yield return Wait(0.03f);
+                }
+                yield return Wait(0.8f);
+                var lines = new List<string>();
+                for (int i = 0; i < game.Items.Count; i++)
+                {
+                    var it = game.Items[i];
+                    if (it.State != ItemState.Packed) continue;
+                    var e = it.Orientation.eulerAngles;
+                    lines.Add($"{i} {it.GridPos.x} {it.GridPos.y} {it.GridPos.z} {e.x:0} {e.y:0} {e.z:0}");
+                }
+                File.WriteAllLines(expected, lines);
+                Log($"resume-crash: packed {lines.Count} (hinted {game.HintedThisTry}), ready to be killed");
+                yield return Wait(600f);
+                yield break;
+            }
+
+            var want = File.Exists(expected) ? File.ReadAllLines(expected) : new string[0];
+            Check(want.Length > 0, $"resume-crash: the first run left a layout to compare ({want.Length} items)");
+            game.AutoTransitionTrip(index);
+            yield return Wait(2.5f);
+            yield return StoryToPacking();
+            yield return Wait(1.5f);
+            int matched = 0;
+            foreach (var line in want)
+            {
+                var f = line.Split(' ').Select(int.Parse).ToArray();
+                var it = game.Items[f[0]];
+                if (it.State == ItemState.Packed && it.GridPos == new Vector3Int(f[1], f[2], f[3])
+                    && Quaternion.Angle(it.Orientation, Quaternion.Euler(f[4], f[5], f[6])) < 1f) matched++;
+            }
+            Check(game.IsPlaying && matched == want.Length && game.Items.Count(i => i.State == ItemState.Packed) == want.Length,
+                $"resume-crash: after a SIGKILL, starting the trip again puts back {matched}/{want.Length} in the same cells and orientations");
+            Check(game.HintedThisTry, "resume-crash: the hint mark survives the crash too");
+            yield return Shot("resume-after-crash");
+        }
+
+        IEnumerator StoryToPacking()
+        {
+            for (float t = 0f; t < 20f && !game.IsPlaying; t += 0.5f)
+            {
+                yield return Press(Key.Space);
+                yield return Wait(0.5f);
+            }
+        }
+
+        /// <summary>
+        /// Your trunk waits for you: half-pack Grandma's Big Move after asking for a hint, leave through the
+        /// pause menu's TRIP MAP holding something lifted out of the trunk, start the trip again, and every
+        /// item is back in the same cell, turned the same way, still marked as hinted. On the last trip, the
+        /// title's Continue line says the trunk is waiting and CONTINUE brings it back. Closing the trunk
+        /// clears it, and a saved trunk that doesn't fit the level any more is dropped.
+        /// </summary>
+        IEnumerator ResumeChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            int index = LevelIndex("grandma");
+            game.AutoStartLevel(index);
+            yield return Wait(2.5f);
+            Check(GameController.SavedTrunk("grandma") == "", "resume: a fresh trip has no saved trunk");
+            game.AutoAskGrandpa();
+            yield return Wait(0.3f);
+            game.AutoClearHint();
+            if (!solutions.TryGetValue("grandma", out var placements)) { Check(false, "resume: grandma has a solution"); yield break; }
+            foreach (var (itemId, cells) in placements.Take(placements.Count / 2 + 1))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            var layout = new Dictionary<int, (Vector3Int, Quaternion)>();
+            for (int i = 0; i < game.Items.Count; i++)
+                if (game.Items[i].State == ItemState.Packed) layout[i] = (game.Items[i].GridPos, game.Items[i].Orientation);
+            int free = game.FreeCells;
+            bool hinted = game.HintedThisTry;
+            // Leave with something lifted out of the trunk: it belongs where it was picked up from.
+            var lifted = game.Items.Last(i => i.State == ItemState.Packed);
+            game.AutoHold(lifted);
+            yield return Wait(0.3f);
+            Check(hinted && game.Held == lifted && GameController.SavedTrunkItems("grandma") == layout.Count,
+                $"resume: the saved trunk has all {layout.Count} packed items (the one in hand where it came from) and the hint mark");
+
+            game.AutoPause();
+            yield return Wait(0.8f);
+            yield return ClickUi("Pause Map");
+            yield return Wait(2.5f);
+            Check(Visible("Map Back"), "resume: the pause menu's TRIP MAP leaves the trip");
+            game.AutoTransitionTrip(index);
+            yield return Wait(2.5f);
+            yield return StoryToPacking();
+            yield return Wait(1f);
+            bool same = layout.All(kv => game.Items[kv.Key].State == ItemState.Packed && game.Items[kv.Key].GridPos == kv.Value.Item1
+                && Quaternion.Angle(game.Items[kv.Key].Orientation, kv.Value.Item2) < 1f);
+            Check(game.IsPlaying && same && game.FreeCells == free && game.Items.Count(i => i.State == ItemState.Packed) == layout.Count,
+                $"resume: starting the trip again puts all {layout.Count} back in the same cells, turned the same way");
+            Check(game.HintedThisTry && game.Ui.ToastShowing("just how you left it"), "resume: the hint mark comes back too (no seal), and a toast on screen says the trunk was kept");
+            yield return Shot("resume-restored");
+
+            // The trip CONTINUE goes to, through the title: it says the trunk is waiting and brings it back.
+            int last = game.NextTrip;
+            string lastId = GameDatabase.Levels[last].Id;
+            game.AutoStartLevel(last);
+            yield return Wait(2.5f);
+            if (!solutions.TryGetValue(lastId, out var finale)) { Check(false, "resume: the next trip has a solution"); yield break; }
+            foreach (var (itemId, cells) in finale.Take(2))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            game.AutoPause();
+            yield return Wait(0.8f);
+            yield return ClickUi("Pause Title");
+            yield return Wait(2.5f);
+            Check(Visible("Continue") && AnyText("2 packed, waiting for you"), "resume: the title's Continue line says 2 things are packed and waiting");
+            yield return Shot("resume-continue");
+            yield return ClickUi("Continue");
+            yield return Wait(2.5f);
+            yield return StoryToPacking();
+            yield return Wait(1.5f);
+            Check(game.IsPlaying && game.Items.Count(i => i.State == ItemState.Packed) == 2, "resume: CONTINUE brings the waiting trunk back");
+
+            foreach (var (itemId, cells) in finale.Skip(2))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.03f);
+            }
+            yield return Wait(0.8f);
+            game.AutoClose();
+            for (float t = 0f; t < 9f && !game.IsShowingResults; t += Time.unscaledDeltaTime) yield return null;
+            Check(game.IsShowingResults && GameController.SavedTrunk(lastId) == "", "resume: closing the trunk clears the saved trunk");
+            game.AutoTransitionTrip(last);
+            yield return Wait(2.5f);
+            yield return StoryToPacking();
+            yield return Wait(1f);
+            Check(game.IsPlaying && game.Items.All(i => i.State == ItemState.Pile), "resume: after a close, the trip starts with an empty trunk");
+
+            // A saved trunk that no longer fits this version of the trip is dropped, not half-loaded.
+            Prefs.SetString("ptt.trunk." + lastId, "1|0|0:" + game.Items[0].Def.Id + ":99:0:0:0:0:0");
+            game.AutoTransitionTrip(last);
+            yield return Wait(2.5f);
+            yield return StoryToPacking();
+            yield return Wait(1f);
+            Check(game.IsPlaying && game.Items.All(i => i.State == ItemState.Pile) && GameController.SavedTrunk(lastId) == "",
+                "resume: a saved trunk that doesn't fit the trip is dropped and the trip starts fresh");
         }
 
         /// <summary>

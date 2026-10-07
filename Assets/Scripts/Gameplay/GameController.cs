@@ -317,7 +317,9 @@ namespace PackTheTrunk
             }
             int next = NextTripIndex();
             var nl = GameDatabase.Levels[next];
-            string cont = done == 0 ? $"Begin the story  ·  {nl.Title}"
+            int waiting = SavedTrunkCount(nl.Id);
+            string cont = waiting > 0 ? $"Trip {next + 1}  ·  {nl.Title}  ·  {waiting} packed, waiting for you"
+                : done == 0 ? $"Begin the story  ·  {nl.Title}"
                 : done == count ? "Every trip is packed  ·  play the last one again"
                 : $"Trip {next + 1}  ·  {nl.Title}  ·  Chapter {nl.Chapter.Numeral}";
             string map = $"{done} of {count} trips packed  ·  {stars} of {count * 3} stars";
@@ -345,6 +347,7 @@ namespace PackTheTrunk
             {
                 Prefs.DeleteKey("ptt.stars." + l.Id);
                 Prefs.DeleteKey(SealKey(l.Id));
+                ForgetTrunk(l.Id);
             }
             Prefs.Save();
             foreach (var tex in photos.Values) if (tex != null) Destroy(tex);
@@ -454,8 +457,10 @@ namespace PackTheTrunk
             rig.InputEnabled = true;
             atmosphere.SetBlur(0f);
             sfx.SetAmbience(1f, false);
+            int resumed = RestoreSavedTrunk();
             ui.ShowHud(level, items);
             RefreshHud();
+            if (resumed > 0) ui.Toast($"Your trunk is just how you left it: {resumed} thing{(resumed == 1 ? "" : "s")} packed. RESTART unpacks it.", 4f);
             music.Play(level.Music);
             music.SetMuffled(false);
             OnTripStartTips();
@@ -546,6 +551,7 @@ namespace PackTheTrunk
             undo.Clear();
             starsAnnounced = 0;
             hintedThisTry = false;
+            trunkResumeChecked = false;
             restartsAfterHint.Clear();
             held = null;
             hovered = null;
@@ -1030,6 +1036,7 @@ namespace PackTheTrunk
             item.State = ItemState.Dropping;
             ghost.gameObject.SetActive(false);
             ui.ShowHeld(null);
+            SaveTrunk();
 
             item.DropTo(pos, () =>
             {
@@ -1144,6 +1151,7 @@ namespace PackTheTrunk
             starsAnnounced = CurrentStars();
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
+            SaveTrunk();
         }
 
         /// <summary>
@@ -1174,6 +1182,7 @@ namespace PackTheTrunk
             closeArmedUntil = 0f;
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
+            SaveTrunk();
             ui.Toast($"Unpacked everything. {(GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo))} puts it all back.", 3f);
             Debug.Log($"[Restart] {level.Id}: unpacked {undo.Peek().Count(s => s.Packed)} items in place");
         }
@@ -1236,6 +1245,8 @@ namespace PackTheTrunk
         {
             if (held != null) PutBack();
             mode = Mode.Closing;
+            // The trunk is shut: the next start of this trip is a fresh one (saved below with the stars).
+            ForgetTrunk(level.Id);
             ClearTips();
             ClearHint();
             ClearSeeThrough();

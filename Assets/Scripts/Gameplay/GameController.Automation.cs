@@ -16,7 +16,20 @@ namespace PackTheTrunk
         public bool IsPaused => paused;
         public bool HasValidTarget => held != null && hasTarget && targetValid;
 
-        public void AutoStartLevel(int index) => StartLevel(index);
+        /// <summary>Start a trip fresh (any trunk saved for it is forgotten first, so scripted runs are repeatable).</summary>
+        public void AutoStartLevel(int index)
+        {
+            ForgetTrunk(GameDatabase.Levels[index].Id);
+            StartLevel(index);
+        }
+
+        /// <summary>The trunk saved for a trip, as stored ("" if none).</summary>
+        public static string SavedTrunk(string levelId) => Prefs.GetString(TrunkKey(levelId), "");
+
+        public static int SavedTrunkItems(string levelId) => SavedTrunkCount(levelId);
+
+        /// <summary>The trip the title's CONTINUE starts.</summary>
+        public int NextTrip => NextTripIndex();
 
         public void AutoBeginTrip(int index) => BeginTrip(index);
 
@@ -86,6 +99,7 @@ namespace PackTheTrunk
             item.SetColliderEnabled(true);
             ReturnToPile(item);
             RefreshHud();
+            SaveTrunk();
         }
 
         /// <summary>The tip on screen right now (lower-case name), or null.</summary>

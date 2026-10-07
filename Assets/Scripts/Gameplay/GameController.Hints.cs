@@ -68,6 +68,7 @@ namespace PackTheTrunk
             {
                 hintedThisTry = true;
                 Debug.Log($"[Seal] {level.Id}: asked Grandpa, no seal this attempt");
+                SaveTrunk();
             }
             sfx.Confirm();
             ui.Toast(hint.Message, 3.4f);

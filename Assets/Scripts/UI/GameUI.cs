@@ -1418,6 +1418,10 @@ namespace PackTheTrunk
             if (!tipShown && tipGroup.alpha <= 0f) tipHolder.gameObject.SetActive(false);
         }
 
+        /// <summary>Is a toast containing <paramref name="fragment"/> on screen right now?</summary>
+        public bool ToastShowing(string fragment) =>
+            toastGroup != null && toastGroup.alpha > 0.5f && toast.text.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0;
+
         public void Toast(string message, float seconds = 2.2f)
         {
             toast.text = message;
