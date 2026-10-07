@@ -103,10 +103,13 @@ namespace PackTheTrunk
             return heights;
         }
 
-        public void Place(PackItem item, Vector3Int offset)
+        public void Place(PackItem item, Vector3Int offset) => Place(item, item.Shape, offset);
+
+        /// <summary>Place an item as if it had this shape (to try a layout without turning the item itself).</summary>
+        public void Place(PackItem item, VoxelShape shape, Vector3Int offset)
         {
             items[item.Uid] = item;
-            foreach (var v in item.Shape.Voxels)
+            foreach (var v in shape.Voxels)
             {
                 var p = v.Pos + offset;
                 cells[p.x, p.y, p.z] = item.Uid;

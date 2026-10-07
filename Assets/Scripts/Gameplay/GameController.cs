@@ -464,6 +464,12 @@ namespace PackTheTrunk
             ui.ShowHud(level, items);
             RefreshHud();
             if (resumed > 0) ui.Toast($"Your trunk is just how you left it: {resumed} thing{(resumed == 1 ? "" : "s")} packed. RESTART unpacks it.", 4f);
+            else if (resumed < 0)
+            {
+                string undoKey = GamepadCursor.Active ? "VIEW" : Bindings.Label(Bindings.Action.Undo);
+                string key = undo.Count > 0 ? undoKey : GamepadCursor.Active ? "LB + VIEW" : "SHIFT + " + undoKey;
+                ui.Toast($"Your trunk is empty, but {key} still brings back what you packed.", 4f);
+            }
             music.Play(level.Music);
             music.SetMuffled(false);
             OnTripStartTips();

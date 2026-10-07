@@ -232,6 +232,7 @@ namespace PackTheTrunk
             yield return HintChecks();
             yield return RestartChecks(solutions);
             yield return ResumeChecks(solutions);
+            yield return ResumeHistoryChecks(solutions);
             yield return DragChecks(solutions);
             yield return RedoChecks(solutions);
             yield return StarMeterChecks(solutions);
@@ -741,13 +742,16 @@ namespace PackTheTrunk
                 game.AutoAskGrandpa();
                 yield return Wait(0.3f);
                 var placements = LoadSolutions()["grandma"];
+                int lastPlaced = -1;
                 foreach (var (itemId, cells) in placements.Take(placements.Count / 2 + 1))
                 {
                     var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
-                    if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                    if (item != null && game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min)))
+                        lastPlaced = game.Items.ToList().IndexOf(item);
                     yield return Wait(0.03f);
                 }
                 yield return Wait(0.8f);
+                File.WriteAllText(Path.Combine(outDir, "resume-undo.txt"), $"{game.UndoDepth} {lastPlaced}");
                 var lines = new List<string>();
                 for (int i = 0; i < game.Items.Count; i++)
                 {
@@ -780,6 +784,14 @@ namespace PackTheTrunk
                 $"resume-crash: after a SIGKILL, starting the trip again puts back {matched}/{want.Length} in the same cells and orientations");
             Check(game.HintedThisTry, "resume-crash: the hint mark survives the crash too");
             yield return Shot("resume-after-crash");
+            var undoFile = Path.Combine(outDir, "resume-undo.txt");
+            var u = File.Exists(undoFile) ? File.ReadAllText(undoFile).Split(' ').Select(int.Parse).ToArray() : new[] { -1, -1 };
+            int depth = game.UndoDepth;
+            yield return Press(Key.Z);
+            yield return Wait(0.8f);
+            Check(u[0] > 0 && depth == u[0] && u[1] >= 0 && game.Items[u[1]].State == ItemState.Pile
+                && game.Items.Count(i => i.State == ItemState.Packed) == want.Length - 1,
+                $"resume-crash: the undo history survives too ({depth}/{u[0]} steps), and one Z takes out the last thing packed");
         }
 
         /// <summary>A screen point over the trunk where the held item would land validly (or not), and the cell it would land in.</summary>
@@ -892,6 +904,7 @@ namespace PackTheTrunk
             yield return DragTo(new Vector2(off.x, off.y), true);
             yield return Wait(0.6f);
             Check(game.Held == null && b.State == ItemState.Pile, "drag: letting go off the trunk puts it back on the blanket");
+
 
             // 5. Things already in the trunk drag too.
             var from = a.GridPos;
@@ -1102,6 +1115,113 @@ namespace PackTheTrunk
             yield return Wait(1f);
             Check(game.IsPlaying && game.Items.All(i => i.State == ItemState.Pile) && GameController.SavedTrunk(lastId) == "",
                 "resume: a saved trunk that doesn't fit the trip is dropped and the trip starts fresh");
+        }
+
+        /// <summary>A trunk layout to compare: each item packed (cell + orientation) or not.</summary>
+        List<(bool Packed, Vector3Int Pos, Quaternion Rot)> Snapshot() =>
+            game.Items.Select(i => (i.State == ItemState.Packed, i.GridPos, i.Orientation)).ToList();
+
+        bool SameLayout(List<(bool Packed, Vector3Int Pos, Quaternion Rot)> want)
+        {
+            var now = Snapshot();
+            return now.Count == want.Count && now.Zip(want, (a, b) => a.Packed == b.Packed && (!a.Packed || (a.Pos == b.Pos && Quaternion.Angle(a.Rot, b.Rot) < 1f))).All(x => x);
+        }
+
+        /// <summary>
+        /// Undo and redo survive leaving: pack five things one by one, leave through the pause menu, come
+        /// back, and Z walks back through every step, then Shift+Z forward again. A RESTART survives leaving
+        /// too: RESTART, leave, come back to an empty trunk, and Z brings the trunk and its hint mark back.
+        /// The saved size of a fully packed 25-item minivan (with its history) is logged.
+        /// </summary>
+        IEnumerator ResumeHistoryChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            int index = LevelIndex("grandma");
+            game.AutoStartLevel(index);
+            yield return Wait(2.5f);
+            if (!solutions.TryGetValue("grandma", out var placements)) { Check(false, "history: grandma has a solution"); yield break; }
+            var steps = new List<List<(bool, Vector3Int, Quaternion)>> { Snapshot() };
+            foreach (var (itemId, cells) in placements.Take(5))
+            {
+                var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                yield return Wait(0.6f);
+                steps.Add(Snapshot());
+            }
+
+            IEnumerator LeaveAndComeBack()
+            {
+                game.AutoPause();
+                yield return Wait(0.8f);
+                yield return ClickUi("Pause Map");
+                yield return Wait(2.5f);
+                game.AutoTransitionTrip(index);
+                yield return Wait(2.5f);
+                yield return StoryToPacking();
+                yield return Wait(1f);
+            }
+
+            yield return LeaveAndComeBack();
+            Check(game.IsPlaying && SameLayout(steps[5]) && game.UndoDepth == 5, $"history: after leaving, the trunk and all 5 undo steps come back (undo depth {game.UndoDepth})");
+            int walked = 0;
+            for (int i = 4; i >= 0; i--)
+            {
+                yield return Press(Key.Z);
+                yield return Wait(0.5f);
+                if (SameLayout(steps[i])) walked++;
+            }
+            Check(walked == 5 && game.Items.All(i => i.State == ItemState.Pile), $"history: Z walks back through each step from before leaving ({walked}/5)");
+            for (int i = 0; i < 5; i++) { yield return PressShift(Key.Z); yield return Wait(0.4f); }
+            yield return Wait(0.4f);
+            Check(SameLayout(steps[5]), "history: Shift+Z redoes all five again");
+
+            // Undo back two steps, leave, and the redo list waits too.
+            yield return Press(Key.Z);
+            yield return Wait(0.4f);
+            yield return Press(Key.Z);
+            yield return Wait(0.6f);
+            yield return LeaveAndComeBack();
+            bool atThree = SameLayout(steps[3]);
+            yield return PressShift(Key.Z);
+            yield return Wait(0.4f);
+            yield return PressShift(Key.Z);
+            yield return Wait(0.6f);
+            Check(atThree && SameLayout(steps[5]), "history: the redo list survives leaving too (two Shift+Z after coming back)");
+
+            // RESTART, leave: an empty trunk that Z can still fill, with the hint mark.
+            game.AutoAskGrandpa();
+            yield return Wait(0.3f);
+            game.AutoClearHint();
+            yield return ClickUi("Restart");
+            yield return Wait(0.8f);
+            bool restartFresh = !game.HintedThisTry && game.Items.All(i => i.State == ItemState.Pile);
+            yield return LeaveAndComeBack();
+            Check(restartFresh && game.IsPlaying && game.Items.All(i => i.State == ItemState.Pile) && !game.HintedThisTry && game.Ui.ToastShowing("still brings back"),
+                "history: after RESTART and leaving, the trip opens empty and a toast says Z brings it back");
+            yield return Shot("history-empty-trunk-toast");
+            yield return Press(Key.Z);
+            yield return Wait(0.8f);
+            Check(SameLayout(steps[5]) && game.HintedThisTry, "history: Z after coming back undoes the RESTART, hint mark and all");
+
+            // The biggest trunk, packed one thing at a time: how big the save gets.
+            int biggest = Enumerable.Range(0, GameDatabase.Levels.Count)
+                .OrderByDescending(i => GameDatabase.Levels[i].Required.Count + GameDatabase.Levels[i].Bonus.Count).First();
+            string bigId = GameDatabase.Levels[biggest].Id;
+            game.AutoStartLevel(biggest);
+            yield return Wait(2.5f);
+            if (solutions.TryGetValue(bigId, out var big))
+                foreach (var (itemId, cells) in big)
+                {
+                    var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                    if (item != null) game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                    yield return Wait(0.03f);
+                }
+            yield return Wait(0.8f);
+            int size = GameController.SavedTrunk(bigId).Length;
+            Log($"history: {bigId} fully packed ({game.UndoDepth} undo steps) saves {size} characters");
+            Check(game.UndoDepth == big.Count && size > 0 && size < 64 * 1024, $"history: {bigId}'s saved trunk with {game.UndoDepth} steps stays small ({size / 1024f:0.0} KB)");
+            game.AutoStartLevel(biggest);
+            yield return Wait(1f);
         }
 
         /// <summary>
