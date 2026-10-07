@@ -228,6 +228,7 @@ namespace PackTheTrunk
             yield return EarlyCloseChecks(solutions);
             Check(Prefs.GetInt("ptt.seal.wagon") == 1, "seal: the 1-star replay doesn't take the wagon's seal away");
             yield return SealChecks(solutions);
+            yield return AlbumChecks();
             yield return TipChecks(solutions);
             yield return HintChecks();
             yield return RestartChecks(solutions);
@@ -619,10 +620,68 @@ namespace PackTheTrunk
             yield return Shot("seal-map");
             game.AutoShowMenuAlbum();
             yield return Wait(11f);
-            int polaroidSeals = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).Count(r => r.name == "Seal" && r.parent != null && r.parent.parent != null && r.parent.parent.name == "Polaroid");
+            int polaroidSeals = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).Count(r => r.name == "Seal" && r.parent != null && r.parent.parent != null && r.parent.parent.name.StartsWith("Polaroid"));
             int sealedCount = GameDatabase.Levels.Count(l => Prefs.GetInt("ptt.seal." + l.Id) == 1);
             Check(polaroidSeals == sealedCount && AnyText($"Grandpa's seal on {sealedCount} of"), $"seal: the album puts a seal on each of the {sealedCount} sealed polaroids ({polaroidSeals}) and counts them");
             yield return Shot("seal-album");
+        }
+
+        /// <summary>
+        /// The album's close-up: a polaroid with a photo opens it big, the arrows and A / D flip to the
+        /// neighbouring photos, Escape and a click outside close it (the album stays open), and a polaroid
+        /// without a photo doesn't open.
+        /// </summary>
+        IEnumerator AlbumChecks()
+        {
+            if (!game.Ui.IsAlbumOpen)
+            {
+                game.AutoShowMenuAlbum();
+                yield return Wait(11f);
+            }
+            var withPhoto = GameDatabase.Levels.Where(l => FindButton("Polaroid " + l.Id) != null).ToList();
+            if (withPhoto.Count < 2) { Check(false, $"album: at least two polaroids have photos ({withPhoto.Count})"); yield break; }
+            var first = withPhoto[0];
+            var polaroid = (RectTransform)FindButton("Polaroid " + first.Id).transform;
+            var corners = new Vector3[4];
+            polaroid.GetWorldCorners(corners);
+            float polaroidWidth = Vector3.Distance(corners[0], corners[3]);
+            yield return ClickUi("Polaroid " + first.Id);
+            yield return Wait(0.6f);
+            Check(game.Ui.AlbumZoomTrip == first.Id && game.Ui.AlbumZoomPhotoWidth >= 3f * polaroidWidth && AnyText(first.Title) && AnyText($"photo 1 of {withPhoto.Count}"),
+                $"album: clicking {first.Title}'s polaroid opens its photo {game.Ui.AlbumZoomPhotoWidth / polaroidWidth:0.0}x as wide as the polaroid, with its title and count");
+            yield return Shot("album-zoom");
+            yield return Press(Key.RightArrow);
+            yield return Wait(0.3f);
+            bool nextOk = game.Ui.AlbumZoomTrip == withPhoto[1].Id;
+            yield return Press(Key.A);
+            yield return Wait(0.3f);
+            bool backOk = game.Ui.AlbumZoomTrip == first.Id;
+            yield return Press(Key.LeftArrow);
+            yield return Wait(0.3f);
+            Check(nextOk && backOk && game.Ui.AlbumZoomTrip == withPhoto[withPhoto.Count - 1].Id,
+                $"album: right goes to the next photo ({withPhoto[1].Title}), A back, and left from the first wraps to the last");
+            yield return Press(Key.Escape);
+            yield return Wait(0.5f);
+            Check(!game.Ui.IsAlbumZoomOpen && game.Ui.IsAlbumOpen, "album: Escape closes the close-up and the album stays open");
+            yield return ClickUi("Polaroid " + first.Id);
+            yield return Wait(0.5f);
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = new Vector2(12, 12) });
+            yield return null;
+            yield return Click();
+            yield return Wait(0.5f);
+            Check(!game.Ui.IsAlbumZoomOpen && game.Ui.IsAlbumOpen, "album: a click outside the photo closes the close-up");
+            var bare = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).FirstOrDefault(r => r.name == "Polaroid" && r.parent != null && r.parent.name == "Slot");
+            if (bare != null)
+            {
+                InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = (Vector2)bare.TransformPoint(bare.rect.center) });
+                yield return null;
+                yield return Click();
+                yield return Wait(0.5f);
+                Check(!game.Ui.IsAlbumZoomOpen, "album: a polaroid without a photo doesn't open");
+            }
+            yield return Press(Key.Escape);
+            yield return Wait(1f);
+            Check(!game.Ui.IsAlbumOpen, "album: with the close-up shut, Escape leaves the album as before");
         }
 
         readonly List<string> meterMismatches = new List<string>();

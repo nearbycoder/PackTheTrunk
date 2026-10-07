@@ -43,7 +43,7 @@ namespace PackTheTrunk
         public bool IsTitleWaiting => waitingForKey && title != null && title.gameObject.activeSelf;
         public bool IsAlbumOpen => album != null && album.gameObject.activeSelf;
         public bool OverlayOpen => (settings != null && settings.gameObject.activeSelf) || (confirm != null && confirm.gameObject.activeSelf) ||
-                                   (credits != null && credits.gameObject.activeSelf);
+                                   (credits != null && credits.gameObject.activeSelf) || IsAlbumZoomOpen;
         public bool IsPaused => pause != null && pause.gameObject.activeSelf;
 
         // ================================================================== TITLE

@@ -176,7 +176,8 @@ back trip after trip, scored with a lo-fi soundtrack.
 <td width="50%">
 
 **The family album.** The game photographs every trunk you close. The trip map is a scrapbook
-paged by chapter, and the album fills with one polaroid per trip.
+paged by chapter, and the album fills with one polaroid per trip. Click a polaroid to see the
+photo up close with its stars and seal, and flip through the rest with the arrow keys.
 
 </td>
 </tr>

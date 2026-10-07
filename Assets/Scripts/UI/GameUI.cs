@@ -431,7 +431,9 @@ namespace PackTheTrunk
                 if (confirm.gameObject.activeSelf) { CloseConfirm(false); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
                 else if (settings.gameObject.activeSelf) { HideSettings(); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
                 else if (credits.gameObject.activeSelf) { CloseCredits(); escConsumedFrame = Time.frameCount; }
+                else if (IsAlbumZoomOpen) { CloseAlbumZoom(); Sfx.Instance?.Back(); escConsumedFrame = Time.frameCount; }
             }
+            UpdateAlbumZoom();
 
             float s = closeButton != null && closeButton.interactable && pulseClose ? 1f + Mathf.Sin(UiTime.Now * 6f) * 0.035f : 1f;
             if (closePulse != null) closePulse.localScale = new Vector3(s, s, 1f);
@@ -1556,6 +1558,7 @@ namespace PackTheTrunk
             albumThanks.supportRichText = true;
             albumDone = UiTheme.Pill("Album Done", page, "CONTINUE", UiTheme.Accent, 26, () => AlbumClosed?.Invoke(), out albumBackLabel);
             ((RectTransform)albumDone.transform).Pin(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-40, 30), new Vector2(300, 64));
+            BuildAlbumZoom();
             album.gameObject.SetActive(false);
         }
 
@@ -1570,6 +1573,9 @@ namespace PackTheTrunk
             albumTitle.text = $"The Family Album  ·  {first} to {last}";
             albumThanks.text = "";
             albumDone.gameObject.SetActive(false);
+            CloseAlbumZoom();
+            albumPhotos.Clear();
+            albumStarsFor = starsFor;
             UiKit.Clear(albumGrid);
             StartCoroutine(FillAlbum(levels, starsFor, photoFor));
         }
@@ -1622,6 +1628,7 @@ namespace PackTheTrunk
                     yield return null;
                 }
                 holder.localScale = Vector3.one;
+                if (photo != null) MakePolaroidClickable(holder, polaroid.GetComponent<Image>(), level, photo);
                 yield return new WaitForSeconds(0.09f);
             }
             yield return new WaitForSeconds(0.8f);
