@@ -37,6 +37,11 @@ namespace PackTheTrunk
 
         // Curtain
         RectTransform curtain, curtainSheet, curtainCar;
+        CanvasGroup curtainGroup;
+
+        /// <summary>Where the paper-wipe sheet is and how opaque (for the self-test).</summary>
+        public float CurtainSheetX => curtainSheet.anchoredPosition.x;
+        public float CurtainAlpha => curtainGroup.alpha;
         RectTransform[] curtainWheels;
         bool curtainBusy;
 
@@ -495,6 +500,7 @@ namespace PackTheTrunk
             UiKit.Image("Input Blocker", curtain, new Color(0, 0, 0, 0), false).rectTransform.Fill();
             curtainSheet = UiKit.Rect("Sheet", curtain).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2700, 1900));
             curtainSheet.localRotation = Quaternion.Euler(0, 0, 8f);
+            curtainGroup = curtainSheet.gameObject.AddComponent<CanvasGroup>();
             var paper = UiKit.Image("Paper", curtainSheet, new Color(0.99f, 0.84f, 0.55f), false);
             paper.rectTransform.Fill();
             var edge = UiKit.Image("Edge", curtainSheet, UiTheme.Accent, false);
@@ -594,6 +600,15 @@ namespace PackTheTrunk
 
         void PoseCurtain(float x, float time)
         {
+            if (GameSettings.ReduceMotion)
+            {
+                // Reduce motion: the sheet fades in and out where it is, and the little car stays parked.
+                curtainGroup.alpha = 1f - Mathf.Clamp01(Mathf.Abs(x) / 2750f);
+                curtainSheet.anchoredPosition = Vector2.zero;
+                curtainCar.anchoredPosition = new Vector2(0f, -6f);
+                return;
+            }
+            curtainGroup.alpha = 1f;
             curtainSheet.anchoredPosition = new Vector2(x, 0f);
             curtainCar.anchoredPosition = new Vector2(Mathf.Lerp(-260f, 260f, Mathf.Clamp01(time / 1.2f)), -6f + Mathf.Abs(Mathf.Sin(time * 22f)) * 5f);
             foreach (var w in curtainWheels) w.localRotation = Quaternion.Euler(0, 0, -time * 900f);

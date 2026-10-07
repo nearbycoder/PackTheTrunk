@@ -88,15 +88,22 @@ namespace PackTheTrunk
         /// <summary>X-ray turns on and off with a press instead of being held (read every packing frame, so cached).</summary>
         public static bool XRayToggle { get { Cache(); return xrayToggle; } set => Set("xraytoggle", value); }
 
+        /// <summary>
+        /// Panels fade instead of sliding and bouncing, idle bobbing and pulsing stop, the paper-wipe
+        /// becomes a fade, and the camera neither sweeps in nor shakes (read every frame, so cached).
+        /// </summary>
+        public static bool ReduceMotion { get { Cache(); return reduceMotion; } set => Set("reducemotion", value); }
+
         // Settings read every frame: cached here and re-read whenever a setting changes, so the
         // per-frame code never touches the save or builds key strings.
-        static bool cached, xrayToggle;
+        static bool cached, xrayToggle, reduceMotion;
 
         static void Cache()
         {
             if (cached) return;
             cached = true;
             xrayToggle = B("xraytoggle", false);
+            reduceMotion = B("reducemotion", false);
         }
 
         // ------------------------------------------------------------------ storage
@@ -184,7 +191,7 @@ namespace PackTheTrunk
             {
                 "master", "music", "effects", "ambience", "bgmute", "vsync", "framecap", "fov", "uiscale", "preset", "renderscale",
                 "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "tips", "ghostpal", "textspeed",
-                "xraytoggle",
+                "xraytoggle", "reducemotion",
             })
                 Prefs.DeleteKey(Prefix + key);
             Bindings.ResetAll();

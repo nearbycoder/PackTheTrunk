@@ -312,7 +312,7 @@ namespace PackTheTrunk
             squash = Mathf.MoveTowards(squash, 0f, dt * 5f);
 
             float wobble = squash * Mathf.Sin(squash * 18f) * 0.12f;
-            float bob = State == ItemState.Held ? Mathf.Sin(Time.time * 4f) * 0.06f : 0f;
+            float bob = State == ItemState.Held && !GameSettings.ReduceMotion ? Mathf.Sin(Time.time * 4f) * 0.06f : 0f;
             visual.localPosition = Shape.Center + Vector3.up * (hoverAmount * 0.12f + bob);
             visual.localScale = new Vector3(1f + wobble, 1f - wobble, 1f + wobble) * (1f + hoverAmount * 0.04f);
         }

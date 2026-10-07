@@ -133,6 +133,15 @@ namespace PackTheTrunk
 
         void Pose(float k)
         {
+            if (GameSettings.ReduceMotion)
+            {
+                // Reduce motion: just a fade, in place.
+                rt.anchoredPosition = home;
+                rt.localScale = homeScale;
+                rt.localRotation = homeRotation;
+                group.alpha = Mathf.Clamp01(k * 2.5f);
+                return;
+            }
             float e = Back ? Ease.OutBack(k, 1.2f) : Ease.OutCubic(k);
             float lin = Ease.OutCubic(k);
             rt.anchoredPosition = home + Offset * (1f - e);
@@ -209,6 +218,12 @@ namespace PackTheTrunk
 
         void Update()
         {
+            if (GameSettings.ReduceMotion)
+            {
+                rt.anchoredPosition = home;
+                rt.localRotation = Quaternion.identity;
+                return;
+            }
             float s = Mathf.Sin(UiTime.Now * Speed + Phase);
             rt.anchoredPosition = home + new Vector2(0f, s * Amount);
             rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(UiTime.Now * Speed * 0.7f + Phase * 1.3f) * Tilt);

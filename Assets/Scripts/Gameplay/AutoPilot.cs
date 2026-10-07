@@ -245,6 +245,7 @@ namespace PackTheTrunk
             yield return LayoutChecks();
             yield return MenuLayoutChecks();
             yield return LegibilityChecks(solutions);
+            yield return ReduceMotionChecks(solutions);
             yield return InputReportChecks();
             // Last: once the gamepad has been used, Mouse.current is its virtual cursor.
             yield return GamepadChecks();
@@ -1741,6 +1742,90 @@ namespace PackTheTrunk
             yield return Wait(1f);
         }
 
+        /// <summary>
+        /// Reduce motion, compared with it off: the title letters stop bobbing, the settings card fades in
+        /// without sliding or scaling, the paper-wipe sheet stays put and fades, the camera starts a trip
+        /// already in place, CLOSE THE TRUNK doesn't pulse, and the slam doesn't shake the camera.
+        /// </summary>
+        IEnumerator ReduceMotionChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            if (!solutions.TryGetValue("wagon", out var wagon)) { Check(false, "motion: the wagon has a solution"); yield break; }
+            var results = new Dictionary<bool, (bool Bob, bool Intro, bool Sheet, bool Sweep, bool Pulse, bool Shake)>();
+            foreach (bool reduce in new[] { false, true })
+            {
+                GameSettings.ReduceMotion = reduce;
+                Uncap();
+                PerfProbe.Begin("menus");
+                game.AutoShowMainMenu();
+                yield return Wait(2f);
+                var bobs = FindObjectsByType<Bob>(FindObjectsInactive.Exclude).Select(b => (RectTransform)b.transform).ToList();
+                var before = bobs.Select(b => b.anchoredPosition).ToList();
+                yield return Wait(0.4f);
+                bool bobMoved = bobs.Where((b, i) => (b.anchoredPosition - before[i]).magnitude > 0.5f).Any();
+
+                yield return ClickUi("Settings");
+                yield return null;
+                var panel = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).First(r => r.name == "Panel" && r.parent != null && r.parent.name == "Settings");
+                var group = panel.GetComponent<CanvasGroup>();
+                Vector2 early = panel.anchoredPosition;
+                float earlyScale = panel.localScale.x, earlyAlpha = group != null ? group.alpha : 1f;
+                yield return Wait(1f);
+                bool introMoved = (panel.anchoredPosition - early).magnitude > 1f || Mathf.Abs(panel.localScale.x - earlyScale) > 0.01f;
+                bool introFaded = earlyAlpha < 0.99f;
+                yield return Press(Key.Escape);
+                yield return Wait(0.6f);
+
+                game.AutoTransitionTrip(LevelIndex("wagon"));
+                float minX = 0f, maxX = 0f, minAlpha = 1f;
+                for (float t = 0f; t < 1.4f; t += Time.unscaledDeltaTime)
+                {
+                    if (game.Ui.InTransition)
+                    {
+                        minX = Mathf.Min(minX, game.Ui.CurtainSheetX);
+                        maxX = Mathf.Max(maxX, game.Ui.CurtainSheetX);
+                        minAlpha = Mathf.Min(minAlpha, game.Ui.CurtainAlpha);
+                    }
+                    yield return null;
+                }
+                bool sheetMoved = maxX - minX > 1f;
+
+                PerfProbe.Begin("playing");
+                game.AutoStartLevel(LevelIndex("wagon"));
+                yield return null;
+                yield return null;
+                bool swept = !game.Rig.Settled;
+                yield return Wait(1.5f);
+                yield return PackAll("wagon", wagon);
+                yield return Wait(0.3f);
+                float lo = 1f, hi = 1f;
+                for (float t = 0f; t < 0.8f; t += Time.unscaledDeltaTime)
+                {
+                    lo = Mathf.Min(lo, game.Ui.ClosePulseScale);
+                    hi = Mathf.Max(hi, game.Ui.ClosePulseScale);
+                    yield return null;
+                }
+                bool pulsed = hi - lo > 0.01f;
+                yield return Press(Key.Space);
+                bool shook = false;
+                for (float t = 0f; t < 6f && !game.IsShowingResults; t += Time.unscaledDeltaTime)
+                {
+                    shook |= game.Rig.IsShaking;
+                    yield return null;
+                }
+                yield return Wait(1.2f);
+                results[reduce] = (bobMoved, introMoved, sheetMoved, swept, pulsed, shook);
+                if (reduce) Check(introFaded && minAlpha < 0.5f, $"motion: with reduce motion the settings card and the scene change still fade (card alpha {earlyAlpha:0.00} at first, sheet alpha down to {minAlpha:0.00})");
+            }
+            var off = results[false];
+            var on = results[true];
+            Check(off.Bob && off.Intro && off.Sheet && off.Sweep && off.Pulse && off.Shake,
+                $"motion: normally the letters bob ({off.Bob}), the card slides in ({off.Intro}), the wipe moves ({off.Sheet}), the camera sweeps in ({off.Sweep}), CLOSE pulses ({off.Pulse}) and the slam shakes ({off.Shake})");
+            Check(!on.Bob && !on.Intro && !on.Sheet && !on.Sweep && !on.Pulse && !on.Shake,
+                $"motion: with reduce motion none of that moves (bob {on.Bob}, slide {on.Intro}, wipe {on.Sheet}, sweep {on.Sweep}, pulse {on.Pulse}, shake {on.Shake})");
+            GameSettings.ReduceMotion = false;
+            Uncap();
+        }
+
         IEnumerator OpenControls()
         {
             yield return Press(Key.Escape);
@@ -1971,6 +2056,10 @@ namespace PackTheTrunk
         /// </summary>
         IEnumerator InputReportChecks()
         {
+            // The toast needs a trip in progress (the section before may end on a postcard or the title).
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("weekend"));
+            yield return Wait(2.5f);
             var pad = InputSystem.AddDevice<Gamepad>("Report Test Pad");
             yield return null;
             string added = InputReport.LastLine;

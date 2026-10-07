@@ -242,6 +242,9 @@ namespace PackTheTrunk
             return wrapped;
         }
 
+        /// <summary>The CLOSE THE TRUNK button's pulse (for the self-test).</summary>
+        public float ClosePulseScale => closePulse != null ? closePulse.localScale.x : 1f;
+
         /// <summary>Toggled X-ray is showing as on in the key hints (for the self-test).</summary>
         public bool XRayOnShown => xrayShownOn;
 
@@ -470,7 +473,7 @@ namespace PackTheTrunk
             }
             UpdateAlbumZoom();
 
-            float s = closeButton != null && closeButton.interactable && pulseClose ? 1f + Mathf.Sin(UiTime.Now * 6f) * 0.035f : 1f;
+            float s = closeButton != null && closeButton.interactable && pulseClose && !GameSettings.ReduceMotion ? 1f + Mathf.Sin(UiTime.Now * 6f) * 0.035f : 1f;
             if (closePulse != null) closePulse.localScale = new Vector3(s, s, 1f);
 
             if (messageRoutine != null && story.gameObject.activeSelf && !chapterCard.gameObject.activeSelf)
@@ -483,7 +486,7 @@ namespace PackTheTrunk
 
             if (startButton != null && startButton.gameObject.activeInHierarchy)
             {
-                float k = 1f + Mathf.Sin(UiTime.Now * 5f) * 0.03f;
+                float k = GameSettings.ReduceMotion ? 1f : 1f + Mathf.Sin(UiTime.Now * 5f) * 0.03f;
                 startButton.transform.GetChild(1).localScale = new Vector3(k, k, 1f);
             }
         }
@@ -2052,7 +2055,7 @@ namespace PackTheTrunk
     {
         void Update()
         {
-            float s = 1f + Mathf.Sin(UiTime.Now * 3f) * 0.08f;
+            float s = GameSettings.ReduceMotion ? 1f : 1f + Mathf.Sin(UiTime.Now * 3f) * 0.08f;
             transform.localScale = new Vector3(s, s, 1f);
         }
     }

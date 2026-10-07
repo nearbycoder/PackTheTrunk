@@ -190,6 +190,8 @@ namespace PackTheTrunk
                 () => GameSettings.XRayModes[GameSettings.XRayToggle ? 1 : 0],
                 d => GameSettings.XRayToggle = !GameSettings.XRayToggle);
             ToggleRow("Screen shake", "A little bump when the trunk slams shut.", () => GameSettings.ScreenShake, v => GameSettings.ScreenShake = v);
+            ToggleRow("Reduce motion", "Cards fade in instead of sliding and bouncing, nothing bobs or pulses, scene changes fade, and the camera doesn't sweep or shake.",
+                () => GameSettings.ReduceMotion, v => GameSettings.ReduceMotion = v);
             ChoiceRow("Story text speed", "How quickly texts and notes appear.",
                 () => GameSettings.TextSpeeds[Mathf.Clamp(GameSettings.TextSpeed, 0, 2)],
                 d => GameSettings.TextSpeed = (GameSettings.TextSpeed + d + 3) % 3);

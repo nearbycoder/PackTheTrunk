@@ -119,6 +119,8 @@ namespace PackTheTrunk
         /// <summary>Start the camera off to one side and let it drift slowly into place.</summary>
         public void SweepIn(float yawOffset, float pitchOffset, float distanceScale, float seconds, float rate = 1.4f)
         {
+            // Reduce motion: no sweep, the camera is simply there.
+            if (GameSettings.ReduceMotion) { yawOffset = pitchOffset = 0f; distanceScale = 1f; seconds = 0f; }
             yaw = targetYaw + yawOffset;
             pitch = Mathf.Clamp(targetPitch + pitchOffset, 15f, 85f);
             distance = targetDistance * distanceScale;
@@ -189,7 +191,7 @@ namespace PackTheTrunk
                 if (ZoomEnabled && Mathf.Abs(zoom) > 0.1f)
                     targetDistance = Mathf.Clamp(targetDistance * (1f + zoom * 1.4f * UiTime.Delta), minDistance, maxDistance);
             }
-            if (Attract)
+            if (Attract && !GameSettings.ReduceMotion)
             {
                 float t = UiTime.Now;
                 targetYaw = attractYaw + Mathf.Sin(t * 0.11f) * 22f;
@@ -218,9 +220,15 @@ namespace PackTheTrunk
             return mouse != null && mouse.rightButton.wasReleasedThisFrame && !IsDragging;
         }
 
+        /// <summary>A screen shake is playing (for the self-test).</summary>
+        public bool IsShaking => shakeTime > 0f;
+
+        /// <summary>The camera has reached where it's heading (for the self-test).</summary>
+        public bool Settled => Mathf.Abs(yaw - targetYaw) < 0.5f && Mathf.Abs(pitch - targetPitch) < 0.5f && Mathf.Abs(distance - targetDistance) < 0.05f;
+
         public void Shake(float strength, float duration)
         {
-            if (!GameSettings.ScreenShake) return;
+            if (!GameSettings.ScreenShake || GameSettings.ReduceMotion) return;
             shakeStrength = strength;
             shakeDuration = shakeTime = duration;
         }
