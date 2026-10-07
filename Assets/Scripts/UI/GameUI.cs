@@ -1035,7 +1035,7 @@ namespace PackTheTrunk
         /// The person you're packing for texts (or writes to) you about the trip. Coming back to a waiting
         /// trunk, the texts are all there at once (no chapter card) and the button goes straight back to it.
         /// </summary>
-        public void ShowStory(LevelDef level, int tripIndex, int tripCount, int waiting = 0)
+        public void ShowStory(LevelDef level, int tripIndex, int tripCount, int waiting = 0, string bestSoFar = null)
         {
             ShowOnly(story);
             string sender = string.IsNullOrEmpty(level.Sender) ? "Mom" : level.Sender;
@@ -1049,9 +1049,17 @@ namespace PackTheTrunk
             int req = level.Required.Count, bonus = level.Bonus.Count;
             tripDetails.text = $"Today's ride: <b>{level.Vehicle}</b>\nTrunk: {level.Size.x} wide, {level.Size.y} tall, {level.Size.z} deep\n" +
                                $"To pack: {req} essentials + {bonus} extras" +
-                               (waiting > 0 ? $"\n<color=#{ColorUtility.ToHtmlStringRGB(UiTheme.Accent)}><b>Your trunk is waiting: {waiting} packed</b></color>" : "");
+                               (waiting > 0 ? $"\n<color=#{ColorUtility.ToHtmlStringRGB(UiTheme.AccentInk)}><b>Your trunk is waiting: {waiting} packed</b></color>" : "") +
+                               (string.IsNullOrEmpty(bestSoFar) ? "" : $"\n<b>{bestSoFar}</b>");
+            TripCardBestSoFar = bestSoFar;
             ((RectTransform)tripTitle.transform.parent.parent).gameObject.SetActive(true);
         }
+
+        /// <summary>The trip card's "best so far" line, if it has one (for the self-test).</summary>
+        public string TripCardBestSoFar { get; private set; }
+
+        /// <summary>Whether the trip card's details fit their box (for the self-test).</summary>
+        public bool TripDetailsFit => tripDetails.preferredHeight <= tripDetails.rectTransform.rect.height + 0.5f;
 
         /// <summary>The last note, before the family album.</summary>
         public void ShowEnding()

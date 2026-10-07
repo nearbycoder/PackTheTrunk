@@ -103,7 +103,10 @@ the trip. Pick the hinted item up and it turns itself to match. If something alr
 trunk is somewhere that packing doesn't have it, he tells you to move it (or to undo). Hints are
 only ever shown when you ask, and they never place anything for you. They never cost stars either,
 but pack a trip to three stars **without** asking and Grandpa stamps his **seal** on the postcard.
-The trip map and the album show which trips have one, so there's a reason to go back.
+The trip map and the album show which trips have one, so there's a reason to go back. Starting a
+trip you've closed before, the trip card says what's still to win: your best stars and what that
+run left on the curb ("Best so far: 2 stars. On the curb: Tuba, Lava Lamp."), or that the seal is
+still waiting.
 
 **Your trunk waits for you.** Every change to the trunk is saved, so leaving a trip half-packed
 (the trip map, the main menu, quitting, even a crash) costs nothing: start that trip again and

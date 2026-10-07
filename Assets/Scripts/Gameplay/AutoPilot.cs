@@ -241,6 +241,7 @@ namespace PackTheTrunk
             yield return DragChecks(solutions);
             yield return RedoChecks(solutions);
             yield return StarMeterChecks(solutions);
+            yield return BestSoFarChecks(solutions);
             yield return SeeThroughChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
@@ -556,6 +557,95 @@ namespace PackTheTrunk
                 yield return Wait(0.03f);
             }
             yield return Wait(0.8f);
+        }
+
+        /// <summary>
+        /// The trip card's "best so far" on Grocery Run (8 essentials, 4 extras): closed with an extra left out,
+        /// starting it again names the stars and what stayed on the curb; a worse replay doesn't change that;
+        /// three stars after a hint asks for the seal instead. Grocery Run's own results are put back afterwards.
+        /// </summary>
+        IEnumerator BestSoFarChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            const string id = "groceries";
+            if (!solutions.TryGetValue(id, out var placements)) { Check(false, "best so far: groceries has a solution"); yield break; }
+            int index = LevelIndex(id);
+            string[] keys = { "ptt.stars." + id, "ptt.seal." + id, "ptt.bestleft." + id };
+            var saved = keys.Select(k => (k, has: Prefs.HasKey(k), value: Prefs.GetString(k), number: Prefs.GetInt(k))).ToList();
+            foreach (var k in keys) Prefs.DeleteKey(k);
+
+            IEnumerator Play(int skipExtras)
+            {
+                game.AutoStartLevel(index);
+                yield return Wait(1.5f);
+                // Leave out only extras that nothing else rests on, so everything else still packs.
+                var taken = new HashSet<Vector3Int>(placements.SelectMany(p => p.Item2));
+                int skipped = 0;
+                foreach (var (itemId, cells) in placements)
+                {
+                    var item = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.State == ItemState.Pile);
+                    if (item == null) continue;
+                    bool bare = cells.All(c => cells.Contains(c + Vector3Int.up) || !taken.Contains(c + Vector3Int.up));
+                    if (item.IsBonus && bare && skipped < skipExtras) { skipped++; continue; }
+                    game.AutoPlace(item, FindOrientation(item.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                    yield return Wait(0.03f);
+                }
+                yield return Wait(0.8f);
+                yield return Press(Key.Space);
+                yield return Wait(0.4f);
+                if (!game.IsShowingResults) yield return Press(Key.Space);
+                for (float t = 0f; t < 9f && !game.IsShowingResults; t += Time.unscaledDeltaTime) yield return null;
+                yield return Wait(1.2f);
+            }
+
+            game.AutoBeginTrip(index);
+            yield return Wait(1f);
+            Check(game.Ui.TripCardBestSoFar == null, "best so far: a trip never closed has no best-so-far line");
+
+            yield return Play(1);
+            bool closed = game.IsShowingResults;
+            int stars = game.LastStars;
+            var curb = game.Items.Where(i => i.State != ItemState.Packed).Select(i => i.Def.Name).Distinct().ToList();
+            int curbCount = game.Items.Count(i => i.State != ItemState.Packed);
+            game.AutoBeginTrip(index);
+            yield return Wait(2.5f);
+            string line = game.Ui.TripCardBestSoFar ?? "";
+            Check(closed && stars < 3 && curb.Count > 0 && line.Contains($"{stars} star") && line.Contains(curb[0]) && game.Ui.TripDetailsFit,
+                $"best so far: after closing with {curb.Count} left out, the trip card reads \"{line}\" (fits: {game.Ui.TripDetailsFit})");
+            yield return Shot("best-so-far-card");
+
+            yield return Play(4);
+            bool closedAgain = game.IsShowingResults;
+            int curbAgain = game.Items.Count(i => i.State != ItemState.Packed);
+            game.AutoBeginTrip(index);
+            yield return Wait(1f);
+            Check(closedAgain && game.LastStars <= stars && curbAgain > curbCount && game.Ui.TripCardBestSoFar == line,
+                $"best so far: a worse replay ({game.LastStars} stars, more left out) leaves the line as it was");
+
+            game.AutoStartLevel(index);
+            yield return Wait(1.5f);
+            game.AutoAskGrandpa();
+            yield return Wait(0.3f);
+            game.AutoClearHint();
+            yield return PackAll(id, placements);
+            yield return CloseAndWait();
+            game.AutoBeginTrip(index);
+            yield return Wait(1f);
+            string seal = game.Ui.TripCardBestSoFar ?? "";
+            Check(game.LastStars == 3 && seal.Contains("seal"), $"best so far: three stars after a hint asks for the seal (\"{seal}\")");
+            Prefs.SetInt("ptt.seal." + id, 1);
+            game.AutoBeginTrip(index);
+            yield return Wait(1f);
+            Check(game.Ui.TripCardBestSoFar == null, "best so far: with three stars and the seal there's no extra line");
+
+            foreach (var k in keys) Prefs.DeleteKey(k);
+            foreach (var (k, has, value, number) in saved)
+            {
+                if (!has) continue;
+                if (k.Contains("bestleft")) Prefs.SetString(k, value);
+                else Prefs.SetInt(k, number);
+            }
+            game.AutoShowMainMenu();
+            yield return Wait(1f);
         }
 
         /// <summary>The album deals out a polaroid a quarter of a second at a time; wait until it's done (at least as long as before).</summary>

@@ -357,6 +357,7 @@ namespace PackTheTrunk
             {
                 Prefs.DeleteKey("ptt.stars." + l.Id);
                 Prefs.DeleteKey(SealKey(l.Id));
+                Prefs.DeleteKey(BestLeftKey(l.Id));
                 ForgetTrunk(l.Id);
             }
             Prefs.Save();
@@ -436,7 +437,33 @@ namespace PackTheTrunk
             music.Play(level.Music);
             music.SetMuffled(true);
             arrival = StartCoroutine(Arrive());
-            ui.ShowStory(level, index, GameDatabase.Levels.Count, SavedTrunkCount(level.Id));
+            ui.ShowStory(level, index, GameDatabase.Levels.Count, SavedTrunkCount(level.Id), BestSoFar(index));
+        }
+
+        static string BestLeftKey(string levelId) => "ptt.bestleft." + levelId;
+
+        /// <summary>
+        /// The trip card's reminder of what's still to win on a trip closed before: the best stars and what that
+        /// run left on the curb, or the seal still to earn. Null for a fresh trip or one with three stars and the seal.
+        /// </summary>
+        string BestSoFar(int index)
+        {
+            var l = GameDatabase.Levels[index];
+            int stars = StarsFor(index);
+            if (stars == 0) return null;
+            if (stars == 3) return Sealed(index) ? null : "Three stars. Pack it without a hint for Grandpa's seal.";
+            string text = $"Best so far: {stars} star{(stars == 1 ? "" : "s")}.";
+            // Saves from before round 7 have the stars but not the list.
+            if (!Prefs.HasKey(BestLeftKey(l.Id))) return text;
+            var names = Prefs.GetString(BestLeftKey(l.Id)).Split(',')
+                .Select(id => l.Bonus.Concat(l.Required).FirstOrDefault(d => d.Id == id)?.Name)
+                .Where(n => n != null)
+                .GroupBy(n => n)
+                .Select(g => g.Count() > 1 ? $"{g.Key} ({g.Count()})" : g.Key)
+                .ToList();
+            if (names.Count == 0) return text;
+            const int Shown = 2;
+            return text + " On the curb: " + string.Join(", ", names.Take(Shown)) + (names.Count > Shown ? $" and {names.Count - Shown} more" : "") + ".";
         }
 
         void ShowEnding()
@@ -1403,6 +1430,11 @@ namespace PackTheTrunk
             }
 
             Prefs.SetInt(key, Mathf.Max(best, stars));
+            // What the best run left on the curb, for the trip card next time (a worse replay doesn't replace it).
+            string bestLeft = Prefs.HasKey(BestLeftKey(level.Id)) ? Prefs.GetString(BestLeftKey(level.Id)) : null;
+            int bestLeftCount = bestLeft == null ? int.MaxValue : bestLeft.Split(',').Count(x => x.Length > 0);
+            if (stars > best || (stars == best && left.Count <= bestLeftCount))
+                Prefs.SetString(BestLeftKey(level.Id), string.Join(",", left.Select(i => i.Def.Id)));
             // Like stars, a seal is never taken away.
             bool sealNow = stars == 3 && !hintedThisTry;
             bool hadSeal = Prefs.GetInt(SealKey(level.Id), 0) == 1;
