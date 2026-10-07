@@ -57,6 +57,25 @@ namespace PackTheTrunk
 
         public void AutoShowMenuAlbum() => ShowAlbum(false);
 
+        /// <summary>A trip's polaroid photo, decoded from disk if it isn't cached yet.</summary>
+        public Texture2D AutoPhoto(string levelId) => PhotoFor(levelId);
+
+        /// <summary>A trip's full-size close-up photo, decoded from disk if it isn't the one in memory.</summary>
+        public Texture2D AutoFullPhoto(string levelId) => FullPhotoFor(levelId);
+
+        /// <summary>Drop a trip's cached photos, so the next look reads the files again.</summary>
+        public void AutoForgetPhoto(string levelId)
+        {
+            if (photos.TryGetValue(levelId, out var tex) && tex != null) Destroy(tex);
+            photos.Remove(levelId);
+            if (fullPhotoId == levelId)
+            {
+                if (fullPhoto != null) Destroy(fullPhoto);
+                fullPhoto = null;
+                fullPhotoId = null;
+            }
+        }
+
         /// <summary>What Grandpa would suggest right now (without showing it).</summary>
         public Hint AutoFindHint() => FindHint();
 

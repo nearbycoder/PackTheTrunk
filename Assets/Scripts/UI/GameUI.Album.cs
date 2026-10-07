@@ -21,13 +21,20 @@ namespace PackTheTrunk
         Image[] zoomStars;
         RectTransform zoomSeal;
         Func<int, int> albumStarsFor;
+        Func<string, Texture2D> albumFullPhotoFor;
         readonly List<(LevelDef Level, Texture2D Photo)> albumPhotos = new List<(LevelDef, Texture2D)>();
         int zoomIndex = -1;
+
+        /// <summary>Every polaroid is down and the album's button is showing (for the self-test).</summary>
+        public bool AlbumRevealed => IsAlbumOpen && albumDone != null && albumDone.gameObject.activeInHierarchy;
 
         public bool IsAlbumZoomOpen => albumZoom != null && albumZoom.gameObject.activeSelf;
 
         /// <summary>The trip whose photo the close-up shows (for the self-test).</summary>
         public string AlbumZoomTrip => IsAlbumZoomOpen && zoomIndex >= 0 ? albumPhotos[zoomIndex].Level.Id : null;
+
+        /// <summary>The close-up's photo, in pixels (for the self-test).</summary>
+        public Vector2Int AlbumZoomTextureSize => IsAlbumZoomOpen && zoomPhoto.texture != null ? new Vector2Int(zoomPhoto.texture.width, zoomPhoto.texture.height) : Vector2Int.zero;
 
         /// <summary>The close-up photo's width on screen, in pixels (for the self-test).</summary>
         public float AlbumZoomPhotoWidth => IsAlbumZoomOpen ? ScreenRect(zoomPhoto.rectTransform).width : 0f;
@@ -104,7 +111,8 @@ namespace PackTheTrunk
         {
             zoomIndex = index;
             var (level, photo) = albumPhotos[index];
-            zoomPhoto.texture = photo;
+            // The polaroids use a small copy; the close-up loads the full photo.
+            zoomPhoto.texture = albumFullPhotoFor?.Invoke(level.Id) ?? photo;
             zoomTitle.text = level.Title;
             string when = string.IsNullOrEmpty(level.Trip) ? "" : level.Trip;
             if (level.Year > 0) when += (when.Length > 0 ? ", " : "") + level.Year;

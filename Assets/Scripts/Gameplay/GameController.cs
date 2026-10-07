@@ -359,6 +359,9 @@ namespace PackTheTrunk
             Prefs.Save();
             foreach (var tex in photos.Values) if (tex != null) Destroy(tex);
             photos.Clear();
+            if (fullPhoto != null) Destroy(fullPhoto);
+            fullPhoto = null;
+            fullPhotoId = null;
             try
             {
                 if (System.IO.Directory.Exists(AlbumDir)) System.IO.Directory.Delete(AlbumDir, true);
@@ -1420,14 +1423,41 @@ namespace PackTheTrunk
 
         static string AlbumDir => Prefs.AlbumDir;
 
+        /// <summary>The photo size: 4:3, about as big as the album's close-up shows it on a 1080p screen.</summary>
+        public const int PhotoWidth = 960, PhotoHeight = 720;
+
+        /// <summary>The album's small copy, a third of the size (the polaroids are about 130 units wide).</summary>
+        public const int ThumbWidth = PhotoWidth / 3, ThumbHeight = PhotoHeight / 3;
+
+        /// <summary>The trip's saved photo: a JPEG since round 7, a 480×360 PNG before that (still read).</summary>
+        public static string PhotoPath(string id)
+        {
+            var jpg = System.IO.Path.Combine(AlbumDir, id + ".jpg");
+            if (System.IO.File.Exists(jpg)) return jpg;
+            var png = System.IO.Path.Combine(AlbumDir, id + ".png");
+            return System.IO.File.Exists(png) ? png : null;
+        }
+
+        /// <summary>The polaroid's copy: the thumbnail saved with a round-7 photo, or the old PNG itself.</summary>
+        public static string ThumbPath(string id)
+        {
+            var thumb = System.IO.Path.Combine(AlbumDir, id + ".thumb.jpg");
+            return System.IO.File.Exists(thumb) ? thumb : PhotoPath(id);
+        }
+
+        /// <summary>The one full-size photo kept in memory: the close-up's, or the trunk just closed.</summary>
+        string fullPhotoId;
+        Texture2D fullPhoto;
+
         /// <summary>
-        /// Snap a photo of the packed trunk from just above the bumper, for the family album. The
-        /// render happens now; the pixels come back from the GPU asynchronously and the PNG is
-        /// encoded and saved on a worker thread, so closing the trunk never stalls a frame.
+        /// Snap a photo of the packed trunk from just above the bumper, for the family album. It's rendered
+        /// at twice the size and scaled down (4× supersampling, whatever the anti-aliasing setting), now; the
+        /// pixels come back from the GPU asynchronously, and the thumbnail and both JPEGs are made on a worker
+        /// thread, so closing the trunk never stalls a frame.
         /// </summary>
         IEnumerator TakeTrunkPhoto()
         {
-            const int width = 480, height = 360;
+            const int width = PhotoWidth, height = PhotoHeight;
             var go = new GameObject("Photo Camera");
             var photoCam = go.AddComponent<Camera>();
             photoCam.CopyFrom(cam);
@@ -1437,8 +1467,8 @@ namespace PackTheTrunk
             go.transform.position = centre + new Vector3(-0.15f * reach, 0.95f * reach, -0.8f * reach);
             go.transform.LookAt(centre);
             photoCam.fieldOfView = 38f;
-            var rt = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
-            photoCam.targetTexture = rt;
+            var big = RenderTexture.GetTemporary(width * 2, height * 2, 24, RenderTextureFormat.ARGB32);
+            photoCam.targetTexture = big;
             // The open lid hangs over the trunk from up here; leave it out of the snapshot.
             bool lidShown = vehicle.LidPivot.gameObject.activeSelf;
             vehicle.LidPivot.gameObject.SetActive(false);
@@ -1446,6 +1476,11 @@ namespace PackTheTrunk
             vehicle.LidPivot.gameObject.SetActive(lidShown);
             photoCam.targetTexture = null;
             Destroy(go);
+            // Halving with bilinear sampling averages each 2×2 block exactly.
+            big.filterMode = FilterMode.Bilinear;
+            var rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(big, rt);
+            RenderTexture.ReleaseTemporary(big);
 
             string id = level.Id;
             var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
@@ -1474,45 +1509,110 @@ namespace PackTheTrunk
             }
             RenderTexture.ReleaseTemporary(rt);
             tex.Apply(false, true);
-            if (photos.TryGetValue(id, out var old) && old != null) Destroy(old);
-            photos[id] = tex;
+            if (fullPhoto != null) Destroy(fullPhoto);
+            fullPhotoId = id;
+            fullPhoto = tex;
 
-            var path = System.IO.Path.Combine(AlbumDir, id + ".png");
+            var path = System.IO.Path.Combine(AlbumDir, id + ".jpg");
+            var thumbPath = System.IO.Path.Combine(AlbumDir, id + ".thumb.jpg");
+            var legacy = System.IO.Path.Combine(AlbumDir, id + ".png");
             var format = tex.graphicsFormat;
-            System.Threading.Tasks.Task.Run(() =>
+            byte[] thumb = null;
+            var work = System.Threading.Tasks.Task.Run(() =>
             {
+                thumb = Shrink(pixels, width, height, 3);
                 try
                 {
-                    var png = ImageConversion.EncodeArrayToPNG(pixels, format, width, height);
-                    System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
-                    System.IO.File.WriteAllBytes(path, png);
+                    System.IO.Directory.CreateDirectory(AlbumDirOf(path));
+                    System.IO.File.WriteAllBytes(path, ImageConversion.EncodeArrayToJPG(pixels, format, width, height, 0, 92));
+                    System.IO.File.WriteAllBytes(thumbPath, ImageConversion.EncodeArrayToJPG(thumb, format, width / 3, height / 3, 0, 90));
+                    if (System.IO.File.Exists(legacy)) System.IO.File.Delete(legacy);
                 }
                 catch (System.Exception e)
                 {
                     Debug.LogWarning("[Album] could not save photo: " + e.Message);
                 }
             });
+            while (thumb == null && !work.IsCompleted) yield return null;
+            if (thumb == null) yield break;
+            var small = new Texture2D(width / 3, height / 3, TextureFormat.RGBA32, true);
+            small.SetPixelData(thumb, 0);
+            small.Apply(true, true);
+            if (photos.TryGetValue(id, out var old) && old != null) Destroy(old);
+            photos[id] = small;
+        }
+
+        static string AlbumDirOf(string path) => System.IO.Path.GetDirectoryName(path);
+
+        /// <summary>Box-filter RGBA pixels down by a whole factor.</summary>
+        static byte[] Shrink(byte[] pixels, int width, int height, int factor)
+        {
+            int w = width / factor, h = height / factor, n = factor * factor;
+            var result = new byte[w * h * 4];
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            for (int c = 0; c < 4; c++)
+            {
+                int sum = 0;
+                for (int dy = 0; dy < factor; dy++)
+                for (int dx = 0; dx < factor; dx++)
+                    sum += pixels[((y * factor + dy) * width + x * factor + dx) * 4 + c];
+                result[(y * w + x) * 4 + c] = (byte)(sum / n);
+            }
+            return result;
         }
 
         /// <summary>Decode saved album photos a frame at a time on the title screen, so opening the album is instant.</summary>
         IEnumerator WarmAlbum()
         {
             yield return null;
+            int count = 0;
+            double total = 0, slowest = 0;
             foreach (var l in GameDatabase.Levels)
             {
                 if (photos.ContainsKey(l.Id)) continue;
-                if (PhotoFor(l.Id) != null) yield return null;
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                if (PhotoFor(l.Id) == null) continue;
+                double ms = watch.Elapsed.TotalMilliseconds;
+                count++;
+                total += ms;
+                slowest = System.Math.Max(slowest, ms);
+                yield return null;
             }
+            if (count > 0) Debug.Log($"[Album] decoded {count} photos in {total:0} ms (slowest {slowest:0.0} ms, one per frame)");
         }
 
+        /// <summary>A trip's polaroid photo (the small copy), decoded once, with mipmaps so it doesn't shimmer.</summary>
         Texture2D PhotoFor(string id)
         {
             if (photos.TryGetValue(id, out var tex) && tex != null) return tex;
-            var path = System.IO.Path.Combine(AlbumDir, id + ".png");
-            if (!System.IO.File.Exists(path)) return null;
-            tex = new Texture2D(2, 2, TextureFormat.RGB24, false);
-            tex.LoadImage(System.IO.File.ReadAllBytes(path));
-            photos[id] = tex;
+            tex = LoadPhoto(ThumbPath(id), true);
+            if (tex != null) photos[id] = tex;
+            return tex;
+        }
+
+        /// <summary>A trip's full-size photo for the album's close-up. Only one is kept at a time.</summary>
+        Texture2D FullPhotoFor(string id)
+        {
+            if (fullPhotoId == id && fullPhoto != null) return fullPhoto;
+            var tex = LoadPhoto(PhotoPath(id), false);
+            if (tex == null) return PhotoFor(id);
+            if (fullPhoto != null) Destroy(fullPhoto);
+            fullPhotoId = id;
+            fullPhoto = tex;
+            return tex;
+        }
+
+        static Texture2D LoadPhoto(string path, bool mipmaps)
+        {
+            if (path == null) return null;
+            var tex = new Texture2D(2, 2, TextureFormat.RGB24, mipmaps);
+            if (!tex.LoadImage(System.IO.File.ReadAllBytes(path), true))
+            {
+                Destroy(tex);
+                Debug.LogWarning("[Album] could not read " + path);
+                return null;
+            }
             return tex;
         }
 
@@ -1528,7 +1628,7 @@ namespace PackTheTrunk
             sfx.Page();
             music.Play(MusicDirector.EndingTrack);
             music.SetMuffled(false);
-            ui.ShowAlbum(GameDatabase.Levels, StarsFor, PhotoFor, finale);
+            ui.ShowAlbum(GameDatabase.Levels, StarsFor, PhotoFor, FullPhotoFor, finale);
         }
 
         void Quit()

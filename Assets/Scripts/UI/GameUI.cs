@@ -1658,8 +1658,9 @@ namespace PackTheTrunk
             album.gameObject.SetActive(false);
         }
 
-        public void ShowAlbum(IReadOnlyList<LevelDef> levels, Func<int, int> starsFor, Func<string, Texture2D> photoFor, bool finale)
+        public void ShowAlbum(IReadOnlyList<LevelDef> levels, Func<int, int> starsFor, Func<string, Texture2D> photoFor, Func<string, Texture2D> fullPhotoFor, bool finale)
         {
+            albumFullPhotoFor = fullPhotoFor;
             ShowOnly(album);
             albumFinale = finale;
             albumBackLabel.text = finale ? "CONTINUE" : "BACK";

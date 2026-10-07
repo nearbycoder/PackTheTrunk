@@ -230,6 +230,7 @@ namespace PackTheTrunk
             yield return EarlyCloseChecks(solutions);
             Check(Prefs.GetInt("ptt.seal.wagon") == 1, "seal: the 1-star replay doesn't take the wagon's seal away");
             yield return SealChecks(solutions);
+            yield return PhotoChecks();
             yield return AlbumChecks();
             yield return TipChecks(solutions);
             yield return HintChecks();
@@ -256,7 +257,7 @@ namespace PackTheTrunk
             yield return Wait(7f);
             yield return Shot("ending-note");
             game.AutoShowAlbum();
-            yield return Wait(12f);
+            yield return WaitForAlbum(12f);
             yield return Shot("album");
 
             PerfProbe.Report();
@@ -270,7 +271,7 @@ namespace PackTheTrunk
         /// </summary>
         IEnumerator EarlyCloseChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
         {
-            var photo = Path.Combine(Prefs.AlbumDir, "wagon.png");
+            var photo = GameController.PhotoPath("wagon");
             string before = File.Exists(photo) ? Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes(photo))) : null;
             Check(before != null && Prefs.GetInt("ptt.stars.wagon") == 3, "the wagon has a 3-star photo before the replay");
 
@@ -557,6 +558,20 @@ namespace PackTheTrunk
             yield return Wait(0.8f);
         }
 
+        /// <summary>The album deals out a polaroid a quarter of a second at a time; wait until it's done (at least as long as before).</summary>
+        IEnumerator WaitForAlbum(float atLeast = 11f)
+        {
+            float start = Time.unscaledTime;
+            while (Time.unscaledTime - start < 25f && !(game.Ui.AlbumRevealed && Time.unscaledTime - start >= atLeast)) yield return null;
+            yield return Wait(0.3f);
+        }
+
+        static string LoadAverage()
+        {
+            try { return File.ReadAllText("/proc/loadavg").Split(' ')[0]; }
+            catch { return "?"; }
+        }
+
         IEnumerator CloseAndWait()
         {
             yield return Press(Key.Space);
@@ -624,7 +639,7 @@ namespace PackTheTrunk
             Check(FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).Any(r => r.name.StartsWith("Seal ") && r.name.Length > 5 && char.IsDigit(r.name[5])) && AnyText("Grandpa's seal on"), "seal: the Trip Map shows the seals and how many there are");
             yield return Shot("seal-map");
             game.AutoShowMenuAlbum();
-            yield return Wait(11f);
+            yield return WaitForAlbum();
             int polaroidSeals = FindObjectsByType<RectTransform>(FindObjectsInactive.Exclude).Count(r => r.name == "Seal" && r.parent != null && r.parent.parent != null && r.parent.parent.name.StartsWith("Polaroid"));
             int sealedCount = GameDatabase.Levels.Count(l => Prefs.GetInt("ptt.seal." + l.Id) == 1);
             Check(polaroidSeals == sealedCount && AnyText($"Grandpa's seal on {sealedCount} of"), $"seal: the album puts a seal on each of the {sealedCount} sealed polaroids ({polaroidSeals}) and counts them");
@@ -636,12 +651,67 @@ namespace PackTheTrunk
         /// neighbouring photos, Escape and a click outside close it (the album stays open), and a polaroid
         /// without a photo doesn't open.
         /// </summary>
+        /// <summary>
+        /// Album photos: a freshly closed trunk is saved as a 960×720 JPEG plus a 320×240 thumbnail; the polaroid
+        /// uses the thumbnail (with mipmaps) and the close-up the full photo; an old 480×360 PNG from before round 7
+        /// still loads for both. Decode times are logged.
+        /// </summary>
+        IEnumerator PhotoChecks()
+        {
+            const string id = "wagon";
+            yield return Wait(1f);
+            string path = GameController.PhotoPath(id), thumbPath = GameController.ThumbPath(id);
+            var bytes = path != null ? File.ReadAllBytes(path) : new byte[0];
+            var thumbBytes = thumbPath != null ? File.ReadAllBytes(thumbPath) : new byte[0];
+            var probe = new Texture2D(2, 2);
+            var thumbProbe = new Texture2D(2, 2);
+            bool decoded = bytes.Length > 0 && probe.LoadImage(bytes) && thumbBytes.Length > 0 && thumbProbe.LoadImage(thumbBytes);
+            Check(path != null && path.EndsWith(".jpg") && thumbPath.EndsWith(".thumb.jpg") && decoded &&
+                  probe.width == GameController.PhotoWidth && probe.height == GameController.PhotoHeight && thumbProbe.width == GameController.ThumbWidth,
+                $"photo: the wagon's trunk is saved as {Path.GetFileName(path ?? "nothing")} {probe.width}x{probe.height} ({bytes.Length / 1024} KB) " +
+                $"and {Path.GetFileName(thumbPath ?? "nothing")} {thumbProbe.width}x{thumbProbe.height} ({thumbBytes.Length / 1024} KB)");
+            Destroy(thumbProbe);
+
+            game.AutoForgetPhoto(id);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var thumb = game.AutoPhoto(id);
+            double thumbMs = watch.Elapsed.TotalMilliseconds;
+            watch.Restart();
+            var full = game.AutoFullPhoto(id);
+            double fullMs = watch.Elapsed.TotalMilliseconds;
+            Check(thumb != null && thumb.width == GameController.ThumbWidth && thumb.mipmapCount > 1 && full != null && full.width == GameController.PhotoWidth,
+                $"photo: read back, the polaroid's copy is {thumb?.width}x{thumb?.height} with {thumb?.mipmapCount} mip levels ({thumbMs:0.0} ms) " +
+                $"and the close-up's {full?.width}x{full?.height} ({fullMs:0.0} ms), load {LoadAverage()}");
+
+            // An album from before round 7: a 480x360 PNG (made from the wagon's photo) still shows.
+            var legacyId = GameDatabase.Levels[GameDatabase.Levels.Count - 1].Id;
+            var small = RenderTexture.GetTemporary(480, 360, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(probe, small);
+            var prev = RenderTexture.active;
+            RenderTexture.active = small;
+            var png = new Texture2D(480, 360, TextureFormat.RGB24, false);
+            png.ReadPixels(new Rect(0, 0, 480, 360), 0, 0);
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(small);
+            foreach (var stale in new[] { legacyId + ".jpg", legacyId + ".thumb.jpg" })
+                if (File.Exists(Path.Combine(Prefs.AlbumDir, stale))) File.Delete(Path.Combine(Prefs.AlbumDir, stale));
+            Directory.CreateDirectory(Prefs.AlbumDir);
+            File.WriteAllBytes(Path.Combine(Prefs.AlbumDir, legacyId + ".png"), png.EncodeToPNG());
+            Destroy(png);
+            Destroy(probe);
+            game.AutoForgetPhoto(legacyId);
+            var old = game.AutoPhoto(legacyId);
+            var oldFull = game.AutoFullPhoto(legacyId);
+            Check(old != null && old.width == 480 && oldFull != null && oldFull.width == 480 && GameController.PhotoPath(legacyId).EndsWith(".png"),
+                $"photo: an old 480x360 PNG ({legacyId}) still loads for the polaroid and the close-up ({old?.width}x{old?.height})");
+        }
+
         IEnumerator AlbumChecks()
         {
             if (!game.Ui.IsAlbumOpen)
             {
                 game.AutoShowMenuAlbum();
-                yield return Wait(11f);
+                yield return WaitForAlbum();
             }
             var withPhoto = GameDatabase.Levels.Where(l => FindButton("Polaroid " + l.Id) != null).ToList();
             if (withPhoto.Count < 2) { Check(false, $"album: at least two polaroids have photos ({withPhoto.Count})"); yield break; }
@@ -654,6 +724,7 @@ namespace PackTheTrunk
             yield return Wait(0.6f);
             Check(game.Ui.AlbumZoomTrip == first.Id && game.Ui.AlbumZoomPhotoWidth >= 3f * polaroidWidth && AnyText(first.Title) && AnyText($"photo 1 of {withPhoto.Count}"),
                 $"album: clicking {first.Title}'s polaroid opens its photo {game.Ui.AlbumZoomPhotoWidth / polaroidWidth:0.0}x as wide as the polaroid, with its title and count");
+            Check(game.Ui.AlbumZoomTextureSize.x == GameController.PhotoWidth, $"album: the close-up shows the full {game.Ui.AlbumZoomTextureSize.x}x{game.Ui.AlbumZoomTextureSize.y} photo, not the polaroid's copy");
             yield return Shot("album-zoom");
             yield return Press(Key.RightArrow);
             yield return Wait(0.3f);
@@ -1727,7 +1798,7 @@ namespace PackTheTrunk
                 yield return Shot($"legibility-{size}-postcard");
             }
             game.AutoShowMenuAlbum();
-            yield return Wait(11f);
+            yield return WaitForAlbum();
             Measure("album");
             if (Visible("Polaroid wagon"))
             {
