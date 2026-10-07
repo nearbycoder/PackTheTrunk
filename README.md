@@ -426,9 +426,9 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus six rounds of improvements since that release (see
+Version **0.1.0** plus seven rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, and the autopilot (262 checks) passes every trip. Still rough or missing:
+settings are complete, and the autopilot (304 checks) passes every trip. Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
@@ -438,8 +438,8 @@ settings are complete, and the autopilot (262 checks) passes every trip. Still r
   Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't installed
   here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
-  checks (pointing, every packing action, undo, hint, pause, menu clicks, handing back to the
-  mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
+  checks (pointing, every packing action, undo, hint, pause, menu clicks, D-pad menu navigation,
+  the album close-up's D-pad and bumpers, handing back to the mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
   checklist for that first test, and `[Input]` lines in `Player.log` show what the player saw. No touch support; keyboard
   keys can be remapped, gamepad buttons can't.
 - **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
@@ -456,9 +456,11 @@ settings are complete, and the autopilot (262 checks) passes every trip. Still r
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
   meter, Grandpa's seal or dragging. The README screenshots were refreshed in round 4 and show the
   meter and the seal.
-- **Small screens are checked, not seen.** Text size was measured at 1280×800 (Steam Deck), 1440×900,
-  1600×900, 1200×900 and 2100×900, but nobody has looked at the game on a real Deck, and windows
-  smaller than 1280×720 weren't measured. Contrast isn't part of the check.
+- **Small screens are checked, not seen.** Text size and contrast were measured at 1280×800 (Steam
+  Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has looked at the game on a real Deck,
+  and windows smaller than 1280×720 weren't measured. The contrast check reads each text's background
+  from the screen and uses the text's own colour (a `<color>` part inside a line isn't checked
+  separately), and it covers the screens the self-test visits, not every possible moment.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
   autopilot's queued input stopped registering and every input check failed. Re-run when it's
   quieter.
