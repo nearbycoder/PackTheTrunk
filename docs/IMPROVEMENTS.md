@@ -448,3 +448,61 @@ releases and re-cutting the trailer (all owner decisions); a physical gamepad / 
 (`docs/GAMEPAD-TEST.md`); README screenshots that show the star meter and the seal (a stills-only
 capture, about 3 minutes, when the owner wants the gallery refreshed); and bigger replayability
 ideas from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
+
+## Round 4 scope (2026-10-06, branch `improvements-4`)
+
+Round 4 is about not losing work and about how the pieces feel in the hand. Today, leaving a trip
+for any reason throws the packed trunk away: the pause menu's TRIP MAP and MAIN MENU (there's no
+warning), quitting, and the rare Wayland player crash. On a 25-item minivan that can be twenty
+minutes of packing. Players coming from other packing games will also try to **drag** things into
+the trunk, and the game only understands click-to-pick-up, click-to-drop. Undo has no redo.
+
+### A. Your trunk waits for you
+
+- **Acceptance:** every change to the trunk (a drop, a lift, undo, RESTART) is saved for that trip,
+  with the "asked Grandpa" mark so the seal can't be gamed by leaving and coming back. Starting the
+  trip again (Continue, the trip map, after quitting or a crash) puts every packed thing back in the
+  same cell, turned the same way, once the story texts are done, and a toast says so (RESTART still
+  unpacks it). Each trip keeps its own trunk, and the title's Continue line says how many things
+  are packed. Closing the trunk and erasing progress clear it. A saved trunk that no longer fits
+  the level data (after an update) is dropped with a log line instead of loading half-broken.
+- **Verify:** an autopilot section packs half of Grandma's Big Move after asking for a hint, leaves
+  through the real pause menu (TRIP MAP), starts the trip again and checks every item's cell and
+  orientation, the free-cell count, the hinted mark and the Continue text. It then closes the trunk
+  and checks the next start is empty. A **crash test** (`Tools/resume_test.sh`) runs the player
+  twice on a sandboxed save file: the first run packs half a trip and is killed with SIGKILL, and
+  the second must restore the same trunk. The real save is hashed before and after.
+
+### B. Drag to pack
+
+- **Acceptance:** press on something (on the blanket or in the trunk), drag it, and let go over
+  the trunk to drop it where the ghost is. Letting go where it won't fit says why and keeps it in
+  your hand. Letting go off the trunk puts it back. Click-to-pick-up, click-to-drop works exactly
+  as before (a press without a real drag doesn't drop on release). The gamepad's A works the same
+  way. Grandpa's first tip mentions dragging.
+- **Verify:** autopilot checks with real mouse events: a press-drag-release from the blanket into
+  the trunk packs the item at the ghost's cell; a press-release in place still leaves it held; a
+  release on a blocked spot keeps it held and shows the reason; a drag out of the trunk onto the
+  driveway puts it back; and the whole existing click-based run still passes.
+
+### C. Redo
+
+- **Acceptance:** **Shift + Undo** (Shift+Z / Shift+Backspace; gamepad LB + View) redoes what undo
+  took back, including a RESTART. Anything new (a drop, a RESTART) clears the redo list. Redoing a
+  RESTART starts a fresh attempt for the seal, as RESTART does. The pause card, the undo tip and
+  the README mention it. Redo follows the Undo binding, so a remapped undo key redoes with Shift.
+- **Verify:** autopilot checks: three drops, three Z, three Shift+Z gives back the same trunk;
+  Z, then a new drop, then Shift+Z does nothing ("Nothing to redo"); undo a RESTART, then redo it
+  empties the trunk again.
+
+### D. Owed from round 3: README screenshots and the macOS build
+
+- **Acceptance:** the README gallery shows the live star meter and Grandpa's seal (stills-only
+  capture through the repo's own pipeline; the trailer isn't re-cut). `build-mac` is re-run on
+  the round-4 code.
+- **Verify:** look at each image, check file sizes stay under the 1.4 MB cap, and check the
+  `.app` with `file` (universal x86_64 + arm64). It still can't be run on a Mac here.
+
+Each item ends with `build-linux` (0 errors), the solver, a quick autopilot (load checked first),
+and screenshots in `docs/media/improvements/round4/`. The round ends with a full autopilot (0 FAIL,
+save untouched) and a `-pttBench` run if the machine is quiet.
