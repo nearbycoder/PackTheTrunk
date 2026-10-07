@@ -1853,6 +1853,19 @@ namespace PackTheTrunk
             yield return Wait(1.6f);
             yield return Measure("trip map");
             yield return Shot($"legibility-{size}-map");
+            // Every chapter's page: each pin wears its car's colour.
+            for (int i = 0; i < GameDatabase.Chapters.Count; i++)
+            {
+                yield return ClickUi("Prev Page");
+                yield return Wait(0.3f);
+            }
+            for (int page = 1; page < GameDatabase.Chapters.Count; page++)
+            {
+                yield return ClickUi("Next Page");
+                // The page's last label finishes fading in about 1.1 s after the flip.
+                yield return Wait(1.5f);
+                yield return Measure($"trip map page {page + 1}");
+            }
             yield return Press(Key.Escape);
             yield return Wait(1f);
 

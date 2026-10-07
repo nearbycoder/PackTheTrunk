@@ -853,9 +853,11 @@ namespace PackTheTrunk
                 ring.sprite = UiTheme.Ring;
                 ring.raycastTarget = false;
                 ring.rectTransform.Fill(4);
-                var num = UiTheme.Label("Num", pin, open ? (index + 1).ToString() : "?", UiTheme.Display, 38, Color.white, TextAnchor.MiddleCenter);
+                // White on the car's colour, unless the car is a light one (the yellow Mini, the white house car): then ink.
+                bool inkNumber = UiTheme.Contrast(Color.white, face.color) < 3f;
+                var num = UiTheme.Label("Num", pin, open ? (index + 1).ToString() : "?", UiTheme.Display, 38, inkNumber ? UiTheme.Ink : Color.white, TextAnchor.MiddleCenter);
                 num.rectTransform.Fill();
-                num.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.35f);
+                if (!inkNumber) num.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.35f);
                 var button = pin.gameObject.AddComponent<Button>();
                 button.targetGraphic = face;
                 button.interactable = open;
