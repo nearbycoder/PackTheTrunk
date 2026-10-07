@@ -232,6 +232,7 @@ namespace PackTheTrunk
             yield return HintChecks();
             yield return RestartChecks(solutions);
             yield return ResumeChecks(solutions);
+            yield return DragChecks(solutions);
             yield return StarMeterChecks(solutions);
             yield return SeeThroughChecks();
             yield return RebindChecks();
@@ -778,6 +779,146 @@ namespace PackTheTrunk
                 $"resume-crash: after a SIGKILL, starting the trip again puts back {matched}/{want.Length} in the same cells and orientations");
             Check(game.HintedThisTry, "resume-crash: the hint mark survives the crash too");
             yield return Shot("resume-after-crash");
+        }
+
+        /// <summary>A screen point over the trunk where the held item would land validly (or not), and the cell it would land in.</summary>
+        bool FindAim(bool wantValid, out Vector2 screen, out Vector3Int pos)
+        {
+            var size = game.TrunkSize;
+            var trunk = game.CurrentVehicle.transform;
+            for (int y = 0; y <= size.y; y++)
+            for (int z = 0; z < size.z; z++)
+            for (int x = 0; x < size.x; x++)
+            {
+                var s = game.Camera.WorldToScreenPoint(trunk.TransformPoint(new Vector3(x + 0.5f, y, z + 0.5f)));
+                screen = new Vector2(s.x, s.y);
+                if (game.PreviewTarget(screen, out pos, out bool valid) && valid == wantValid) return true;
+            }
+            screen = default;
+            pos = default;
+            return false;
+        }
+
+        IEnumerator MouseDown(Vector3 world)
+        {
+            var s = game.Camera.WorldToScreenPoint(world);
+            var p = new Vector2(s.x, s.y);
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = p });
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = p }.WithButton(MouseButton.Left, true));
+            yield return null;
+            yield return null;
+        }
+
+        /// <summary>Move the mouse with the left button held, a little each frame, like a hand would.</summary>
+        IEnumerator DragTo(Vector2 to, bool release)
+        {
+            var from = Mouse.current.position.ReadValue();
+            for (int i = 1; i <= 15; i++)
+            {
+                InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = Vector2.Lerp(from, to, i / 15f) }.WithButton(MouseButton.Left, true));
+                yield return null;
+            }
+            yield return Wait(0.25f);
+            if (!release) yield break;
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = to });
+            yield return null;
+            yield return null;
+        }
+
+        /// <summary>
+        /// Drag to pack, with real mouse events on Grocery Run: press on something, drag it over the trunk and
+        /// let go to drop it at the ghost. A plain click still only picks up. Letting go where it won't fit
+        /// keeps it in hand and says why; letting go off the trunk puts it back. Things in the trunk drag too.
+        /// </summary>
+        IEnumerator DragChecks(Dictionary<string, List<(string, List<Vector3Int>)>> solutions)
+        {
+            PerfProbe.Begin("playing");
+            game.AutoStartLevel(LevelIndex("groceries"));
+            yield return Wait(3f);
+            // A fragile thing in the trunk gives a spot where nothing else may go.
+            if (!solutions.TryGetValue("groceries", out var placements)) { Check(false, "drag: groceries has a solution"); yield break; }
+            foreach (var (itemId, cells) in placements)
+            {
+                var f = game.Items.FirstOrDefault(it => it.Def.Id == itemId && it.Def.Fragile && it.State == ItemState.Pile);
+                if (f == null) continue;
+                game.AutoPlace(f, FindOrientation(f.Def.Shape, cells), cells.Aggregate(Vector3Int.Min));
+                break;
+            }
+            yield return Wait(0.8f);
+            var pile = game.Items.Where(i => i.State == ItemState.Pile && !i.Def.Fragile).OrderBy(i => i.Def.Volume).ToList();
+            var a = pile[0];
+            var b = pile[1];
+            Vector3 Centre(PackItem i) => i.transform.position + (Vector3)i.Shape.Center;
+
+            // 1. Press on the blanket, drag into the trunk, let go.
+            yield return MouseDown(Centre(a));
+            Check(game.Held == a, "drag: pressing on something picks it up");
+            if (!FindAim(true, out var good, out _)) { Check(false, "drag: found a valid spot to aim at"); yield break; }
+            yield return DragTo(good, false);
+            game.CurrentTarget(out var ghostAt, out bool ghostOk);
+            yield return Shot("drag-holding");
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = good });
+            yield return null;
+            yield return null;
+            yield return Wait(0.6f);
+            Check(ghostOk && game.Held == null && a.State == ItemState.Packed && a.GridPos == ghostAt,
+                $"drag: letting go over the trunk drops it where the ghost was ({ghostAt})");
+
+            // 2. A plain click (press and let go in place) still just picks up.
+            yield return MoveMouse(Centre(b));
+            yield return Click();
+            yield return Wait(0.4f);
+            Check(game.Held == b, "drag: a plain click still only picks up (letting go doesn't drop)");
+            yield return Press(Key.Escape);
+            yield return Wait(0.6f);
+
+            // 3. Let go where it won't fit: it stays in hand and the game says why.
+            yield return MouseDown(Centre(b));
+            if (!FindAim(false, out var bad, out _)) { Check(false, "drag: found a blocked spot to aim at"); yield break; }
+            game.PreviewTarget(bad, out _, out _, out string problem);
+            yield return DragTo(bad, true);
+            yield return Wait(0.2f);
+            Check(game.Held == b && b.State == ItemState.Held && problem != null && game.Ui.ToastShowing(problem.Substring(0, Math.Min(14, problem.Length))),
+                "drag: letting go where it won't fit keeps it in hand and says why (" + problem + ")");
+            yield return Press(Key.Escape);
+            yield return Wait(0.6f);
+
+            // 4. Drag off the trunk onto the driveway and let go: back on the blanket.
+            yield return MouseDown(Centre(b));
+            var off = game.Camera.WorldToScreenPoint(game.CurrentVehicle.transform.TransformPoint(new Vector3(-5f, 0f, -4f)));
+            yield return DragTo(new Vector2(off.x, off.y), true);
+            yield return Wait(0.6f);
+            Check(game.Held == null && b.State == ItemState.Pile, "drag: letting go off the trunk puts it back on the blanket");
+
+            // 5. Things already in the trunk drag too.
+            var from = a.GridPos;
+            yield return MouseDown(Centre(a));
+            Check(game.Held == a, "drag: pressing on something packed lifts it out");
+            Vector2 moveTo = default;
+            Vector3Int moveCell = default;
+            bool foundMove = false;
+            var size = game.TrunkSize;
+            var trunk = game.CurrentVehicle.transform;
+            for (int z = size.z - 1; z >= 0 && !foundMove; z--)
+            for (int x = size.x - 1; x >= 0 && !foundMove; x--)
+            {
+                var s = game.Camera.WorldToScreenPoint(trunk.TransformPoint(new Vector3(x + 0.5f, 0f, z + 0.5f)));
+                if (game.PreviewTarget(new Vector2(s.x, s.y), out moveCell, out bool v) && v && moveCell != from)
+                {
+                    moveTo = new Vector2(s.x, s.y);
+                    foundMove = true;
+                }
+            }
+            if (!foundMove) { Check(false, "drag: found another spot for the packed item"); yield break; }
+            yield return DragTo(moveTo, false);
+            game.CurrentTarget(out var moveGhost, out _);
+            InputSystem.QueueStateEvent(Mouse.current, new MouseState { position = moveTo });
+            yield return null;
+            yield return null;
+            yield return Wait(0.6f);
+            Check(a.State == ItemState.Packed && a.GridPos == moveGhost && a.GridPos != from, $"drag: a packed thing drags to a new spot ({from} -> {a.GridPos})");
         }
 
         IEnumerator StoryToPacking()

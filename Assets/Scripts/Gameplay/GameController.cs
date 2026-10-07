@@ -710,6 +710,7 @@ namespace PackTheTrunk
 
             if (held == null)
             {
+                dragArmed = false;
                 PackItem hit = null;
                 if (!overUi && AimRaycast(ray, out var info))
                 {
@@ -717,7 +718,14 @@ namespace PackTheTrunk
                     if (hit != null && hit.State != ItemState.Pile && hit.State != ItemState.Packed) hit = null;
                 }
                 SetHovered(hit);
-                if (hit != null && mouse.leftButton.wasPressedThisFrame) TryPickUp(hit);
+                if (hit != null && mouse.leftButton.wasPressedThisFrame)
+                {
+                    TryPickUp(hit);
+                    // Keep the button down and drag, and letting go drops it (a plain click still just picks it up).
+                    dragArmed = held == hit;
+                    dragMoved = false;
+                    dragFrom = mouse.position.ReadValue();
+                }
             }
             else
             {
@@ -734,7 +742,22 @@ namespace PackTheTrunk
                 UpdateTarget(ray, overUi);
                 UpdateHeldVisuals(ray);
 
-                if (mouse.leftButton.wasPressedThisFrame && !overUi)
+                bool dragDrop = false;
+                if (dragArmed)
+                {
+                    if (mouse.leftButton.isPressed)
+                    {
+                        float min = Mathf.Max(12f, Screen.height * 0.02f);
+                        if ((mouse.position.ReadValue() - dragFrom).sqrMagnitude > min * min) dragMoved = true;
+                    }
+                    else
+                    {
+                        dragArmed = false;
+                        dragDrop = dragMoved && !overUi;
+                    }
+                }
+
+                if ((mouse.leftButton.wasPressedThisFrame || dragDrop) && !overUi)
                 {
                     if (hasTarget && targetValid) PlaceHeld();
                     else if (hasTarget)
@@ -748,6 +771,10 @@ namespace PackTheTrunk
                 }
             }
         }
+
+        // Drag to pack: the item was picked up by a press that hasn't been let go yet.
+        bool dragArmed, dragMoved;
+        Vector2 dragFrom;
 
         void OnEscape()
         {

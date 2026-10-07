@@ -61,8 +61,8 @@ namespace PackTheTrunk
                 }
             switch (tip)
             {
-                case Tip.Pickup: return "Click something on the blanket to pick it up.";
-                case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. Click to drop it.";
+                case Tip.Pickup: return "Click something on the blanket to pick it up, or drag it straight into the trunk.";
+                case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. Click (or let go) to drop it.";
                 case Tip.Turn: return $"Won't fit like that? {K(Bindings.Action.Turn)} turns it, {K(Bindings.Action.Tip)} tips it over and {K(Bindings.Action.Roll)} rolls it sideways.";
                 case Tip.Shelf: return $"There's room underneath too! The mouse wheel or {K(Bindings.Action.ShelfUp)} / {K(Bindings.Action.ShelfDown)} picks the shelf.";
                 case Tip.Fragile: return "Fragile! Nothing can go on top of it, so it rides up top.";
