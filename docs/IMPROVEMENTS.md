@@ -546,7 +546,7 @@ Things round 4 turned up along the way:
 
 Known limits of the new features: the title screen's parked car shows the next trip's blanket, not
 the waiting trunk. A restored trunk has no undo history (RESTART still unpacks it as one undoable
-step). Releasing a drag over the HUD keeps the item in hand rather than putting it back.
+step). Releasing a drag over the HUD keeps the item in hand rather than putting it back. (Round 5 fixed all three.)
 
 Still open after round 4: Windows (needs the module), WebGL and hosting, signing and notarization,
 releases and re-cutting the trailer (all owner decisions); a physical gamepad / Steam Deck test
@@ -608,3 +608,54 @@ from drag-to-pack is also fixed.
 Each item ends with `build-linux` (0 errors), the solver, a quick autopilot (load checked first), and
 screenshots in `docs/media/improvements/round5/`. The round ends with a full autopilot (0 FAIL, save
 untouched), the crash test, and a `-pttBench` run if the machine is still quiet.
+
+## Round 5 results (2026-10-06)
+
+All three scope items shipped, and the measurement debt is paid. The final full autopilot
+(`Tools/autopilot.sh`, all 33 trips) had **228 PASS, 0 FAIL** (216 before, plus 12 new checks). There
+were no exceptions and no player crash, and the real save was untouched. The load average was 20
+at the start and 29 at the end. The crash test (`Tools/resume_test.sh`) passed 5/5. The solver
+proves all 33 levels, and `build-linux` has 0 errors and 0 warnings. Screenshots are in
+`docs/media/improvements/round5/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| Quiet-machine benchmark (owed since round 2) | `a017c98` | `-pttBench` on round-4 `main` at load 1–5: every screen 1.6–2.0 ms, and the minivan 1.7 ms packing / 1.8 ms holding (see the scope above). |
+| A. Undo and redo survive leaving | `08e8c49` | `ResumeHistoryChecks` (7). It packs 5 things on Grandma's Big Move and leaves through the pause menu. Coming back gives undo depth 5, Z walks back through each of the 5 layouts, and Shift+Z redoes all five. The redo list survives leaving too. After RESTART and leaving, the trip opens empty with a toast, and Z brings the trunk and the hint mark back. The **crash test** now also checks that all 9 of 9 undo steps survive a SIGKILL and that one Z takes out the last thing packed. A fully packed 25-item minivan with its history saves **5.5 KB**. `a-empty-trunk-undo-toast.jpg` |
+| B. A waiting trunk you can see | `3541b4a` | `WaitingTrunkChecks` (4). After leaving Into the Woods with 3 packed, the title's parked car has the same 3 in the same cells. The map label reads "3 PACKED, WAITING". On Weekend Getaway (it opens chapter II), BACK TO PACKING is ready 2.3 s after the trip starts when a trunk is waiting, while a fresh start is still on the chapter card at that point. The button then restores the trunk. All checked by eye too. `b-waiting-title.jpg`, `b-waiting-map.jpg`, `b-waiting-story.jpg` |
+| C. Drag released over the HUD | `f8b44d9` | A `DragChecks` addition drags a blanket item onto the packing list and lets go: it's back on the blanket and nothing is held. |
+
+Things round 5 turned up along the way:
+
+- **The first quick run failed two checks because of the test itself.** An earlier section (the seal
+  checks) leaves Weekend Getaway with a saved trunk, so the "fresh start" wasn't fresh, and
+  `StoryToPacking`'s Space presses then closed the restored, full trunk. The section now forgets that
+  trip's trunk first (`AutoForgetTrunk`). It shows that sections share one sandboxed save: a new
+  section that relies on a fresh trip has to clear it.
+- **Frame hitches follow the machine, not the build.** The first quick run logged 597 `[Perf] hitch`
+  lines against about 70 in round 3, spread across old sections (menus, layout, results) as well as
+  new ones. The re-run of the same code at the same load logged 124. Round 5 adds no per-frame work:
+  the title's waiting trunk is static objects, and the saved history is written once per change.
+- **The saved trunk now has a version 2 format.** It keeps the item list's signature, the packed
+  layout and the newest 50 undo and redo steps, and every step is checked against the packing rules
+  before anything is applied. Round-4 (v1) saves still load (without history). One rule is unchanged:
+  an empty trunk after asking Grandpa is still a fresh start for the seal, so that case keeps no
+  history. Otherwise undo could bring back a hinted packing without the hint mark.
+- **`[Audio]`:** 2.3 dBFS before the limiter and −1.5 dBFS after (round 4: 2.6 / −1.5).
+- **The full run's `[Perf]` table** (packing 18.7 ms average) reflects load 20–29, like round 4's.
+- **No quiet-machine benchmark of the round-5 build.** After the full run I waited 45 minutes for
+  load < 6, and it never got there (15–56). One `-pttBench` at load 13–15
+  (`Recordings/round5/bench-after.log`) read about 16 ms on **every** screen, including the wagon,
+  pause and settings, which round 5 doesn't touch, against 1.6–2.0 ms before at load 1–5. The frame
+  times were flat across screens with CPU time per frame at 2.4–3.2 ms, which points at the shared iGPU
+  being busy, not at the game. It says nothing about round 5's cost either way. The before numbers
+  stand, and an after run on a quiet machine is still owed. The save was untouched.
+
+Not done this round: `build-mac` wasn't re-run (round 5 changed only platform-independent C#; it
+still can't be run on a Mac here). No README gallery refresh (the title screenshot would now show a
+waiting trunk only on a save that has one).
+
+Still open after round 5: Windows (needs the module), WebGL and hosting, signing and notarization,
+releases and re-cutting the trailer (all owner decisions); a physical gamepad / Steam Deck test
+(`docs/GAMEPAD-TEST.md`); gamepad button remapping; and the bigger replayability ideas from ranked
+#12 (per-trip challenges, a solver-generated Garage Sale mode).

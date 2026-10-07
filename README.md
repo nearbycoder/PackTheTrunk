@@ -266,7 +266,7 @@ python3 Tools/solve_levels.py grandma    # print one level's solution (spoilers)
 Tools/autopilot.sh                       # self-test: menus, settings, pause and all 33 trips, PASS/FAIL + screenshots
 PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about three minutes)
 PTT_LAYOUT=1 PTT_SIZE=1200x900 Tools/autopilot.sh   # only the HUD layout check, at a 4:3 window
-Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL the player, check a new one restores it
+Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL the player, check a new one restores it (and its undo history)
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
 ```
 
@@ -407,15 +407,15 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus four rounds of improvements since that release (see
+Version **0.1.0** plus five rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, and the autopilot (216 checks) passes every trip. Still rough or missing:
+settings are complete, and the autopilot (228 checks) passes every trip. Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
   `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
-  and isn't published**. Round 4 re-ran the build on the current code (universal, 0 errors).
+  and isn't published**. Round 4 last re-ran the build (universal, 0 errors); round 5 didn't.
   Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't installed
   here, and WebGL hasn't been built or tested.
 - **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
