@@ -234,6 +234,14 @@ namespace PackTheTrunk
             public string Name, Text;
             /// <summary>Glyph bounds on screen, from the generated quads, so it hugs the letters.</summary>
             public Rect Glyphs;
+            /// <summary>
+            /// The same bounds in the text's own space, with the screen-to-text transform and screen pixels per
+            /// unit: tilted cards (the tagline, the luggage tag) are measured along their tilt, not in a
+            /// screen-aligned box whose corners poke off the card.
+            /// </summary>
+            public Rect LocalGlyphs;
+            public Matrix4x4 ScreenToLocal;
+            public float PixelsPerUnit;
             public float Px;
             /// <summary>Lilita One is a heavy display face: it counts as bold.</summary>
             public bool Bold;
@@ -267,13 +275,17 @@ namespace PackTheTrunk
                 var verts = t.cachedTextGenerator.verts;
                 float ppu = Mathf.Max(0.0001f, t.pixelsPerUnit);
                 Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
+                Vector2 localMin = min, localMax = max;
                 for (int i = 0; i + 3 < verts.Count; i += 4)
                 {
                     Vector3 a = verts[i].position, c = verts[i + 2].position;
                     if (Mathf.Abs(a.x - c.x) < 0.01f || Mathf.Abs(a.y - c.y) < 0.01f) continue;
                     for (int k = 0; k < 4; k++)
                     {
-                        Vector2 w = t.transform.TransformPoint(verts[i + k].position / ppu);
+                        Vector2 local = verts[i + k].position / ppu;
+                        localMin = Vector2.Min(localMin, local);
+                        localMax = Vector2.Max(localMax, local);
+                        Vector2 w = t.transform.TransformPoint(local);
                         min = Vector2.Min(min, w);
                         max = Vector2.Max(max, w);
                     }
@@ -310,6 +322,9 @@ namespace PackTheTrunk
                     Name = t.transform.parent != null ? t.transform.parent.name + "/" + t.name : t.name,
                     Text = t.text,
                     Glyphs = Rect.MinMaxRect(min.x, min.y, max.x, max.y),
+                    LocalGlyphs = Rect.MinMaxRect(localMin.x, localMin.y, localMax.x, localMax.y),
+                    ScreenToLocal = t.transform.worldToLocalMatrix,
+                    PixelsPerUnit = Mathf.Abs(t.transform.lossyScale.y),
                     Px = size * Mathf.Abs(t.transform.lossyScale.y),
                     Bold = t.font == UiTheme.Display || t.fontStyle == FontStyle.Bold,
                     Color = t.color,

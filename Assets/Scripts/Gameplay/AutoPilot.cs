@@ -1969,13 +1969,20 @@ namespace PackTheTrunk
                 int m = Mathf.Max(3, Mathf.RoundToInt(t.Px * 0.12f));
                 band.Clear();
                 inner.Clear();
+                // Classify each pixel in the text's own space, so a tilted card's band follows the tilt
+                // (screen-aligned, the band's corners land off a tilted card and read the scene behind it).
+                var lr = t.LocalGlyphs;
+                float unit = 1f / Mathf.Max(0.0001f, t.PixelsPerUnit);
+                float near = unit, far = m * unit;
                 for (int y = Mathf.Max(0, y0 - m); y < Mathf.Min(h, y1 + m); y++)
                 for (int x = Mathf.Max(0, x0 - m); x < Mathf.Min(w, x1 + m); x++)
                 {
-                    bool inGlyphs = x >= x0 && x < x1 && y >= y0 && y < y1;
-                    bool nearGlyphs = x >= x0 - 1 && x < x1 + 1 && y >= y0 - 1 && y < y1 + 1;
+                    Vector2 p = t.ScreenToLocal.MultiplyPoint3x4(new Vector3(x + 0.5f, y + 0.5f, 0f));
+                    bool inGlyphs = p.x >= lr.xMin && p.x < lr.xMax && p.y >= lr.yMin && p.y < lr.yMax;
+                    bool nearGlyphs = p.x >= lr.xMin - near && p.x < lr.xMax + near && p.y >= lr.yMin - near && p.y < lr.yMax + near;
+                    bool inBand = p.x >= lr.xMin - far && p.x < lr.xMax + far && p.y >= lr.yMin - far && p.y < lr.yMax + far;
                     if (inGlyphs) inner.Add(Lum(x, y));
-                    else if (!nearGlyphs) band.Add(Lum(x, y));
+                    else if (!nearGlyphs && inBand) band.Add(Lum(x, y));
                 }
                 if (band.Count < 16 || inner.Count < 16) continue;
                 band.Sort();
