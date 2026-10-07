@@ -552,3 +552,59 @@ Still open after round 4: Windows (needs the module), WebGL and hosting, signing
 releases and re-cutting the trailer (all owner decisions); a physical gamepad / Steam Deck test
 (`docs/GAMEPAD-TEST.md`); a quiet-machine `-pttBench`; and the bigger replayability ideas from
 ranked #12.
+
+## Round 5 scope (2026-10-06, branch `improvements-5`)
+
+**Measurement debt first.** The machine was quiet at the start of the round (load average 0.5), so
+round-4 `main` was rebuilt and benchmarked straight away (`-pttBench`, 1600×900, High, load 1.0 at the
+start and 5 at the end; `Recordings/round5/bench-before.log`). Every screen averaged **1.6–2.0 ms**. The
+25-item minivan was **1.7 ms** packing (p99 2.6) and **1.8 ms** holding (p99 2.7). There were no frames
+over 33 ms, and there was about one GC per phase. That matches round 3 (1.8 / 1.8 ms), so rounds 3 and
+4 cost nothing measurable, and round 4's 9.8 ms reading was load. That debt is closed.
+
+Round 5 finishes the "your trunk waits for you" story from round 4. Today a player who comes back to a
+half-packed trunk loses their undo history. They also have to sit through the chapter card and the
+texts again, and they can't see the waiting trunk anywhere before they open the trip. One rough edge
+from drag-to-pack is also fixed.
+
+### A. Undo and redo survive leaving (and crashes)
+
+- **Acceptance:** the saved trunk also keeps the undo and redo history (the newest 50 steps, with
+  which steps were RESTARTs and which RESTARTs undo the hint mark). After leaving, quitting or a crash, Z and
+  Shift+Z walk through the same history as before. A RESTART is recoverable even across leaving:
+  RESTART, leave, come back, and Z puts the whole trunk back. That trip opens with an empty trunk and a
+  toast saying Z brings it back. The title's "waiting" line still only counts packed things. A
+  history that doesn't fit the level any more is dropped together with the trunk (logged). Saving
+  stays one prefs write per change, never per frame.
+- **Verify:** `ResumeChecks` gains: pack 5 things one by one, leave through the pause menu, come back,
+  Z ×5 matches each layout from before leaving in reverse, and Shift+Z ×5 gives the full trunk back. Then
+  RESTART, leave, come back (empty), and Z brings the trunk and the hint mark back. The crash test
+  (`resume_test.sh`) also checks that the undo depth survives SIGKILL and that one Z takes out the
+  last thing packed. The saved size for the biggest trunk is logged.
+
+### B. A waiting trunk you can see, and get back to quickly
+
+- **Acceptance:**
+  - The title and menu screens park the next trip's car with its waiting trunk already packed
+    (those things aren't on the blanket).
+  - On the Trip Map, a trip with a waiting trunk says so on its label ("9 packed, waiting").
+  - Starting a trip with a waiting trunk skips the chapter card, shows the texts at once instead
+    of typing them, and the trip card says what's waiting. The button reads BACK TO PACKING.
+  - A fresh trip is unchanged.
+- **Verify:** autopilot checks: after leaving Grandma's Big Move half-packed and opening the title
+  (the preview is Grandma's when it's the next trip, else checked directly), the parked car has the
+  same packed cells. The map label shows the count. On a trip that opens a chapter, the start button
+  appears within about 1.5 s with a waiting trunk and not before the chapter card on a fresh start.
+  Screenshots of the title, the map label and the story card.
+
+### C. Letting go of a drag over the HUD puts the item back
+
+- **Acceptance:** after a real drag, releasing over the HUD (the packing list, the buttons) puts the
+  item back on the blanket, as releasing anywhere off the trunk already does. A plain click on the HUD
+  while holding something is unchanged.
+- **Verify:** a `DragChecks` addition drags a blanket item onto the packing list and releases: it is
+  back on the blanket and nothing is held.
+
+Each item ends with `build-linux` (0 errors), the solver, a quick autopilot (load checked first), and
+screenshots in `docs/media/improvements/round5/`. The round ends with a full autopilot (0 FAIL, save
+untouched), the crash test, and a `-pttBench` run if the machine is still quiet.
