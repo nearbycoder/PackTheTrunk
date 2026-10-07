@@ -943,3 +943,78 @@ Still open after round 7:
 - **Needs hardware:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`) and a Mac run.
 - **Bigger ideas:** replayability from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
 - **Measurement:** a benchmark on a quiet machine (load < 6).
+
+## Round 8 scope (2026-10-07, branch `improvements-8`)
+
+**Measurement debt first.** The machine was quiet at the start of the round (load average 0.8), so round-7
+`main` was rebuilt and benchmarked straight away (`-pttBench`, 1600×900, High, load 3 at the start and 8 at the
+end; `Recordings/round8/bench-main.log`). Every screen averaged **1.7–2.6 ms** (the main menu and pause had the
+highest p99, 8.2 and 6.2 ms). The 25-item minivan was **2.3 ms** packing (p99 4.6) and **2.1 ms** holding (p99
+5.1). There were no frames over 33 ms, 0 KB allocated per frame and about one GC per phase. Round 6 measured
+1.6–1.9 ms at load 4–7, so round 7 costs nothing measurable. That debt is closed.
+
+**A first look at 1280×720.** No round had measured the most common small window (and a docked Deck's 720p).
+A layout-only run at 1280×720 on round-7 `main` (`Recordings/round8/layout-1280x720-before`) passed the HUD
+and menu layout at 80/100/120% and every text was 12 px or more, but the title screen's tagline failed contrast
+(3.5:1 on the title, 4.3:1 on the main menu; it needs 4.5:1).
+
+Rounds 1–7 covered how to play, getting unstuck, not losing work, motion, size and colour, and menus on a
+controller. Round 8 picks up a player the game still can't serve at all (someone who can only use the mouse),
+the 720p gap above, gamepad button remapping (open since round 5), and a README that shows the game as it looks
+now.
+
+### A. Play with the mouse alone
+
+Turning works with a right click and the wheel picks a shelf, but tipping, rolling and X-ray need the keyboard
+(or a pad), so a one-handed or mouse-only player can't pack anything taller than it is wide.
+
+- **Acceptance:** the card for the thing in your hands gets a row of four small buttons: **TURN**, **TIP**,
+  **ROLL** and **X-RAY**. TURN, TIP and ROLL do exactly what R, T and F do (around the same camera-snapped axes;
+  Shift+click turns the other way, like Shift+key). X-RAY turns X-ray on for as long as you're holding
+  something and the button shows that it's on; clicking it again, dropping or putting the item back turns it
+  off, so it can never leave a mouse-only player unable to pick packed things back up. The keys, the setting
+  for X-ray (hold / toggle) and the gamepad are unchanged. Grandpa's turn tip mentions the buttons. The card
+  still fits every screen shape and interface size without covering the toast, the key hints or the list.
+- **Verify:** autopilot `MouseOnlyChecks` with real mouse clicks on a trip with a non-cube item: clicking
+  TURN, TIP and ROLL gives the same orientation as pressing R, T and F from the same start (checked against the
+  key result); Shift+click reverses; X-RAY makes every packed thing see-through and lets the aim reach a covered
+  cell, a second click restores it, and dropping the item restores it too; a whole small trip is packed with no
+  keyboard event at all (mouse clicks and the wheel only). The HUD layout pass (16:9, 16:10, 4:3, 21:9 ×
+  80/100/120%), the legibility and the contrast checks stay clean with the card showing. Screenshot.
+
+### B. Readable at 1280×720
+
+- **Acceptance:** the title tagline reaches 4.5:1 at 1280×720 (and stays at every other measured size), without
+  changing the contrast style that's waiting on the owner (outlined labels, deeper orange). 1280×720 joins the
+  sizes the layout-only pass is run at, and the README's list of measured sizes says so.
+- **Verify:** layout-only runs (`PTT_LAYOUT=1`) at 1280×720 before (2 FAIL) and after (0 FAIL), and at
+  1600×900, 1280×800 and 1200×900 after. Before/after screenshot of the title.
+
+### C. Gamepad button remapping (riskiest; lands only if it's clean)
+
+- **Acceptance:** Settings → Controls lets each packing action on the pad (turn, tip, roll, undo, Ask Grandpa,
+  X-ray, close the trunk, shelf up and down) be given another button, the same way keys are: pick the action,
+  press the button; a button that's already used swaps; Defaults restores. A (click), B (back) and Menu (pause)
+  stay fixed so the menus can always be driven. The packing loop, the pad key hints, the pause card and the
+  toasts that name a pad button all follow the bindings. Keyboard bindings are unchanged.
+- **Verify:** autopilot `PadRebindChecks` with a simulated pad, through the real Controls tab: bind turn to LB…
+  (or another free button), check the new button turns and the old one doesn't, the hint strip names it, a
+  clash swaps, Defaults restores, all in the sandboxed save. The existing `GamepadChecks` and `PadMenuChecks`
+  pass unchanged. **Still not tested on a physical controller.**
+
+### D. README screenshots that show the current look
+
+- **Acceptance:** the README gallery is regenerated with the repo's own stills pipeline
+  (`PTT_STILLS_ONLY=1 Tools/record_trailer.sh` + `make_trailer.py --only stills`), so it shows the outlined button
+  labels, the deeper inks and the held card's new buttons. The trailer, poster and teaser are not re-cut (owner
+  decision).
+- **Verify:** look at every image; README links resolve; each file stays under the script's 1.4 MB cap; the
+  real save is hashed before and after.
+
+### E. Housekeeping
+
+Each item is built (`build-linux`, 0 errors) and tested on its own commit before the next starts: the solver, a
+quick autopilot (load checked first) and screenshots in `docs/media/improvements/round8/`. The round ends with a
+full autopilot (0 FAIL, real save untouched, load noted), the crash test, and a back-to-back `-pttBench` A/B
+against round-7 `main` if the machine is quiet enough. If an item turns out bigger or riskier than planned, the
+others land first and it's reported rather than half-landed.
