@@ -249,6 +249,17 @@ namespace PackTheTrunk
 
             var list = UiKit.Rect("Pause Menu", pause).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(110, 120), new Vector2(760, 520));
             UiKit.Vertical(list.gameObject, 4, null, TextAnchor.LowerLeft).childForceExpandHeight = false;
+            // The same soft scrim as the main menu's, so the captions hold their contrast over a bright, blurred
+            // scene (a 21:9 window stretches the shade's gradient thin); drawn before the header so it passes under it.
+            const float feather = 260f;
+            var scrim = UiKit.Image("Menu Scrim", list, new Color(0f, 0f, 0f, 0.4f), false);
+            scrim.sprite = UiTheme.ScrimSprite;
+            scrim.type = Image.Type.Sliced;
+            scrim.pixelsPerUnitMultiplier = 128f / feather;
+            scrim.raycastTarget = false;
+            scrim.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(-80 - feather, -60 - feather), new Vector2(60 + feather, 40 + feather));
+            scrim.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            list.SetSiblingIndex(shade.transform.GetSiblingIndex() + 1);
             int n = 0;
             MenuEntry(list, "Resume", "RESUME", "Back to packing", () => ResumePressed?.Invoke(), n++, out _, true);
             MenuEntry(list, "Pause Restart", "RESTART TRIP", "Unpack everything (undo puts it back)", () => PauseRestartPressed?.Invoke(), n++, out _);
