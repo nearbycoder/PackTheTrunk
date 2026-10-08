@@ -1940,7 +1940,9 @@ namespace PackTheTrunk
                 NeighboursPageLayoutCheck(size);
                 var favour = game.AutoCurrentFavour();
                 game.AutoBeginFavour(favour);
-                yield return Wait(7f);
+                // Every text in, and LET'S PACK settled (a favour has four texts, so it comes later than a fixed wait).
+                for (float t = 0f; t < 15f && !Visible("Start"); t += Time.unscaledDeltaTime) yield return null;
+                yield return Wait(1.5f);
                 yield return Measure("favour story");
                 PerfProbe.Begin("playing");
                 yield return StoryToPacking();
