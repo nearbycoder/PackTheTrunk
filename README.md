@@ -234,8 +234,13 @@ Also in the box:
   the driveway, a pause menu that blurs the world behind it (and pauses by itself if the window
   loses focus), and a paper-wipe transition with a little car driving across. Settings are saved
   and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
-  quality presets, render scale, anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient
-  occlusion, ink outlines, depth of field, bloom, camera speed, key hints and Grandpa's tips.
+  a **Graphics fidelity** slider (Low, Medium, High, Ultra) over fine-tune rows for render scale,
+  anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient occlusion, ink outlines, depth of field and
+  bloom, then camera speed, key hints and Grandpa's tips. High is the game's own look. Ultra
+  supersamples at 150%, renders the sun's shadows into an 8192 map, uses 12-sample ambient occlusion
+  and high-quality bloom, weaves the picnic blanket at twice the texel density and throws 60% more
+  dust and confetti; Low (75% resolution, simple shadows, no glow or blur, half the particles) is for
+  older laptops.
   An **Accessibility** tab gathers placement colours, X-ray (hold or toggle), screen shake,
   **reduce motion** (cards fade instead of sliding, nothing bobs or pulses, scene changes fade
   instead of wiping, and the camera neither sweeps in nor shakes) and story text speed. The
@@ -333,6 +338,7 @@ PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about eigh
 PTT_LAYOUT=1 PTT_SIZE=1280x800 Tools/autopilot.sh   # only the layout and text-size checks, at a Deck-sized window
 Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL the player, check a new one restores it (and its undo history)
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
+Tools/play.sh -pttBench -pttFidelity "$PWD/Recordings/fidelity"   # each Graphics fidelity step: frame times + same-moment screenshots
 python3 Tools/solve_levels.py --check-favours Recordings/autopilot/favours.json   # re-check the self-test's favours with the solver's rules
 ```
 
@@ -398,7 +404,7 @@ Assets/
   Resources/Models/                 Blender-generated FBX: 116 items, 33 vehicle bodies, props
   Resources/Music/, Audio/          soundtrack, sound effects and ambience (CREDITS.md in each)
   Resources/Fonts/                  Lilita One, Varela Round, Patrick Hand (OFL, licences alongside)
-  Shaders/                          toon, ink outline, ghost, sky, FX sprite
+  Shaders/                          toon (with the street's procedural asphalt, lawn and curbs), ink outline, ghost, sky, FX sprite
   Scenes/Main.unity                 just the camera, sun and post-processing volume
   Scripts/Data/                     JSON loading, VoxelShape (rotations)
   Scripts/Gameplay/                 GameController, TrunkGrid (rules), PackItem, CameraRig,
@@ -440,6 +446,10 @@ docs/media/                         trailer, poster, teaser and screenshots used
   one body per level wrapped around that level's trunk (with `Lid`, `Tailgate` and `Wheel_*`
   as separate objects so they animate). Materials are named by colour and swapped for shared URP
   materials on import. Items without a model fall back to coloured voxels.
+- **A street without textures.** The driveway's asphalt (aggregate, resurfaced patches, a few sealed
+  cracks), the mown lawn's stripes and the curbs' joints are drawn by the toon shader from world
+  position, so they cost no texture memory or download size, fade their finest detail with distance so
+  nothing shimmers, and drop to a single cheap grain on Low.
 - **Everything is built at runtime.** `GameController` bootstraps itself with
   `RuntimeInitializeOnLoadMethod`; cars, the driveway, the UI and even UI sprites are created in
   code, and runtime meshes, textures and materials are freed with their trip (`OwnedAssets`).
@@ -481,10 +491,11 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus eleven rounds of improvements since that release (see
+Version **0.1.0** plus twelve rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
 settings are complete, favours for the neighbours keep going after the story, the game can be played
-with a mouse alone, a keyboard alone or a gamepad, and the autopilot (384 checks) passes every trip.
+with a mouse alone, a keyboard alone or a gamepad, a Graphics fidelity slider runs from Low to Ultra,
+and the autopilot (394 checks) passes every trip.
 Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
@@ -512,7 +523,13 @@ Still rough or missing:
   were packing: it's saved after every change and comes back when you start the trip again.
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
   meter, Grandpa's seal, dragging or the round-7 contrast look (outlined button labels, deeper
-  orange). The README screenshots were refreshed in round 8 and show the game as it looks now.
+  orange). The README screenshots were refreshed in round 8, so they don't show round 12's street
+  (asphalt, mown lawn) or the softer menu shade either.
+- **Graphics fidelity is measured on one machine.** On the development machine's Radeon 8060S at
+  1600×900, a frame takes about 0.45 ms of GPU time on Low, 1.1 on Medium, 2 on High and 4.8 on Ultra
+  (round 12's table in docs/IMPROVEMENTS.md). Nobody has tried Low on a genuinely weak GPU or Ultra at
+  4K, where its 150% render scale means a 5760×3240 render. Moving the slider costs one 60–90 ms frame
+  while the new step's buffers are made.
 - **Small screens are checked, not seen.** Text size, wrapping and contrast were measured at 800×600,
   1024×768, 1280×720, 1280×800 (Steam Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has
   looked at the game on a real Deck. Windows smaller than 800×600 (which Settings doesn't offer, but a

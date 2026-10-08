@@ -1669,3 +1669,98 @@ round-11 `main`. Each item is built and quick-tested on its own commit before th
 
 Not in this round: re-cutting the trailer or re-shooting the README gallery (owner's call, and the trailer still shows v0.1.0),
 Windows / WebGL, live re-layout while a window is resized.
+
+## Round 12 results (2026-10-08)
+
+All four scope items shipped, plus two follow-ups that came out of the checks. The final full autopilot (`Tools/autopilot.sh`, all
+33 trips, nested) on `0de8fbf` had **394 PASS, 0 FAIL** (384 in round 11, plus 10 new checks; 19 minutes, load 6 at the start
+and 6.5 at the end; `Recordings/round12/final-full2/player.log`). There were no exceptions and no player crash, and the real save
+was untouched. The crash test (`Tools/resume_test.sh`) passed 5/5 (`resume.out`) and the solver proves all 33 levels (`solver.log`).
+`build-linux` gives 0 errors and 0 warnings; the build is 147 MB as before, with 8 more shader variants (2,642, up from 2,634).
+`ksecretd` and portal counts were the same before and after the final runs (2 and 6). Screenshots are in
+`docs/media/improvements/round12/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| A. Graphics fidelity slider | `798fb55`, `0de8fbf` | `FidelityChecks` through the real UI (8 checks). Clicking the slider's ends picks Ultra and Low, and dragging a third of the way picks Medium. Each step is read back from the renderer: render scale, MSAA, shadow-map size, AO samples and resolution, particle density, and the saved keys. Switching Bloom off reads Custom (Medium's own detail stays), and clicking Medium again sets the rows back. The arrow keys reach the slider, step it up, stop at Ultra and step back. A round-11 save keeps its choice. DEFAULTS restores High. The pad's D-pad steps the slider too (in `PadMenuChecks`). Fidelity table and screenshots below. `a-fidelity-steps-*.jpg`, `a-settings-fidelity.jpg` |
+| B. A street that looks finished | `b5f8fae` | Same-moment stills before and after (`b-street-before-after.jpg`). The legibility, wrap and contrast passes ran at all eight sizes on `c0b0ef1`: 89/89 at seven sizes; at 2100×900, 88/89 (see the pause-menu follow-up). Its cost at High was measured on Vulkan, back to back with round-11 `main`: about +0.3 ms of GPU time per frame on every screen (below). |
+| C. The main menu without a box | `1e8ded5`, `8eceaf3` | Layout-only at 1600×900: 89/89, with the main menu's lowest caption contrast 3.8:1 against a 3:1 target (a large glyph) (`c-layout-1600x900`). Quick autopilot on this build: **305/305** (`c-quick/player.log`). `c-menu-before-after.jpg` |
+| D. ASK SOMEONE ELSE with the pad (owed from round 11) | `c0b0ef1` | `PadFavourSwapChecks`: the D-pad walks Prev Page > … > Favour Pin > Favour Swap, and A asks Mr. Pickering instead of Coach Dana (`b2-quick`, and again in the final full run). `d-pad-ask-someone-else.jpg` |
+
+**The fidelity steps.** All of these were measured in one process with `-pttBench -pttFidelity` at 1600×900, nested, on the
+committed `0de8fbf` build. Before measuring, there's an unmeasured pass through all four steps. Each scene is then held for 5 s per
+step. "Title" is the title screen; "packing" is Everyone, Everything's minivan, half packed, while holding the next thing over the
+trunk. The game's default renderer is OpenGL, where Unity reports no GPU time, so the same table was also run on Vulkan
+(`-force-vulkan`), which does report it. The OpenGL numbers are from `fidelity-3.log` (load 9–10). The Vulkan numbers are from
+`fidelity-vk-2.log` (load 10 → 7.5), and its first run (`fidelity-vk-1.log`) agrees within 0.2 ms of GPU time.
+
+| Step | What it sets | OpenGL frame, title / packing (ms) | Vulkan frame, title / packing (ms) | Vulkan GPU, title / packing (ms) |
+| --- | --- | --- | --- | --- |
+| **Low** | 75% render scale, FXAA, 1024 shadow map (1 cascade, 35 m, hard), no AO, bloom or depth of field, per-texture anisotropic filtering, half the particles, one cheap grain octave and no street detail | 2.9 / 2.1 | 1.1 / 1.5 | 0.43 / 0.47 |
+| **Medium** | 100%, SMAA, 2048 shadow map (2 cascades, 50 m, soft), no AO, bloom (quarter size, dual filter) and depth of field, ¾ of the particles, the street | 4.5 / 3.4 | 2.0 / 2.1 | 1.11 / 1.06 |
+| **High** (default) | 100%, MSAA 4x + SMAA, 4096 shadow map (4 cascades, 70 m, high-quality soft filter), 8-sample AO (full resolution, bilateral blur), bloom (half size, Gaussian), depth of field, forced 9x+ anisotropic filtering, the street. The game's look before this round, plus the street | 6.2 / 4.9 | 2.8 / 3.2 | 2.00 / 1.87 |
+| **Ultra** | 150% render scale (supersampled), MSAA 4x + SMAA, **8192** shadow map, **12-sample** AO, bloom with high-quality filtering and 8 passes, forced 16x anisotropic filtering, the blanket woven at **twice the texel density**, **1.6×** particles, and a finer street octave kept further out | 10.5 / 8.3 | 6.8 / 6.7 | 4.84 / 4.74 |
+
+No step had a frame over 33 ms in those runs. The second OpenGL run (`fidelity-4.log`) caught a burst of contention from other
+sessions in the packing scene: 35 ms spikes at every step, Low included. The first switch to a new step in a session costs
+one frame of 60–90 ms (`[Perf] hitch … in (settle)`): render targets are reallocated, the 8192 shadow map is allocated, and
+on Ultra the blanket is re-woven. That frame lands in Settings, while the slider moves.
+
+**High against round-11 `main`.** Load was 8–12 with other sessions sharing the GPU, so whole-frame times were contention.
+Three alternating OpenGL runs at High (`alt-main-1..3.log`, `alt-tip-1..3.log`) overlap on most screens; the title, which is mostly
+ground, read 2.5–5.5 ms on `main` and 4.3–6.4 ms on this round. Two alternating Vulkan runs (`vk-main-1..2.log`,
+`vk-tip-1..2.log`) give the GPU time directly: **1.78–1.99 ms on `main` and 2.04–2.25 ms on this round** on every screen, so the
+street costs about 0.3 ms of GPU time per frame at 1600×900. Every run allocated 0 KB per frame.
+
+How the round differed from the plan:
+
+- **No bokeh depth of field on Ultra.** A physical (bokeh) depth of field focused on the trunk at the play camera's 15–25 units
+  also softens the near half of the play area. The game's Gaussian depth of field blurs only what's well behind it, so Ultra keeps
+  that. Ultra's bloom gets high-quality filtering and two more passes instead.
+- **Medium stays today's Medium.** The scope added half-resolution AO to Medium. Measured in one process, it made Medium no
+  cheaper than High (title 4.6–5.0 against 3.7–4.1 ms), because its downsample and upsample cost as much as they save. Medium
+  goes back to no AO (`0de8fbf`); its row still switches AO on, at half resolution.
+- **How the 12-sample AO variant is kept.** URP's "include assets by label" setting, which the scope planned to use, didn't keep it.
+  The sample count is removed earlier, by the engine's keyword filter, which only reads quality levels. So the build has a third
+  quality level, "PC Ultra Variants", whose pipeline asset differs from PC's only in its 12-sample SSAO. The game never selects it.
+  Running `ProjectSetup.EnsureUltraVariants` from the editor rebuilds that asset.
+- **The cracks.** The first version drew the driveway's cracks as a Voronoi network, which looked like ruined road under the
+  puzzle. They are now a few long, thin, sealed lines in some stretches of the driveway; the patches and the lawn's mowing stripes
+  carry most of the look.
+- **C landed before B, and the pause menu followed it.** On the first quick run, B's lighter mowing stripes put the main menu's
+  CONTINUE caption at 4.4:1 (`b-quick/player.log`, FAIL), exactly where the old scrim faded out. C's scrim is solid over the whole
+  menu area, so C was committed first; with it the caption reads 5.0–5.4:1. The eight-size layout run then found the same thing on
+  the pause menu at 2100×900: "Back to packing" was already at 4.5:1 in round 11 and slipped just under. The pause menu now has
+  the same scrim (`8eceaf3`), and its lowest caption is 5.4:1 at 2100×900 and 1600×900 (`c2-layout-*`). The other six sizes' layout
+  runs were on `c0b0ef1`, before that change.
+- **D's commit wasn't tested on its own.** It is test-only code, so it was verified on the B+D build (`b2-quick`, 305 PASS), and
+  `c0b0ef1` is that exact tree. That build's first attempt failed to compile (a missing `using`). The autopilot chained after it
+  ran the previous binary, C's, so that run is reported as C's (`c-quick`), not B's.
+
+Things round 12 turned up along the way:
+
+- **The first favour close is load-sensitive.** Round 11's check that closing the session's first favour costs the main thread
+  under 2 ms failed in 4 of this round's quick and full runs (2.02–2.43 ms, load 12–33). Round-11 `main` fails it the same way:
+  2.12 ms against this round's 2.30 ms, back to back at load 12 (`ab-main-quick`, `ab-tip-quick`). At load 6 it passed (1.72 ms).
+  Later closes are 0.4–0.7 ms on both. The threshold wasn't changed; it's a tight bound on a first, JIT-heavy call on a shared
+  machine.
+- **Settings sliders line up.** The fidelity slider's value column ("Medium", "Custom") is wider than a percentage, so every
+  settings slider now uses that track length.
+- **`[Audio]`:** 2.8 dBFS before the limiter and −1.5 dBFS after (round 11: 2.9 / −1.5).
+
+Known limits:
+
+- Frame times were measured on one machine (Ryzen AI Max+ 395 / Radeon 8060S iGPU) shared with about 15 other sessions. Nobody has
+  looked at Low on a genuinely weak GPU, or at Ultra on a big discrete one or at 4K (150% of 4K is a 5760×3240 render).
+- Ultra's 8192 shadow map takes 128–256 MB of video memory (by depth format); on a GPU with little memory, the Shadows row can go down to High.
+- The street's fine aggregate fades out by 50 units (80 on Ultra), so at the usual play distance of 15–30 units it is subtle on purpose.
+- The trailer, poster, teaser and README gallery weren't re-shot, so they don't show the street or the new menu shade.
+
+Still open after round 12:
+
+- **Owner decisions:** whether the street and the softer menu shade are the look they want (they build on the round-7 contrast look,
+  which still awaits approval), re-cutting the trailer and README stills to show them, Windows (needs the module), WebGL and hosting,
+  signing and notarization, licences, releases and version tags, and album pages or seals for favours.
+- **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`, now with the fidelity slider), a
+  Mac run, someone who plays with the keyboard alone, a few people playing favours, and the fidelity steps on other GPUs.
+- Live re-layout while a window is resized is still untested.
