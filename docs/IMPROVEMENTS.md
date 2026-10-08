@@ -1337,3 +1337,86 @@ complete packing of every new pile exists by construction, and Grandpa can hint 
 the solver, a full autopilot (0 FAIL, real save untouched, load noted), the crash test, and a nested `-pttBench`
 compared with the baseline above. Each item is built and quick-tested on its own commit before the next starts,
 with screenshots in `docs/media/improvements/round10/`.
+
+## Round 10 results (2026-10-07)
+
+All three scope items shipped. Item B grew once its new checks started finding more than the 9 FAILs the scope
+counted. The final full autopilot (`Tools/autopilot.sh`, all 33 trips, nested) had **378 PASS, 0 FAIL**
+(330 before; `Recordings/round10/full.out`), with no exceptions, no player crash and the real save untouched. It took 19 minutes, at load 23 at the start and 51 at the end (other sessions were busy).
+The crash test (`Tools/resume_test.sh`) passed 5/5. The solver proves all 33 levels (`Recordings/round10/solver.log`). Each item's commit was built on its
+own (`build-linux`, 0 errors, 0 warnings) and tested on that build before the next item was committed: A and B with
+layout-only runs, C with a quick autopilot. `build-mac` gives a universal (x86_64 + arm64, checked with `file`) 160 MB `.app` with 0 errors; it still hasn't been run on a Mac. The layout-only pass on the final build is **88/88 at all eight sizes** (load 6–20; `Recordings/round10/final-layout-*`). Screenshots are in
+`docs/media/improvements/round10/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| Baseline benchmark | `8cf0d3e` | `-pttBench` on round-9 `main`, nested, at load 3 → 11: every screen 1.9–2.9 ms, the minivan 2.3 ms packing / 3.4 ms holding, 0 KB per frame (see the scope). |
+| A. The pause card lists the keyboard-only controls | `a65178f` | The layout pass now pauses at 80/100/120% and checks the HOW TO PACK list. It has 9 keyboard rows including ARROWS · ENTER (ESC and the music key share a row), and every row sits inside the card. Layout-only runs on this commit were 53/53 at 1600×900 and at 1024×768 (load 20–27), and the check passed in every later run at all eight sizes. `a-pause-keyboard-rows.jpg` |
+| B. Readable in an 800×600 window | `352f791` | Layout-only at 800×600 on round-9 `main`: 9 FAIL. Three new checks went in: no word broken across lines, no text that wraps onto lines it wasn't written with and is taller than its box, and no packing-list name running into its stamps. With them, the first after-run still had 7 FAIL at 800×600 (names into stamps at 80/100%, the widened list over Grandpa's tip, the luggage tag, the Controls tab's pad line, the seal note, polaroid captions and placeholders, the close-up's date line). At 1600×900 they flagged two texts that look fine (the album's two written lines, and the Controls hint at 4 units over), which is where the check's slack of a third of a line comes from. Final: **73/73 at all eight sizes** (800×600, 1024×768, 1280×720, 1280×800, 1440×900, 1600×900, 1200×900, 2100×900; load 19–25; `Recordings/round10/b4-layout-*`). `b-800x600-packing-before-after.jpg`, `b-800x600-postcard-map-before-after.jpg` |
+| C. Favours for the neighbours | `15e669d`, `5710e46` | Quick autopilot on this commit: 290/290 (load 21, `Recordings/round10/c1-quick.out`). `FavourChecks` (10), through the real UI. The page is locked before trip 9 and says what opens it. Once open, its pin opens the neighbour's texts and then packing. Following only hints packs favour 1 to 100% (18 of 18). Closing it gives three stars, no seal and no album photo, and counts it once. NEXT FAVOUR gives favour 2, a different car and pile. Leaving favour 2 with 3 packed through the pause menu, the page says "3 PACKED, WAITING" and the pin restores the same 3 cells. TRY AGAIN replays favour 2 fresh without counting it twice. With every trip packed, the title's CONTINUE opens favour 3. The reset clears everything. The maker made 80 favours in the quick run (7 cars, 3.9 ms average, 38 ms at most) and 300 in the full run (all 28 cars with 24 or more cells, 3.6 ms on average, 15.9 ms at most); every one was re-placed with `TrunkGrid.Check` in the order it was made, and `solve_levels.py --check-favours` passed all of them with its own rules (`check-favours.log`). The legibility pass now measures the neighbours page (locked and open) and a favour's texts, HUD and postcard. `c-*.jpg` |
+
+**Benchmark (`-pttBench`, 1600×900, High, nested)** on the final build at load 4 → 8 (`Recordings/round10/bench-after.log`):
+every screen **1.9–2.3 ms**, the minivan 2.2 ms packing and 2.3 ms holding (p99 3.7 ms), 0 KB allocated per frame and no
+frames over 33 ms. Round-9 `main` read 1.9–2.9 ms at load 3 → 11 at the start of the round, so round 10 costs nothing
+measurable. The benchmark doesn't open the neighbours page. Making a favour takes about 4 ms (at most 33 ms in the full
+run, and 72 ms for the first one of a session, while the shapes' turns are worked out). It happens when the map or the
+title opens (behind the transition), and when a favour's postcard comes up, where it can cost one frame of up to
+about 30 ms.
+
+How the round differed from the plan:
+
+- **B found more than the scope said.** The 9 FAILs in the scope were only what the old checks could see. The new
+  wrap and crowding checks are the main result: the list widening, the shortened lines and the taller boxes all
+  came from them.
+- **The packing list widens a little at 80% too.** The scope said nothing would change size at 1280×720 and up.
+  That holds at the default interface size: no `[Layout]` line at any size from 1280×720 up. Picking 80% at
+  1200×900, 1280×720, 1280×800 or 1440×900 widens the list by 11–58 units, because the list keeps its names at
+  12 px even there, and a long name beside two stamps had nowhere left to go. At 1024×768 it widens by 9–107
+  units, depending on the interface size. The game logs each widening as `[Layout]`.
+- **Shorter lines rather than smaller text.** At 800×600 the map note's CLICK line now reads "pick something up,
+  drop it in the trunk" at every size. On small windows only, the luggage tag drops the car and then the month,
+  the postcard's seal note says "Not a single hint.", and a polaroid without a photo leaves out its car name if
+  a word of it can't fit.
+- **A waiting trunk comes before the neighbours.** The first full run (`Recordings/round10/full-1.out`, 374 PASS) failed
+  4 resume checks. With every trip
+  packed, CONTINUE went to the neighbours even though the last trip's trunk was half-packed and the title said
+  so. Now CONTINUE goes to the neighbours only when no trip's trunk is waiting.
+- **The map opens on the neighbours page only after a favour.** Opening there whenever every trip is packed would
+  have hidden the chapter pages (and their seals) behind it. With every trip packed, CONTINUE already goes to the
+  neighbours.
+
+Things round 10 turned up along the way:
+
+- **A layout bug caught by the layout pass.** The first version widened the list by moving its left edge while
+  the list was still sliding in, which stretched it (the star meter ran 13 units into the heading at 1600×900,
+  100%). It now resizes by width, and the slide-in lands on the new size.
+- **A pale avatar.** The phone avatar's colour comes from a hash of the sender's name, and "Coach Dana" landed on
+  a pale yellow with a white letter (1.5:1). A letter on a pale avatar is now ink. The story's own senders, which
+  passed before, are unchanged.
+- **Commits.** B was committed from the source it was built and tested from (a copy is in
+  `Recordings/round10/b-src`), while its eight-size verification ran on that build. C's work was stashed while B
+  was built and tested on its own.
+- **`autopilot.sh`'s player timeout is now 30 minutes.** The full run took 17 minutes in round 9, and the
+  favour checks add about two more.
+- **`[Audio]`:** 2.5 dBFS before the limiter and −1.5 dBFS after (round 9: 2.5 / −1.5).
+
+Known limits:
+
+- **Favours haven't been played by a person.** The piles come from a greedy packer that fills 82–95% of the trunk,
+  so every one can be packed completely, but nobody has judged how hard or how fun they are. The words come from a
+  small cast: 10 neighbours, 12 errands and 4 sign-offs, so they repeat. One favour waits at a time. Favours have
+  no album, no seal and no best-so-far line. The first favour of a session takes up to about 70 ms to make while
+  the shapes' turns are worked out, and that happens behind the map's transition.
+- Windows smaller than 800×600 aren't measured. A text the 12 px floor changes is sized again the next time its
+  screen opens, not while it's showing.
+- The wrap check reads line breaks only in texts without markup, and its "taller than its box" test allows a third
+  of a line of slack.
+
+Still open after round 10:
+
+- **Owner decisions:** the round-7 contrast look (outlined labels, deeper orange), Windows (needs the module),
+  WebGL and hosting, signing and notarization, licences, releases and version tags, and re-cutting the trailer
+  (still the v0.1.0 cut; it doesn't show favours either). Also whether favours should get their own album page or
+  seals.
+- **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`), a Mac run,
+  someone who plays with the keyboard alone, and a few people playing favours.

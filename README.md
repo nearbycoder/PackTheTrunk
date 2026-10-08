@@ -149,7 +149,7 @@ game makes each pile by packing it into that trunk under its own rules, so every
 completely, and Grandpa's hints work on it. Stars work as on any trip; favours don't take album photos,
 earn seals or count towards the trips. A half-packed favour waits like a trip does, TRY AGAIN replays
 the same pile, NEXT FAVOUR asks the next neighbour, and once every trip in the story has stars, the
-title's CONTINUE goes straight to the neighbours.
+title's CONTINUE goes straight to the neighbours (unless a trip's trunk is still waiting for you).
 
 On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
 aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →
@@ -334,8 +334,9 @@ python3 Tools/solve_levels.py --check-favours Recordings/autopilot/favours.json 
 
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
 `-pttAutopilot`. It clicks, rotates, drops and undoes with real input events, packs all 33 trips
-from the solver's solutions, closes every trunk, opens the ending and the album, and writes
-screenshots to `Recordings/autopilot` (about 14 minutes). It also checks the HUD and menu layout at
+from the solver's solutions, closes every trunk, plays a few favours and makes hundreds more (written to
+`favours.json` for `solve_levels.py --check-favours`), opens the ending and the album, and writes
+screenshots to `Recordings/autopilot` (about 20 minutes). It also checks the HUD and menu layout at
 three interface sizes and measures every visible text's size in screen pixels on each screen. Like the recorders and the benchmark, it
 plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings and progress in memory,
 photos in a cache folder), and `autopilot.sh` checks that your own save is byte-for-byte untouched.
@@ -476,10 +477,11 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus nine rounds of improvements since that release (see
+Version **0.1.0** plus ten rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, the game can be played with a mouse alone, a keyboard alone or a gamepad, and
-the autopilot (330 checks) passes every trip. Still rough or missing:
+settings are complete, favours for the neighbours keep going after the story, the game can be played
+with a mouse alone, a keyboard alone or a gamepad, and the autopilot (378 checks) passes every trip.
+Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
@@ -518,6 +520,10 @@ the autopilot (330 checks) passes every trip. Still rough or missing:
   walks every kind of menu, but no one who relies on a keyboard has tried it yet. The keyboard cursor
   jumps to the nearest control by geometry, like the D-pad, so an unusual screen can take an extra
   press to reach a button.
+- **Favours are new and only machine-tested.** Every favour's pile is made by packing it, and the self-test
+  re-checks hundreds of them with the game's rules and the solver's, so each can be packed completely. Nobody
+  has played them yet to say whether they're too easy or too hard. The neighbours' texts come from a small
+  cast and repeat, and favours have no album page or seals.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
   autopilot's queued input stopped registering and every input check failed. Re-run when it's
   quieter.
