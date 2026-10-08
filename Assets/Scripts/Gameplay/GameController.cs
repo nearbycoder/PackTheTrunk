@@ -126,8 +126,8 @@ namespace PackTheTrunk
             ui.TitleKeyPressed += () => sfx.Confirm();
             ui.ContinuePressed += () => ui.Transition(() =>
             {
-                // With every trip packed, CONTINUE goes to the neighbour who needs a hand.
-                var favour = AllTripsPacked ? CurrentFavour() : null;
+                // With every trip packed (and no trip's trunk waiting), CONTINUE goes to the neighbour who needs a hand.
+                var favour = AllTripsPacked && SavedTrunkCount(GameDatabase.Levels[NextTripIndex()].Id) == 0 ? CurrentFavour() : null;
                 if (favour != null) BeginTrip(favour);
                 else BeginTrip(NextTripIndex());
             });
@@ -361,7 +361,7 @@ namespace PackTheTrunk
             int next = NextTripIndex();
             var nl = GameDatabase.Levels[next];
             int waiting = SavedTrunkCount(nl.Id);
-            var favour = done == count ? CurrentFavour() : null;
+            var favour = done == count && waiting == 0 ? CurrentFavour() : null;
             int favourWaiting = favour != null ? SavedTrunkCount(favour.Id) : 0;
             string cont = favour != null ? $"The neighbours need a hand  ·  {favour.Sender}" + (favourWaiting > 0 ? $"  ·  {favourWaiting} packed, waiting" : "")
                 : waiting > 0 ? $"Trip {next + 1}  ·  {nl.Title}  ·  {waiting} packed, waiting for you"
