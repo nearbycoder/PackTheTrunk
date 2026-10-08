@@ -18,6 +18,18 @@ namespace PackTheTrunk
         public event Action<int> LevelChosen;
         /// <summary>The neighbours page's pin: help the neighbour who's waiting.</summary>
         public event Action FavourChosen;
+        /// <summary>The neighbours page's ASK SOMEONE ELSE (already confirmed if that favour's trunk was half-packed).</summary>
+        public event Action FavourSwapPressed;
+        Text favourSwapLabel;
+        float favourSwapArmedUntil = -1f;
+        const string FavourSwapText = "ASK SOMEONE ELSE", FavourSwapAsk = "UNPACK AND ASK?";
+
+        /// <summary>The neighbours page again, after the waiting favour changed (ASK SOMEONE ELSE).</summary>
+        public void RefreshFavours(FavourPage page)
+        {
+            menuFavours = page;
+            if (menu.gameObject.activeSelf && menuPage == NeighboursPage) DrawPage();
+        }
 
         /// <summary>What the trip map's last page, The Neighbours, shows.</summary>
         public struct FavourPage
@@ -751,6 +763,11 @@ namespace PackTheTrunk
 
             FollowScreenSize();
             ReadableText.Follow(readableFactor);
+            if (favourSwapArmedUntil > 0f && UiTime.Now > favourSwapArmedUntil)
+            {
+                favourSwapArmedUntil = -1f;
+                if (favourSwapLabel != null) favourSwapLabel.text = FavourSwapText;
+            }
             UpdateNowPlaying();
             UpdateTitle();
             UpdateHudMotion();
@@ -1166,6 +1183,32 @@ namespace PackTheTrunk
             subText.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -58), new Vector2(-10, -38));
             subText.horizontalOverflow = HorizontalWrapMode.Overflow;
             if (f.Unlocked && f.Waiting == 0 && subText.preferredWidth > 452f) subText.text = $"FAVOUR {f.Favour.Favour}  ·  {f.Favour.Vehicle.ToUpperInvariant()}";
+
+            // ASK SOMEONE ELSE: another neighbour, car and pile. A half-packed trunk asks first, and a second click within
+            // a few seconds unpacks it and asks.
+            favourSwapLabel = null;
+            favourSwapArmedUntil = -1f;
+            if (f.Unlocked)
+            {
+                var swap = UiTheme.Pill("Favour Swap", mapArea, FavourSwapText, UiTheme.Teal, 24, null, out var swapLabel);
+                var swapRect = (RectTransform)swap.transform;
+                swapRect.Pin(new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), pos + new Vector2(62, -84), new Vector2(300, 52));
+                UiMotion.Intro(swapRect, new Vector2(-30, 0), 0.25f, 0.8f, 0f, 0.45f);
+                favourSwapLabel = swapLabel;
+                int waiting = f.Waiting;
+                swap.onClick.AddListener(() =>
+                {
+                    if (waiting > 0 && !(favourSwapArmedUntil > 0f && UiTime.Now <= favourSwapArmedUntil))
+                    {
+                        favourSwapArmedUntil = UiTime.Now + 3f;
+                        swapLabel.text = FavourSwapAsk;
+                        Sfx.Instance?.Tick();
+                        return;
+                    }
+                    favourSwapArmedUntil = -1f;
+                    FavourSwapPressed?.Invoke();
+                });
+            }
 
             var note = UiTheme.Label("Favours Note", mapArea, f.Unlocked
                     ? (f.Done == 0 ? "Each favour is a new pile for a car you've packed.\nClick the pin to see who's asking."

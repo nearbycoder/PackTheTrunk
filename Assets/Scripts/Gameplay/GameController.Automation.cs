@@ -20,6 +20,8 @@ namespace PackTheTrunk
             Prefs.Save();
         }
 
+        public static int AutoSavedTrunkCount(string id) => SavedTrunkCount(id);
+
         /// <summary>The waiting favour as saved ("" if none).</summary>
         public static string SavedFavour => Prefs.GetString(FavourKey, "");
         public Camera Camera => cam;

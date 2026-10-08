@@ -196,9 +196,29 @@ namespace PackTheTrunk
             pin = FindButton("Favour Pin");
             bool open = first != null && first.Favour == 1 && pin != null && pin.interactable && AnyText(first.Sender);
             yield return Shot("favours-page");
+
+            // ASK SOMEONE ELSE: another neighbour, car and pile under the same number, twice; nothing counted.
+            yield return ClickUi("Favour Swap");
+            yield return Wait(1f);
+            var swapped = game.AutoCurrentFavour();
+            bool page1 = swapped != null && AnyText(swapped.Sender);
+            yield return ClickUi("Favour Swap");
+            yield return Wait(1f);
+            var swapped2 = game.AutoCurrentFavour();
+            bool page2 = swapped2 != null && AnyText(swapped2.Sender);
+            yield return Shot("favours-swapped");
+            Check(first != null && swapped != null && swapped2 != null && swapped.Favour == 1 && swapped2.Favour == 1
+                  && swapped.Sender != first.Sender && swapped.ModelId != first.ModelId && !SamePile(first, swapped)
+                  && swapped2.Sender != swapped.Sender && swapped2.ModelId != swapped.ModelId && !SamePile(swapped, swapped2)
+                  && page1 && page2 && GameController.SavedFavour == Favours.Serialize(swapped2) && GameController.FavoursDone == 0,
+                $"favours: ASK SOMEONE ELSE swaps favour 1 ({first?.Sender}, {first?.Vehicle}, {first?.Required.Count + first?.Bonus.Count} things) for " +
+                $"{swapped?.Sender} ({swapped?.Vehicle}, {swapped?.Required.Count + swapped?.Bonus.Count} things), then {swapped2?.Sender} ({swapped2?.Vehicle}, " +
+                $"{swapped2?.Required.Count + swapped2?.Bonus.Count} things); same number, the page and the save follow, nothing counted");
+            first = swapped2;
             yield return ClickUi("Favour Pin");
             yield return WaitForStory();
             bool story = game.IsInStory && AnyText("THE NEIGHBOURS  ·  FAVOUR 1");
+            yield return Wait(6f);
             yield return Shot("favours-story");
             yield return StoryToPacking();
             yield return Wait(1.5f);
@@ -283,6 +303,55 @@ namespace PackTheTrunk
             Check(line && game.IsInStory && game.CurrentLevelDef?.Favour == 3,
                 $"favours: with every trip packed, the title says the neighbours need a hand and CONTINUE opens favour {game.CurrentLevelDef?.Favour}");
             yield return Shot("favours-continue");
+
+            // ASK SOMEONE ELSE on a half-packed favour asks first; a second click unpacks it and asks. Then by keyboard.
+            yield return StoryToPacking();
+            yield return Wait(1.5f);
+            for (int k = 0; k < 3; k++)
+            {
+                var hint = game.AutoFindHint();
+                if (hint.Item != null) game.AutoPlace(hint.Item, hint.Rotation, hint.Pos);
+                yield return Wait(0.2f);
+            }
+            yield return Wait(0.6f);
+            var third = game.CurrentLevelDef;
+            yield return Press(Key.Escape);
+            yield return Wait(1f);
+            yield return ClickUi("Pause Map");
+            yield return Wait(2.5f);
+            bool waiting3 = AnyText("3 PACKED, WAITING");
+            yield return ClickUi("Favour Swap");
+            yield return Wait(0.4f);
+            bool asks = AnyText("UNPACK AND ASK?") && game.AutoCurrentFavour()?.FavourVariant == third?.FavourVariant && GameController.AutoSavedTrunkCount(third?.Id ?? "") == 3;
+            yield return Shot("favours-swap-asks");
+            yield return Wait(3.4f);
+            bool lapsed = AnyText("ASK SOMEONE ELSE") && !AnyText("UNPACK AND ASK?") && GameController.AutoSavedTrunkCount(third?.Id ?? "") == 3;
+            yield return ClickUi("Favour Swap");
+            yield return Wait(0.4f);
+            yield return ClickUi("Favour Swap");
+            yield return Wait(1f);
+            var fourth = game.AutoCurrentFavour();
+            Check(waiting3 && asks && lapsed && fourth != null && third != null && fourth.Favour == 3 && fourth.Sender != third.Sender
+                  && GameController.AutoSavedTrunkCount(fourth.Id) == 0 && !AnyText("PACKED, WAITING") && GameController.FavoursDone == 2,
+                $"favours: on favour 3 with 3 packed, ASK SOMEONE ELSE first asks (\"UNPACK AND ASK?\", the trunk kept), lets go after 3 s, and a second click " +
+                $"unpacks it and asks {fourth?.Sender} instead of {third?.Sender}; still {GameController.FavoursDone} done");
+
+            var mouse = Mouse.current;
+            var walked = new List<string>();
+            foreach (var key in new[] { Key.DownArrow, Key.RightArrow, Key.UpArrow, Key.LeftArrow, Key.DownArrow })
+                for (int k = 0; k < 5 && GamepadCursor.LastNavigation != "Favour Swap"; k++)
+                {
+                    yield return Press(key);
+                    yield return Wait(0.25f);
+                    walked.Add(GamepadCursor.LastNavigation);
+                }
+            bool reached = GamepadCursor.LastNavigation == "Favour Swap";
+            yield return Press(Key.Enter);
+            yield return Wait(1f);
+            var fifth = game.AutoCurrentFavour();
+            Check(reached && fifth != null && fifth.Favour == 3 && fifth.Sender != fourth?.Sender,
+                $"favours: the keyboard cursor reaches ASK SOMEONE ELSE ({string.Join(" > ", walked)}) and Enter asks {fifth?.Sender} instead");
+            yield return NudgeMouse(mouse);
 
             // Erasing progress clears them (the reset it runs).
             game.AutoResetFavours();

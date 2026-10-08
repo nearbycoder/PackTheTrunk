@@ -115,11 +115,12 @@ namespace PackTheTrunk
 
         /// <summary>
         /// Make favour <paramref name="number"/>: a car from <paramref name="cars"/> (not <paramref name="avoidCar"/> if
-        /// there's a choice) and a pile from <paramref name="pool"/>, packed into it. Deterministic for the same inputs.
+        /// there's a choice) and a pile from <paramref name="pool"/>, packed into it. <paramref name="variant"/> counts
+        /// ASK SOMEONE ELSE: each one is another neighbour and pile for the same number. Deterministic for the same inputs.
         /// </summary>
-        public static LevelDef Make(int number, IReadOnlyList<LevelDef> cars, IReadOnlyList<ItemDef> pool, string avoidCar = null)
+        public static LevelDef Make(int number, IReadOnlyList<LevelDef> cars, IReadOnlyList<ItemDef> pool, string avoidCar = null, int variant = 0)
         {
-            var rng = new System.Random(number * 7919 + 17);
+            var rng = new System.Random(number * 7919 + 17 + variant * 104723);
             var choices = cars.Where(c => c.FreeCells >= MinFreeCells).ToList();
             if (choices.Count > 1 && avoidCar != null) choices.RemoveAll(c => c.Id == avoidCar);
             if (choices.Count == 0) return null;
@@ -152,6 +153,7 @@ namespace PackTheTrunk
             essentials = Mathf.Clamp(essentials, 2, order.Count - 2);
 
             var level = Shell(number, car);
+            level.FavourVariant = variant;
             level.Packing = best.Select(p => (p.Def.Id, p.Shape.Voxels.Select(v => v.Pos + p.Min).ToList())).ToList();
             for (int i = 0; i < order.Count; i++) (i < essentials ? level.Required : level.Bonus).Add(order[i].Def);
             Words(level);
@@ -175,18 +177,16 @@ namespace PackTheTrunk
             Medium = "phone",
         };
 
-        /// <summary>The neighbour who asks favour <paramref name="number"/>: they take turns.</summary>
-        public static string NeighbourFor(int number) => Neighbours[Turns[(number - 1) % Turns.Length]].Name;
-
         /// <summary>
-        /// Who's asking (the neighbours take turns), what for (an errand that suits the pile, if one does) and the texts,
-        /// one of which names something in the pile. Follows from the favour's number and pile alone.
+        /// Who's asking (the neighbours take turns; asking someone else moves seven along), what for (an errand that suits
+        /// the pile, if one does) and the texts, one of which names something in the pile. Follows from the favour's number,
+        /// variant and pile alone.
         /// </summary>
         static void Words(LevelDef level)
         {
-            int number = level.Favour;
-            var words = new System.Random(number * 104729 + 3);
-            var who = Neighbours[Turns[(number - 1) % Turns.Length]];
+            int number = level.Favour, variant = level.FavourVariant;
+            var words = new System.Random(number * 104729 + 3 + variant * 7919);
+            var who = Neighbours[Turns[(number - 1 + 7 * variant) % Turns.Length]];
             var pile = level.Required.Concat(level.Bonus).ToList();
             var errand = ErrandFor(pile, words);
             level.Title = errand.Title;
@@ -292,11 +292,14 @@ namespace PackTheTrunk
 
         // ------------------------------------------------------------------ saving
 
-        /// <summary>"1|number|car|req ids|bonus ids|packing" with packing "id:x,y,z;x,y,z/..." (what the favour is).</summary>
+        /// <summary>
+        /// "2|number|variant|car|req ids|bonus ids|packing" with packing "id:x,y,z;x,y,z/..." (what the favour is). Round 10
+        /// saved "1|number|car|..." (no variant), which still reads.
+        /// </summary>
         public static string Serialize(LevelDef favour)
         {
             var inv = CultureInfo.InvariantCulture;
-            var sb = new StringBuilder("1|").Append(favour.Favour.ToString(inv)).Append('|').Append(favour.ModelId).Append('|');
+            var sb = new StringBuilder("2|").Append(favour.Favour.ToString(inv)).Append('|').Append(favour.FavourVariant.ToString(inv)).Append('|').Append(favour.ModelId).Append('|');
             sb.Append(string.Join(",", favour.Required.Select(d => d.Id))).Append('|');
             sb.Append(string.Join(",", favour.Bonus.Select(d => d.Id))).Append('|');
             sb.Append(string.Join("/", favour.Packing.Select(p => p.Id + ":" + string.Join(";", p.Cells.Select(c => $"{c.x.ToString(inv)},{c.y.ToString(inv)},{c.z.ToString(inv)}")))));
@@ -308,13 +311,20 @@ namespace PackTheTrunk
         {
             try
             {
-                var parts = data.Split('|');
-                if (parts.Length != 6 || parts[0] != "1") return null;
+                var parts = data.Split('|').ToList();
+                int variant = 0;
+                if (parts.Count == 7 && parts[0] == "2")
+                {
+                    variant = int.Parse(parts[2], CultureInfo.InvariantCulture);
+                    parts.RemoveAt(2);
+                }
+                else if (parts.Count != 6 || parts[0] != "1") return null;
                 int number = int.Parse(parts[1], CultureInfo.InvariantCulture);
                 if (made.TryGetValue(number, out var known) && Serialize(known) == data) return known;
                 var car = levels.FirstOrDefault(l => l.Id == parts[2]);
                 if (car == null) return null;
                 var shell = Shell(number, car);
+                shell.FavourVariant = variant;
                 shell.Required = parts[3].Split(',').Where(s => s.Length > 0).Select(item).ToList();
                 shell.Bonus = parts[4].Split(',').Where(s => s.Length > 0).Select(item).ToList();
                 if (shell.Required.Any(d => d == null) || shell.Bonus.Any(d => d == null)) return null;

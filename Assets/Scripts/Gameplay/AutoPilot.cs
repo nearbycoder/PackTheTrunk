@@ -1937,6 +1937,7 @@ namespace PackTheTrunk
                 yield return FlipToNeighbours();
                 yield return Measure("trip map neighbours (open)");
                 yield return Shot($"legibility-{size}-neighbours");
+                NeighboursPageLayoutCheck(size);
                 var favour = game.AutoCurrentFavour();
                 game.AutoBeginFavour(favour);
                 yield return Wait(7f);
@@ -2583,6 +2584,39 @@ namespace PackTheTrunk
             string.IsNullOrEmpty(solutionsPath) || !File.Exists(solutionsPath)
                 ? new Dictionary<string, List<(string, List<Vector3Int>)>>()
                 : Solutions.Parse(File.ReadAllText(solutionsPath));
+
+        /// <summary>The neighbours page: ASK SOMEONE ELSE inside the page and clear of the pin, its card and the note (in the page's own space).</summary>
+        void NeighboursPageLayoutCheck(string size)
+        {
+            var swap = FindButton("Favour Swap");
+            var area = swap != null ? swap.transform.parent as RectTransform : null;
+            Rect Local(Transform t)
+            {
+                var corners = new Vector3[4];
+                ((RectTransform)t).GetWorldCorners(corners);
+                var a = area.InverseTransformPoint(corners[0]);
+                var b = area.InverseTransformPoint(corners[2]);
+                return Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+            }
+            var problems = new List<string>();
+            if (area == null) problems.Add("no ASK SOMEONE ELSE button");
+            else
+            {
+                var r = Local(swap.transform);
+                var page = area.rect;
+                if (r.xMin < page.xMin - 2f || r.xMax > page.xMax + 2f || r.yMin < page.yMin - 2f || r.yMax > page.yMax + 2f) problems.Add("it leaves the page");
+                foreach (var name in new[] { "Favour Slot", "Label", "Favours Note" })
+                {
+                    var other = area.Find(name);
+                    if (other == null) { problems.Add("no " + name); continue; }
+                    var o = Local(other);
+                    float w = Mathf.Min(r.xMax, o.xMax) - Mathf.Max(r.xMin, o.xMin), h = Mathf.Min(r.yMax, o.yMax) - Mathf.Max(r.yMin, o.yMin);
+                    if (w > 2f && h > 2f) problems.Add($"it overlaps {name} by {w:0}x{h:0}");
+                }
+            }
+            Check(problems.Count == 0, $"neighbours page at {size}, {GameSettings.UiScale * 100f:0}%: ASK SOMEONE ELSE sits inside the page, clear of the pin, its card and the note" +
+                (problems.Count > 0 ? ": " + string.Join("; ", problems) : ""));
+        }
 
         static UnityEngine.UI.Button FindButton(string name) =>
             FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Exclude).FirstOrDefault(b => b.name == name);

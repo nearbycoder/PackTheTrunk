@@ -142,6 +142,8 @@ namespace PackTheTrunk
         public string ModelId;
         /// <summary>A favour for the neighbours (its number, from 1), or 0 for a trip in the story.</summary>
         public int Favour;
+        /// <summary>How many times ASK SOMEONE ELSE has swapped this favour for another (0 for the first ask).</summary>
+        public int FavourVariant;
         /// <summary>A favour's pile packed completely, as it was made (Grandpa's hints use it).</summary>
         public List<(string Id, List<Vector3Int> Cells)> Packing;
 

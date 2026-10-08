@@ -48,12 +48,12 @@ namespace PackTheTrunk
         }
 
         /// <summary>Make favour <paramref name="number"/> from the trips closed so far, and save it.</summary>
-        LevelDef MakeFavour(int number, string avoidCar)
+        LevelDef MakeFavour(int number, string avoidCar, int variant = 0)
         {
             var closed = GameDatabase.Levels.Where((l, i) => StarsFor(i) > 0).ToList();
             var pool = closed.SelectMany(l => l.Required.Concat(l.Bonus)).ToList();
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            var favour = Favours.Make(number, closed, pool, avoidCar);
+            var favour = Favours.Make(number, closed, pool, avoidCar, variant);
             if (favour == null)
             {
                 Debug.LogWarning($"[Favours] could not make favour {number}");
@@ -88,6 +88,22 @@ namespace PackTheTrunk
             var current = Favours.Deserialize(Prefs.GetString(FavourKey, ""), GameDatabase.Levels, GameDatabase.ItemOrNull);
             if (current == null || current.Favour == favour.Favour) MakeFavour(favour.Favour + 1, favour.ModelId);
             Prefs.Save();
+        }
+
+        /// <summary>
+        /// ASK SOMEONE ELSE: the waiting favour goes to another neighbour, with another car (if there's a choice) and pile,
+        /// under the same number. Its trunk is forgotten (the page asks first if anything's packed); the counts don't change.
+        /// </summary>
+        void SwapFavour()
+        {
+            var current = CurrentFavour();
+            if (current == null) return;
+            ForgetTrunk(current.Id);
+            var next = MakeFavour(current.Favour, current.ModelId, current.FavourVariant + 1);
+            if (next == null) return;
+            Debug.Log($"[Favours] asked someone else: favour {next.Favour} is now {next.Sender}'s ({next.Title}, {next.Vehicle}), not {current.Sender}'s ({current.Title}, {current.Vehicle})");
+            sfx.Page();
+            ui.RefreshFavours(FavourPageInfo(true));
         }
 
         void ResetFavours()

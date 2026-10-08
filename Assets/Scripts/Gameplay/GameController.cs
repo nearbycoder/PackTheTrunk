@@ -136,6 +136,7 @@ namespace PackTheTrunk
                 var favour = CurrentFavour();
                 if (favour != null) BeginTrip(favour);
             });
+            ui.FavourSwapPressed += SwapFavour;
             ui.TripMapPressed += ShowMenu;
             ui.AlbumPressed += () => ShowAlbum(false);
             ui.CreditsPressed += ShowCredits;
