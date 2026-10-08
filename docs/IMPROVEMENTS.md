@@ -1420,3 +1420,93 @@ Still open after round 10:
   seals.
 - **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`), a Mac run,
   someone who plays with the keyboard alone, and a few people playing favours.
+
+## Round 11 scope (2026-10-08, branch `improvements-11`)
+
+**Baseline.** Round-10 `main` (`0bba573`) was rebuilt (0 errors) and benchmarked nested at the start of the round
+(`-pttBench`, 1600×900, High; `Recordings/round11/bench-main.log`). Load was 13–14 (other sessions were building), so
+frame times read a flat 10–12 ms on every screen (GPU contention, as in earlier rounds), while the CPU column read
+**2.0–2.9 ms**, with 0 KB allocated per frame. The round ends with a back-to-back A/B instead of comparing with this.
+
+**A first look at the favours as a player meets them.** Round 10 shipped favours checked only by machine. Reading the
+300 favours its full self-test made (`Recordings/round10/full/favours.json`) the way a player would meet them:
+
+- **The neighbours are carrying the family's things.** A favour's pile is drawn from everything packed in the story,
+  so the first one in that file asks you to pack **Biscuit (in Carrier)** (the family's cat), **Grandma's Veil** and
+  **Sam's Turntable** for a neighbour. Grandpa's Note, Mr. Buttons, the Ring and the Portrait of Grandpa can turn up
+  the same way: 259 of the 300 piles have at least one of the family's things. In a game about one family's
+  heirlooms that reads as a bug.
+- **The words don't follow the pile.** The errand is picked from the favour's number alone, so "The Beach Trip" can be
+  a moving truck of baby things. With 10 neighbours, 12 errands and 4 sign-offs, they also repeat soon.
+- **Most piles have exactly three fragile things** (the maker's cap): 170 of the 300. The story's trips run
+  from none to ten.
+- **There's no way to turn a favour down.** One favour waits at a time; if it's a 22-thing moving truck when you wanted
+  a quick one, the only way on is to close it.
+- **Closing a favour can hitch the postcard.** The next favour is made on the frame the postcard comes up (about 4 ms,
+  up to ~30 ms), and the first one in a session takes ~70 ms while every shape's turns are worked out.
+- **How hard are they?** By the solver's own effort to find a complete packing from scratch, favours sit where the
+  story's trips do (most take under 50 search steps, like most trips; a few take tens of thousands, like Grandma's Big
+  Move or Wedding Day). Fill (82–95%) and size (6–22 things) match the story's range too. That says nothing about fun;
+  it only says they aren't wildly off. (`Recordings/round11/difficulty-r10.txt`)
+
+Round 11 is about those: favours that read like the neighbours' own errands, a choice of which one to do, and no hitch.
+
+### A. The neighbours pack their own things, and the words fit the pile
+
+- **Acceptance:**
+  - The family's own things never appear in a favour: items marked `"family": true` in `PackTheTrunkData.json` (Mr.
+    Buttons, Grandpa's guitar, the grandfather clock, the gnome, Grandpa's note, the portrait, the ring, the veil, Sam's
+    turntable and armchair, Grandma's armchair, Biscuit, Rosie's suitcase, Grandpa's sled, the cutout of you, Dad's
+    grill, the second clown, the IT'S A GIRL balloons and the photo album). The page still unlocks after chapter II and
+    every favour is still 6–22 things at 82–95% fill.
+  - The errand fits the pile: errands carry the things that suggest them (a beach trip wants surfboards and umbrellas,
+    a baby shower wants a stroller), and a pile with at least two of an errand's things gets that errand; otherwise
+    it's one that fits anything (a yard sale, moving day). One of the texts names something in the pile (and a fragile
+    thing's line reminds you nothing goes on top of it).
+  - Less repetition: a bigger cast (16 neighbours, 20+ errands, 8 sign-offs), and the neighbours take turns, so the
+    same neighbour never asks twice in a row.
+  - Piles vary: each favour allows one to four fragile things instead of always up to three.
+  - A favour saved by round 10 keeps its pile; only its words follow the new rules.
+- **Verify:** the generator check (`FavourMakerChecks`, 80 favours in the quick run, 300 in the full one) also checks
+  that no pile has a family thing, counts how many favours got a matching errand, how many neighbours and errands
+  appear, the longest run without a repeated neighbour, the spread of fragile counts, and that every text line names
+  only things in that pile. `solve_levels.py --check-favours` also rejects a family thing. The legibility, wrap and
+  contrast passes cover a favour's texts as before. Screenshots of a favour's texts.
+
+### B. Ask someone else
+
+- **Acceptance:** the neighbours page has an **ASK SOMEONE ELSE** button under the waiting favour. It replaces the
+  waiting favour with another neighbour, another car (when there's a choice) and a new pile, with the same favour
+  number. If that favour's trunk is half-packed, the first click asks ("UNPACK IT?") and only a second click within a
+  few seconds swaps it (and forgets that trunk). It works with the mouse, the keyboard cursor and the pad's D-pad like
+  any other button. A swapped favour is saved like any other, so quitting or a crash brings back the new one. The
+  counts (favours done, three stars) don't change.
+- **Verify:** `FavourChecks` additions through the real UI: on the page, a click swaps favour 1 for a different
+  neighbour, car and pile with the same number; a second swap differs again; the page shows the new neighbour; with 3
+  packed, the first click only asks and the waiting trunk survives, the second swaps and the trunk is gone; the new
+  favour opens from the pin; Enter on the button through the keyboard cursor swaps too. Layout, legibility and
+  contrast passes measure the page with the button at every size. Screenshot.
+
+### C. No hitch when the next favour is made
+
+- **Acceptance:** closing a favour costs the postcard frame no more than a millisecond or so of favour work: the next
+  favour is made on a worker thread while the postcard shows (and saved on the main thread when it's ready), or, if the
+  game is quit first, made the next time it's needed, behind a transition. Every shape's turns are worked out on a
+  worker at boot, so the first favour of a session costs the same as any other. Nothing changes about which favour
+  comes next.
+- **Verify:** the game logs the main-thread cost of closing a favour (`[Favours] closing favour N took X ms on the main
+  thread`) and where the next one was made; the favour checks require it under 2 ms, and that the next favour is
+  ready (saved) by the time the postcard's buttons can be clicked. Quick autopilot before (round-10 `main`'s
+  `[Favours] made` lines at the postcard) and after.
+
+### D. Housekeeping
+
+The round ends with `build-linux` (0 errors), the solver, a full autopilot (0 FAIL, real save untouched, load noted),
+the crash test, layout-only runs at the eight measured sizes, and a nested back-to-back `-pttBench` A/B with round-10
+`main`. Each item is built and quick-tested on its own commit before the next starts, with screenshots in
+`docs/media/improvements/round11/`. After each nested run, the helper processes (`ksecretd`, portals, D-Bus) are
+counted to make sure the run left none behind.
+
+Not in this round: playing favours with people (still the real test of their difficulty and fun), album pages or
+seals for favours (owner), re-laying out a screen live while its window is being resized (texts already follow the
+window; the packing list's widening and a few shortened lines wait for the screen to open again).
