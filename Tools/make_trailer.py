@@ -61,38 +61,41 @@ EDL = [
     # Cold open: the last two things go into the biggest trunk, it slams shut and drives off.
     dict(kind="clip", parts=[("coldopen", 2.8, 8.2)], caption=None),
     dict(kind="title", len=4.6),
-    dict(kind="clip", parts=[("core", 2.2, 7.0)],
-         caption=("Pick it up. Drop it in.", "Everything snaps to a grid. Green means it fits."), pos="top"),
-    dict(kind="clip", parts=[("rotate", 0.4, 5.2)],
+    dict(kind="clip", parts=[("core", 2.4, 6.6)],
+         caption=("Pick it up. Drop it in.", "Click it, or drag it straight in. Green means it fits."), pos="top"),
+    dict(kind="clip", parts=[("rotate", 0.4, 5.0)],
          caption=("Turn it. Tip it. Roll it.", "R, T and F spin anything until it finds its gap."), pos="top-left"),
-    dict(kind="clip", parts=[("heights", 0.3, 6.4)],
+    dict(kind="clip", parts=[("heights", 0.3, 5.6)],
          caption=("On top, or tucked under?", "The wheel (or W / S) picks the shelf or the gap it rests in."), pos="top"),
-    dict(kind="clip", parts=[("fragile", 0.6, 7.6)],
+    dict(kind="clip", parts=[("fragile", 1.0, 6.4)],
          caption=("Fragile goes on top", "Eggs, cakes and lava lamps can't take any weight."), pos="top"),
-    dict(kind="clip", parts=[("clown", 0.6, 6.2)],
+    dict(kind="clip", parts=[("clown", 0.6, 6.0)],
          caption=("Awkward spaces", "Wheel wells, sloped glass, toolboxes... and a clown."), pos="top"),
-    dict(kind="clip", parts=[("essentials", 1.6, 6.2)],
-         caption=("Essentials first", "Pack everything on the list, then squeeze in extras for stars."), pos="top"),
-    dict(kind="clip", parts=[("undo", 0.0, 4.7)],
-         caption=("Changed your mind?", "Undo anything, or lift it right back out of the trunk."), pos="top"),
-    dict(kind="clip", parts=[("close", 0.8, 8.2)],
+    dict(kind="clip", parts=[("hint", 0.3, 5.9)],
+         caption=("Stuck? Ask Grandpa.", "His orange ghost shows where one thing goes. You still pack it."), pos="top"),
+    dict(kind="clip", parts=[("xray", 0.5, 5.0)],
+         caption=("See through the pile", "Hold Tab and everything packed turns see-through."), pos="top"),
+    dict(kind="clip", parts=[("undo", 0.0, 3.0)],
+         caption=("Changed your mind?", "Undo, redo, or lift anything back out of the trunk."), pos="top"),
+    dict(kind="clip", parts=[("close", 0.8, 7.4)],
          caption=("Slam it shut", "Close the trunk, hit the road, earn up to three stars."), pos="top-left"),
-    # The texts arrive at reading pace in the game; 1.5x keeps the trailer moving.
-    dict(kind="clip", parts=[("story", 5.6, 6.3)], speed=1.5,
-         caption=("Every trip is a story", "Texts and notes from the family set up each trip."), pos="bottom-right"),
-    dict(kind="clip", parts=[("chapter", 2.0, 5.8)], speed=1.25,
-         caption=("33 trips. 30 years. One family.", "Six chapters, from Grandpa's red wagon in 1998 to 2027."), pos="bottom-right"),
-    dict(kind="clip", parts=[("map", 1.0, 5.0)],
-         caption=("The trip map", "Every trip waits on a chapter page, with its stars."), pos="bottom-left"),
-    dict(kind="clip", parts=[("arrive_beach", 0.3, 1.3), ("arrive_house", 0.3, 1.3), ("arrive_honeymoon", 0.3, 1.3),
-                             ("arrive_talent", 0.3, 1.3), ("arrive_grandma", 0.3, 1.3), ("arrive_mini", 0.3, 1.3)],
-         caption=("11 rides, 116 things to pack", "From a little red wagon to a moving truck. Yes, that's a kitchen sink."), pos="top"),
-    dict(kind="clip", parts=[("album", 4.6, 6.2)],
-         caption=("The family album", "Every trunk you pack becomes a photo."), pos="bottom-left"),
-    dict(kind="clip", parts=[("menu", 1.4, 2.2), ("menu", 5.8, 2.4), ("pause", 0.4, 2.4)],
-         caption=("Settle in", "Lo-fi soundtrack, pause any time, every setting you'd want."), pos="bottom-left"),
+    dict(kind="clip", parts=[("seal", 0.6, 3.6)],
+         caption=("Grandpa's seal", "Three stars without a hint, and he stamps the postcard."), pos="top-left"),
+    # The chapter card, then the texts (they arrive at reading pace in the game; 1.5x keeps it moving).
+    dict(kind="clip", parts=[("story", 1.7, 2.6), ("story", 5.6, 6.3)], speed=1.5,
+         caption=("33 trips. 30 years. One family.", "Texts and notes from the family set up every trip, 1998 to 2027."), pos="bottom-right"),
+    dict(kind="clip", parts=[("album", 4.6, 4.2), ("album_zoom", 0.0, 2.8)],
+         caption=("The family album", "Every trunk you pack becomes a photo. Click one for a closer look."), pos="bottom-left"),
+    dict(kind="clip", parts=[("favours_page", 0.8, 4.2), ("favours_pack", 0.2, 4.4)],
+         caption=("Favours for the neighbours", "After chapter II, new piles for the cars you've packed. Or ask someone else."), pos="bottom-left"),
+    dict(kind="clip", parts=[("arrive_beach", 0.3, 0.9), ("arrive_house", 0.3, 0.9), ("arrive_honeymoon", 0.3, 0.9),
+                             ("arrive_talent", 0.3, 0.9), ("arrive_grandma", 0.3, 0.9), ("arrive_mini", 0.3, 0.9)],
+         caption=("11 rides, 116 things to pack", "From a little red wagon to a moving truck."), pos="top"),
+    # The main menu, the Graphics fidelity slider dragged from Ultra down to Low and back, the Accessibility tab.
+    dict(kind="clip", parts=[("menu", 1.4, 1.6), ("menu", 4.9, 7.1), ("accessibility", 0.4, 2.4)], speed=1.2,
+         caption=("Low to Ultra, live", "One graphics slider, accessibility options and controls you can remap."), pos="bottom-left"),
     # Escalation: bigger and bigger loads, faster and faster, and one more slam.
-    dict(kind="clip", parts=[("speed_festival", 0.3, 1.8), ("speed_house", 0.4, 2.2), ("speed_everything", 0.3, 7.0)],
+    dict(kind="clip", parts=[("speed_festival", 0.3, 1.8), ("speed_house", 0.4, 2.2), ("speed_everything", 0.3, 6.0)],
          caption=("Big things first. Fragile on top.", "And always leave room for one more thing."), pos="top-center"),
     dict(kind="end", len=6.5),
 ]
@@ -440,7 +443,9 @@ def finish(assembled, total, music_start):
         f"adelay={ms}|{ms},apad,atrim=0:{total:.3f}[bed];"
         f"[bed][key]sidechaincompress=threshold=0.035:ratio=5:attack=12:release=420:makeup=1[ducked];"
         f"[sfx][ducked]amix=inputs=2:normalize=0:duration=first,"
-        f"loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[mix]"
+        # loudnorm's own ceiling isn't a true-peak guarantee once resampled and AAC-encoded; the
+        # limiter keeps sample peaks 3 dB under full scale so the encoded file stays below -1 dBTP.
+        f"loudnorm=I=-16:TP=-2:LRA=11,aresample=48000,alimiter=limit=0.708:attack=2:release=60:level=disabled[mix]"
     )
     # Budget: stay under 40 MB with headroom.
     max_kbps = int(min(7500, (37.5 * 8 * 1024 * 1024 / total - 192_000) / 1000))
@@ -499,6 +504,7 @@ STILLS = {  # capture still name -> README screenshot name
     "fragile": "05-fragile", "clown": "06-clown-car", "late": "07-everyone-everything", "postcard": "08-postcard",
     "map": "09-trip-map", "album": "10-family-album",
     "hint": "11-ask-grandpa", "tip": "12-grandpas-tip", "xray": "13-x-ray", "seal": "14-grandpas-seal",
+    "favours": "15-favours", "settings": "16-settings-graphics",
 }
 
 

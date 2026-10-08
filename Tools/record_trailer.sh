@@ -8,7 +8,8 @@
 # Then run Tools/make_trailer.py to cut it together.
 #   Tools/record_trailer.sh [out-dir]       (default Recordings/trailer-capture, about 3 GB)
 #   PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/trailer-pickups
-#       re-shoots just those sections (intro, fragile, clown, arrivals, album, speed, heights, coldopen);
+#       re-shoots just those sections (intro, fragile, clown, hint, xray, arrivals, album, speed, heights,
+#       coldopen, features; "album" packs every trip first, then films the map, album and favours);
 #       pass both folders to make_trailer.py and the newer takes win.
 #   PTT_STILLS_ONLY=1 Tools/record_trailer.sh Recordings/stills
 #       plays the same script but saves only the stills (no frames or audio): refreshes the README

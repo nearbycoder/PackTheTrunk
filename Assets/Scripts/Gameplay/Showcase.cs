@@ -444,7 +444,12 @@ namespace PackTheTrunk
 
         IEnumerator Press(Key key, bool shift)
         {
-            keyText.text = (shift ? "Shift + " : "") + key.ToString().ToUpperInvariant();
+            string label = key switch
+            {
+                Key.LeftArrow => "LEFT", Key.RightArrow => "RIGHT", Key.UpArrow => "UP", Key.DownArrow => "DOWN",
+                _ => key.ToString().ToUpperInvariant(),
+            };
+            keyText.text = (shift ? "Shift + " : "") + label;
             keyTimer = 0.8f;
             var state = shift ? new KeyboardState(key, Key.LeftShift) : new KeyboardState(key);
             InputSystem.QueueStateEvent(Keyboard.current, state);

@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.UI;
 
 namespace PackTheTrunk
 {
@@ -36,7 +37,8 @@ namespace PackTheTrunk
             Directory.CreateDirectory(Path.Combine(outDir, "stills"));
             beatsPath = Path.Combine(outDir, "beats.tsv");
             File.WriteAllText(beatsPath, "");
-            GameSettings.Preset = 3; // Ultra: supersampled, best shadows
+            GameSettings.Fidelity = 3; // Ultra: frame-locked capture, so the frame rate doesn't matter
+            Log("trailer: graphics fidelity " + GameSettings.FidelitySteps[GameSettings.Fidelity] + ": " + GameSettings.RenderDescription());
             var music = FindAnyObjectByType<MusicDirector>();
             if (music != null && !music.Muted) music.ToggleMute();
             nowPlaying = FindObjectsByType<RectTransform>(FindObjectsInactive.Include).FirstOrDefault(r => r.name == "Now Playing");
@@ -51,9 +53,9 @@ namespace PackTheTrunk
 
             var sections = new (string, Func<IEnumerator>)[]
             {
-                ("intro", Intro), ("fragile", FragileSection), ("clown", ClownSection), ("arrivals", Arrivals),
-                ("album", MapAndAlbum), ("speed", Escalation), ("heights", Shelves), ("coldopen", ColdOpen),
-                ("features", FeatureStills),
+                ("intro", Intro), ("fragile", FragileSection), ("clown", ClownSection), ("hint", HintSection),
+                ("xray", XRaySection), ("arrivals", Arrivals), ("album", MapAndAlbum), ("speed", Escalation),
+                ("heights", Shelves), ("coldopen", ColdOpen), ("features", FeatureStills),
             };
             foreach (var (name, section) in sections)
                 if (only == null || only.Contains(name))
@@ -96,14 +98,17 @@ namespace PackTheTrunk
             yield return Hold(0.15f);
             yield return Click();
             yield return Hold(1.1f);
-            yield return MoveTo(NamedPoint("Ink outlines", "Switch"), 0.5f);
-            yield return Hold(0.25f);
-            yield return Click();
-            yield return Hold(1.0f);
-            yield return Click();
-            yield return Hold(0.8f);
+            yield return FidelityDemo();
             Cut();
             yield return Still("settings");
+            Beat("accessibility");
+            yield return MoveTo(UiPoint("Tab ACCESSIBILITY"), 0.45f);
+            yield return Hold(0.15f);
+            yield return Click();
+            yield return Hold(1.2f);
+            yield return MoveTo(NamedPoint("Reduce motion", "Switch"), 0.5f);
+            yield return Hold(1.0f);
+            Cut();
             yield return ClickButton("Settings Back", 0.4f, 0.2f);
             yield return Hold(0.9f);
 
@@ -128,7 +133,7 @@ namespace PackTheTrunk
             Beat("core");
             yield return ClickButton("Start", 0.6f, 0.25f);
             yield return Hold(1.5f);
-            yield return PackStep(weekend[0]);
+            yield return PackStep(weekend[0], drag: true);
             yield return PackStep(weekend[1], aimStill: "packing");
             yield return Hold(0.3f);
             Cut();
@@ -147,7 +152,10 @@ namespace PackTheTrunk
             // ---- Undo, and lifting something back out of the trunk.
             Beat("undo");
             yield return Press(Key.Z, false);
-            yield return Hold(1.3f);
+            yield return Hold(1.1f);
+            // Shift + Z redoes it (and a REDO button sits beside UNDO while there's something to redo).
+            yield return Press(Key.Z, true);
+            yield return Hold(1.0f);
             var lift = game.Items.Where(i => i.State == ItemState.Packed && i.Def.Id == weekend[3].Item1).FirstOrDefault();
             if (lift != null)
             {
@@ -229,6 +237,153 @@ namespace PackTheTrunk
             Cut();
         }
 
+        /// <summary>The Graphics fidelity slider: dragged from Ultra down to Low, a step at a time, and back up (applied live).</summary>
+        IEnumerator FidelityDemo()
+        {
+            var slider = FindObjectsByType<Slider>(FindObjectsInactive.Exclude).FirstOrDefault(s => s.name == "Fidelity Slider");
+            if (slider == null)
+            {
+                Log("no fidelity slider");
+                yield break;
+            }
+            Vector2 At(float t)
+            {
+                var area = (RectTransform)slider.handleRect.parent;
+                var corners = new Vector3[4];
+                area.GetWorldCorners(corners);
+                return new Vector2(Mathf.Lerp(corners[0].x, corners[2].x, t), (corners[0].y + corners[2].y) * 0.5f);
+            }
+            yield return MoveTo(At(slider.normalizedValue), 0.5f);
+            yield return Hold(0.3f);
+            leftDown = true;
+            Push();
+            ringT = 0f;
+            yield return null;
+            foreach (float t in new[] { 2f / 3f, 1f / 3f, 0f })
+            {
+                yield return MoveTo(At(t), 0.35f);
+                yield return Hold(0.55f);
+            }
+            yield return MoveTo(At(1f), 0.7f);
+            leftDown = false;
+            Push();
+            yield return Hold(1.0f);
+            Log("trailer: fidelity back on " + GameSettings.FidelitySteps[GameSettings.Fidelity] + (GameSettings.FidelityCustom ? " (Custom!)" : "") +
+                ": " + GameSettings.RenderDescription());
+        }
+
+        /// <summary>Ask Grandpa on a half-packed Into the Woods: the HINT button, his orange ghost, and the hinted thing dropped on it.</summary>
+        IEnumerator HintSection()
+        {
+            var camping = solutions["camping"];
+            game.AutoStartLevel(ids.IndexOf("camping"));
+            cursorShown = false;
+            yield return Hold(2.8f);
+            for (int i = 0; i < camping.Count / 2; i++) Place(camping[i]);
+            FrameOn();
+            yield return Hold(2.0f);
+            mouse = new Vector2(Screen.width * 0.55f, Screen.height * 0.45f);
+            Push();
+            cursorShown = true;
+            Beat("hint");
+            yield return Hold(0.4f);
+            yield return ClickButton("Hint", 0.6f, 0.25f);
+            yield return Hold(1.6f);
+            yield return Still("hint");
+            var hint = game.AutoFindHint();
+            if (hint.Item == null || hint.Move)
+            {
+                Log("hint: nothing to pick up (" + hint.Message + ")");
+                yield return Hold(1.5f);
+                Cut();
+                yield break;
+            }
+            yield return MoveTo(PointOnItem(hint.Item), 0.6f);
+            yield return Hold(0.15f);
+            yield return Click();
+            yield return Hold(0.7f); // it turns itself to match the ghost
+            if (game.Held != hint.Item) Log("hint: the hinted " + hint.Item.Def.Id + " wasn't picked up");
+            yield return DropAt(hint.Pos, hint.Item);
+            yield return Hold(0.8f);
+            Cut();
+        }
+
+        /// <summary>
+        /// X-ray in Everyone, Everything: holding the next thing over a nearly full minivan, Tab makes everything packed
+        /// see-through, and it's dropped into a spot that was hidden.
+        /// </summary>
+        IEnumerator XRaySection()
+        {
+            var reunion = solutions["reunion2"];
+            game.AutoStartLevel(ids.IndexOf("reunion2"));
+            cursorShown = false;
+            yield return Hold(2.8f);
+            int packed = reunion.Count - 5;
+            for (int i = 0; i < packed; i++) Place(reunion[i]);
+            FrameOn();
+            yield return Hold(2.2f);
+            var (nextId, nextCells) = reunion[packed];
+            var next = game.Items.First(i => i.Def.Id == nextId && i.State == ItemState.Pile);
+            game.AutoHold(next);
+            next.SetOrientation(AutoPilot.FindOrientation(next.Def.Shape, nextCells));
+            mouse = TrunkPoint(new Vector3Int(game.TrunkSize.x / 2, game.TrunkSize.y, game.TrunkSize.z / 2), next.Shape.Size);
+            Push();
+            cursorShown = true;
+            yield return Hold(0.5f);
+            Beat("xray");
+            yield return Hold(1.0f);
+            keyText.text = "TAB (HOLD)";
+            keyTimer = 4.6f;
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(Key.Tab));
+            yield return Hold(0.9f);
+            // Aim at the lowest open spot X-ray can reach (scan the floor of every column).
+            var size = game.TrunkSize;
+            int bestY = int.MaxValue;
+            var target = mouse;
+            for (int z = size.z - 1; z >= 0; z--)
+            for (int x = 0; x < size.x; x++)
+            {
+                var point = TrunkPoint(new Vector3Int(x, 0, z), next.Shape.Size);
+                if (game.PreviewTarget(point, out var at, out var ok) && ok && at.y < bestY)
+                {
+                    target = point;
+                    bestY = at.y;
+                }
+            }
+            Log(bestY < int.MaxValue ? $"x-ray: aiming {next.Def.Id} at height {bestY}" : "x-ray: no open spot found");
+            yield return MoveTo(target, 0.8f);
+            yield return Hold(1.0f);
+            yield return Still("xray");
+            if (game.HasValidTarget) yield return Click();
+            yield return Hold(0.9f);
+            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
+            yield return Hold(0.9f);
+            Cut();
+            if (game.Held != null) game.AutoPutBack();
+        }
+
+        /// <summary>Aim what's held so it lands with its corner at <paramref name="min"/> (choosing the height with W / S) and drop it.</summary>
+        IEnumerator DropAt(Vector3Int min, PackItem item)
+        {
+            var aim = FindAim(min, item.Shape.Size);
+            if (aim == null)
+            {
+                Log($"no aim for {item.Def.Id} at {min}");
+                yield break;
+            }
+            yield return MoveTo(aim.Value, 0.6f);
+            yield return Hold(0.2f);
+            for (int k = 0; k < 4; k++)
+            {
+                if (!game.CurrentTarget(out var t, out var valid) || (t == min && valid)) break;
+                if (t.x != min.x || t.z != min.z) break;
+                yield return Press(t.y < min.y ? Key.W : Key.S, false);
+                yield return Hold(0.25f);
+            }
+            if (game.CurrentTarget(out var target, out var ok) && target == min && ok) yield return Click();
+            else Log($"couldn't drop {item.Def.Id} at {min}");
+        }
+
         /// <summary>Every ride, sweeping in with its pile of stuff landing on the blanket.</summary>
         IEnumerator Arrivals()
         {
@@ -280,6 +435,85 @@ namespace PackTheTrunk
             yield return Hold(11f);
             yield return Still("album");
             yield return Hold(0.5f);
+            Cut();
+
+            // ---- A polaroid up close, then the next ones.
+            mouse = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            Push();
+            cursorShown = true;
+            Beat("album_zoom");
+            yield return ClickButton("Polaroid honeymoon", 0.6f, 0.3f);
+            yield return Hold(1.8f);
+            for (int k = 0; k < 2; k++)
+            {
+                yield return Press(Key.RightArrow, false);
+                yield return Hold(1.3f);
+            }
+            Cut();
+
+            yield return FavourSection();
+        }
+
+        /// <summary>
+        /// Favours for the neighbours (open once chapter II is packed): the map's last page, ASK SOMEONE ELSE, the
+        /// neighbour's texts, and their pile packed fast by following Grandpa's hints.
+        /// </summary>
+        IEnumerator FavourSection()
+        {
+            if (game.Ui.IsAlbumZoomOpen) yield return Press(Key.Escape, false);
+            game.AutoShowMenu();
+            cursorShown = false;
+            yield return Hold(1.6f);
+            for (int i = 0; i <= GameDatabase.Chapters.Count && !ButtonVisible("Favour Pin"); i++)
+            {
+                mouse = UiPoint("Next Page");
+                Push();
+                yield return null;
+                yield return Click();
+                yield return Hold(0.35f);
+            }
+            for (float t = 0f; t < 10f && (game.AutoCurrentFavour() == null || !ButtonVisible("Favour Swap")); t += UiTime.Delta) yield return null;
+            yield return Hold(1.4f);
+            var first = game.AutoCurrentFavour();
+            mouse = new Vector2(Screen.width * 0.42f, Screen.height * 0.55f);
+            Push();
+            cursorShown = true;
+            Beat("favours_page");
+            yield return Hold(1.0f);
+            yield return ClickButton("Favour Swap", 0.6f, 0.3f);
+            yield return Hold(1.6f);
+            var favour = game.AutoCurrentFavour();
+            Log($"favours: {first?.Sender} ({first?.Vehicle}) swapped for {favour?.Sender} ({favour?.Vehicle}, {favour?.Title})");
+            yield return Still("favours");
+            yield return ClickButton("Favour Pin", 0.6f, 0.3f);
+            yield return Hold(0.6f);
+            Cut();
+            cursorShown = false;
+
+            for (float t = 0f; t < 10f && !game.IsInStory; t += UiTime.Delta) yield return null;
+            Beat("favours_story");
+            for (float t = 0f; t < 40f && !ButtonVisible("Start"); t += UiTime.Delta) yield return null;
+            yield return Hold(1.2f);
+            Cut();
+            yield return ClickButton("Start", 0.4f, 0.2f);
+            for (float t = 0f; t < 10f && !game.IsPlaying; t += UiTime.Delta) yield return null;
+            yield return Hold(2.4f);
+
+            Beat("favours_pack");
+            yield return Hold(0.3f);
+            for (int step = 0; step < 60 && !game.Items.All(i => i.State == ItemState.Packed || i.State == ItemState.Dropping); step++)
+            {
+                var hint = game.AutoFindHint();
+                if (hint.Item == null || !game.AutoPlace(hint.Item, hint.Rotation, hint.Pos)) break;
+                yield return Hold(0.17f);
+            }
+            yield return Hold(0.9f);
+            game.AutoClose();
+            yield return Hold(4.6f);
+            Cut();
+            for (float t = 0f; t < 12f && !game.IsShowingResults; t += UiTime.Delta) yield return null;
+            Beat("favours_postcard");
+            yield return Hold(3.5f);
             Cut();
         }
 
@@ -357,9 +591,8 @@ namespace PackTheTrunk
         }
 
         /// <summary>
-        /// README stills for the newer features (no video): a Grandpa's tip on a new player's second
-        /// trip, Ask Grandpa's ghost on a half-packed SUV, X-ray in a mostly packed minivan, and a
-        /// postcard with Grandpa's seal.
+        /// The newer features' README stills: a Grandpa's tip on a new player's second trip, and a
+        /// postcard with Grandpa's seal (filmed too). Ask Grandpa and X-ray have their own sections.
         /// </summary>
         IEnumerator FeatureStills()
         {
@@ -384,54 +617,6 @@ namespace PackTheTrunk
             yield return Press(Key.Escape, false);
             yield return Hold(0.4f);
 
-            // ---- Ask Grandpa on a half-packed Into the Woods.
-            var camping = solutions["camping"];
-            game.AutoStartLevel(ids.IndexOf("camping"));
-            cursorShown = false;
-            yield return Hold(2.8f);
-            for (int i = 0; i < camping.Count / 2; i++) Place(camping[i]);
-            yield return Hold(1.2f);
-            yield return Press(Key.H, false);
-            yield return Hold(0.2f);
-            FrameOn();
-            yield return Hold(2.0f);
-            yield return Still("hint");
-
-            // ---- X-ray: Everyone, Everything nearly packed, holding the next thing, Tab held down.
-            var reunion = solutions["reunion2"];
-            game.AutoStartLevel(ids.IndexOf("reunion2"));
-            yield return Hold(2.8f);
-            int packed = reunion.Count - 5;
-            for (int i = 0; i < packed; i++) Place(reunion[i]);
-            FrameOn();
-            yield return Hold(2.2f);
-            var (nextId, nextCells) = reunion[packed];
-            var next = game.Items.First(i => i.Def.Id == nextId && i.State == ItemState.Pile);
-            game.AutoHold(next);
-            next.SetOrientation(AutoPilot.FindOrientation(next.Def.Shape, nextCells));
-            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState(Key.Tab));
-            yield return Hold(0.3f);
-            // Aim at the lowest open spot X-ray can reach (scan the floor of every column).
-            var size = game.TrunkSize;
-            int bestY = int.MaxValue;
-            for (int z = size.z - 1; z >= 0; z--)
-            for (int x = 0; x < size.x; x++)
-            {
-                var point = TrunkPoint(new Vector3Int(x, 0, z), next.Shape.Size);
-                if (game.PreviewTarget(point, out var at, out var ok) && ok && at.y < bestY)
-                {
-                    mouse = point;
-                    bestY = at.y;
-                }
-            }
-            Log(bestY < int.MaxValue ? $"x-ray still: aiming {next.Def.Id} at height {bestY}" : "x-ray still: no open spot found");
-            Push();
-            yield return Hold(1.0f);
-            yield return Still("xray");
-            InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
-            yield return Hold(0.3f);
-            game.AutoPutBack();
-
             // ---- Grandpa's seal: the honeymoon convertible packed to three stars without a hint.
             game.AutoStartLevel(ids.IndexOf("honeymoon"));
             yield return Hold(2.8f);
@@ -440,8 +625,11 @@ namespace PackTheTrunk
             game.AutoClose();
             for (float t = 0f; t < 12f && !game.IsShowingResults; t += UiTime.Delta) yield return null;
             // The stars land first, then the seal is stamped.
+            Beat("seal");
             yield return Hold(5f);
             yield return Still("seal");
+            yield return Hold(1.2f);
+            Cut();
         }
 
         /// <summary>
@@ -542,7 +730,7 @@ namespace PackTheTrunk
 
         /// <summary>Pack one item the way a player would: pick it up, turn it, aim, choose the height, drop.</summary>
         IEnumerator PackStep((string, List<Vector3Int>) placement, float pace = 1f, bool spins = false,
-            Func<PackItem, IEnumerator> beforeAim = null, string aimStill = null, string blockedStill = null)
+            Func<PackItem, IEnumerator> beforeAim = null, string aimStill = null, string blockedStill = null, bool drag = false)
         {
             var (itemId, cells) = placement;
             var item = game.Items.FirstOrDefault(i => i.Def.Id == itemId && i.State == ItemState.Pile);
@@ -556,8 +744,26 @@ namespace PackTheTrunk
 
             yield return MoveTo(PointOnItem(item), 0.5f * pace);
             yield return Hold(0.12f * pace);
-            yield return Click();
-            yield return Hold(0.3f * pace);
+            if (drag)
+            {
+                // Press, keep the button down and drag it in; letting go over the trunk drops it.
+                leftDown = true;
+                Push();
+                ringT = 0f;
+                yield return Hold(0.3f * pace);
+                if (game.Held != item)
+                {
+                    leftDown = false;
+                    Push();
+                    yield return null;
+                    drag = false;
+                }
+            }
+            else
+            {
+                yield return Click();
+                yield return Hold(0.3f * pace);
+            }
             if (game.Held != item)
             {
                 // The click landed on a neighbour in the pile (or missed): take the one we meant.
@@ -595,6 +801,12 @@ namespace PackTheTrunk
             if (aim == null)
             {
                 Log($"no aim for {itemId} at {min}");
+                if (drag)
+                {
+                    leftDown = false;
+                    Push();
+                    yield return null;
+                }
                 Fallback(item, cells, min);
                 yield return Hold(0.3f);
                 yield break;
@@ -615,11 +827,23 @@ namespace PackTheTrunk
             }
             if (game.CurrentTarget(out var target, out var ok) && target == min && ok)
             {
-                yield return Click();
+                if (drag)
+                {
+                    leftDown = false;
+                    Push();
+                    yield return null;
+                }
+                else yield return Click();
                 yield return Hold(0.6f * pace);
             }
             else
             {
+                if (drag)
+                {
+                    leftDown = false;
+                    Push();
+                    yield return null;
+                }
                 Fallback(item, cells, min);
                 yield return Hold(0.3f);
             }
