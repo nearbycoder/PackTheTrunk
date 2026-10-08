@@ -240,6 +240,10 @@ namespace PackTheTrunk
                   && GameDatabase.Levels.Count(l => game.AutoPhoto(l.Id) != null) == polaroids && GameController.FavoursDone == 1 && GameController.FavoursThreeStars == 1 && AnyText("NEXT FAVOUR"),
                 $"favours: closing it gives three stars ({game.LastStars}), no seal and no album photo; {GameController.FavoursDone} done, {GameController.FavoursThreeStars} with three stars; the postcard offers NEXT FAVOUR");
             yield return Shot("favours-postcard");
+            // No hitch: the next favour is made on a worker while the postcard shows, and saved by the time its buttons work.
+            string savedNext = GameController.SavedFavour;
+            Check(GameController.LastFavourCloseMs >= 0 && GameController.LastFavourCloseMs < 2.0 && savedNext.StartsWith("2|2|", StringComparison.Ordinal),
+                $"favours: closing favour 1 cost the main thread {GameController.LastFavourCloseMs:0.00} ms; favour 2 was made on a worker and saved before the postcard's buttons could be clicked ({(savedNext.Length > 0 ? "saved" : "not saved")})");
 
             // NEXT FAVOUR: a new neighbour and a new pile.
             yield return ClickUi("Next");

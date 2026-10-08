@@ -119,6 +119,7 @@ namespace PackTheTrunk
             ui = gameObject.AddComponent<GameUI>();
             long tUi = bootWatch.ElapsedMilliseconds;
             ui.SealedFor = Sealed;
+            WarmShapes();
             ui.WaitingFor = i => SavedTrunkCount(GameDatabase.Levels[i].Id);
             // A controller Unity only sees as a generic joystick can't drive the game: say so (the log has details).
             InputReport.UnsupportedController += name => ui.Toast($"{name} isn't a gamepad the game understands. Try Steam Input or its Xbox mode.", 5f);
@@ -723,6 +724,7 @@ namespace PackTheTrunk
 
         void Update()
         {
+            PollFavour();
             if (ui.InTransition) return;
             ui.UpdateFragileTags(mode == Mode.Playing && !paused);
             var kb = Keyboard.current;

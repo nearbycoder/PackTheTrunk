@@ -110,7 +110,10 @@ namespace PackTheTrunk
             "Everyone on the street says you're the one to ask.",
         };
 
-        /// <summary>Made in this session, by number, so TRY AGAIN and a waiting trunk always find the same pile.</summary>
+        /// <summary>
+        /// Made in this session, by number, so TRY AGAIN and a waiting trunk always find the same pile. Locked: the next
+        /// favour is made on a worker thread while the postcard shows.
+        /// </summary>
         static readonly Dictionary<int, LevelDef> made = new Dictionary<int, LevelDef>();
 
         /// <summary>
@@ -157,7 +160,7 @@ namespace PackTheTrunk
             level.Packing = best.Select(p => (p.Def.Id, p.Shape.Voxels.Select(v => v.Pos + p.Min).ToList())).ToList();
             for (int i = 0; i < order.Count; i++) (i < essentials ? level.Required : level.Bonus).Add(order[i].Def);
             Words(level);
-            made[number] = level;
+            lock (made) made[number] = level;
             return level;
         }
 
@@ -320,7 +323,9 @@ namespace PackTheTrunk
                 }
                 else if (parts.Count != 6 || parts[0] != "1") return null;
                 int number = int.Parse(parts[1], CultureInfo.InvariantCulture);
-                if (made.TryGetValue(number, out var known) && Serialize(known) == data) return known;
+                LevelDef known;
+                lock (made) made.TryGetValue(number, out known);
+                if (known != null && Serialize(known) == data) return known;
                 var car = levels.FirstOrDefault(l => l.Id == parts[2]);
                 if (car == null) return null;
                 var shell = Shell(number, car);
@@ -339,7 +344,7 @@ namespace PackTheTrunk
                     }).ToList();
                     return (bits[0], cells);
                 }).ToList();
-                made[number] = shell;
+                lock (made) made[number] = shell;
                 return shell;
             }
             catch (System.Exception e)

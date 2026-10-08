@@ -48,11 +48,15 @@ namespace PackTheTrunk
 
         List<(Quaternion Rotation, VoxelShape Shape)> orientations;
 
-        /// <summary>Every distinct quarter-turn orientation (up to 24), each with the rotation that makes it.</summary>
+        /// <summary>
+        /// Every distinct quarter-turn orientation (up to 24), each with the rotation that makes it. Safe to call from a
+        /// worker thread (favours are made on one): the list is only published once it's complete.
+        /// </summary>
         public IReadOnlyList<(Quaternion Rotation, VoxelShape Shape)> Orientations()
         {
-            if (orientations != null) return orientations;
-            orientations = new List<(Quaternion, VoxelShape)>();
+            var known = orientations;
+            if (known != null) return known;
+            var result = new List<(Quaternion, VoxelShape)>();
             var turns = new[] { Quaternion.AngleAxis(90, Vector3.up), Quaternion.AngleAxis(90, Vector3.right), Quaternion.AngleAxis(90, Vector3.forward) };
             var seen = new HashSet<string>();
             var queue = new Queue<Quaternion>();
@@ -65,10 +69,11 @@ namespace PackTheTrunk
                 foreach (var v in shape.Voxels) cells.Add(v.Pos.ToString());
                 cells.Sort(System.StringComparer.Ordinal);
                 if (!seen.Add(string.Join(";", cells))) continue;
-                orientations.Add((q, shape));
+                result.Add((q, shape));
                 foreach (var t in turns) queue.Enqueue(t * q);
             }
-            return orientations;
+            orientations = result;
+            return result;
         }
 
         /// <summary>Rotate by a quarter-turn quaternion; cell positions are rounded back to the lattice.</summary>

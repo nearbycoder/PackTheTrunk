@@ -171,6 +171,11 @@ namespace PackTheTrunk
             get { EnsureLoaded(); return chapters; }
         }
 
+        public static IEnumerable<ItemDef> Items
+        {
+            get { EnsureLoaded(); return items.Values; }
+        }
+
         static void EnsureLoaded()
         {
             if (levels != null) return;
