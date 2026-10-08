@@ -21,6 +21,10 @@ namespace PackTheTrunk
         static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
         static readonly int Grain = Shader.PropertyToID("_Grain");
         static readonly int RimStrength = Shader.PropertyToID("_RimStrength");
+        static readonly int SurfaceId = Shader.PropertyToID("_Surface");
+
+        /// <summary>The toon shader's world-space ground detail (see <see cref="Surface"/>).</summary>
+        public enum Ground { Asphalt = 1, Lawn = 2, Concrete = 3, Paint = 4 }
 
         public static Material Lit(Color color, float smoothness = 0.3f)
         {
@@ -48,6 +52,19 @@ namespace PackTheTrunk
             mat = new Material(Lit(color, smoothness)) { name = "Grain" };
             mat.SetFloat(Grain, grain);
             mat.SetFloat(RimStrength, 0.12f);
+            return special[key] = mat;
+        }
+
+        /// <summary>
+        /// Grainy ground with procedural detail from the toon shader: asphalt (aggregate, patches, sealed
+        /// cracks), a mown lawn (stripes and clumps), curb concrete (joints) or worn road paint.
+        /// </summary>
+        public static Material Surface(Color color, float grain, Ground ground)
+        {
+            var key = $"surface{(int)ground}{ColorUtility.ToHtmlStringRGB(color)}{grain}";
+            if (special.TryGetValue(key, out var mat)) return mat;
+            mat = new Material(Textured(color, grain)) { name = "Surface " + ground };
+            mat.SetFloat(SurfaceId, (float)ground);
             return special[key] = mat;
         }
 

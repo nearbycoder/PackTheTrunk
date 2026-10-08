@@ -227,12 +227,16 @@ namespace PackTheTrunk
             var env = new GameObject("Environment").transform;
             float g = Vehicle.GroundY;
 
-            EnvBox(env, "Grass", new Vector3(-200, g - 0.2f, -200), new Vector3(200, g - 0.02f, 200), new Color(0.47f, 0.68f, 0.36f));
-            EnvBox(env, "Driveway", new Vector3(-14, g - 0.02f, -16), new Vector3(26, g, 40), new Color(0.36f, 0.37f, 0.40f));
-            EnvBox(env, "Curb", new Vector3(-14.4f, g - 0.02f, -16), new Vector3(-14, g + 0.15f, 40), new Color(0.75f, 0.74f, 0.7f));
-            EnvBox(env, "Curb R", new Vector3(26, g - 0.02f, -16), new Vector3(26.4f, g + 0.15f, 40), new Color(0.75f, 0.74f, 0.7f));
+            EnvBox(env, "Grass", new Vector3(-200, g - 0.2f, -200), new Vector3(200, g - 0.02f, 200),
+                MaterialLibrary.Surface(new Color(0.47f, 0.68f, 0.36f), 0.22f, MaterialLibrary.Ground.Lawn));
+            EnvBox(env, "Driveway", new Vector3(-14, g - 0.02f, -16), new Vector3(26, g, 40),
+                MaterialLibrary.Surface(new Color(0.36f, 0.37f, 0.40f), 0.22f, MaterialLibrary.Ground.Asphalt));
+            var curb = MaterialLibrary.Surface(new Color(0.75f, 0.74f, 0.7f), 0.22f, MaterialLibrary.Ground.Concrete);
+            EnvBox(env, "Curb", new Vector3(-14.4f, g - 0.02f, -16), new Vector3(-14, g + 0.15f, 40), curb);
+            EnvBox(env, "Curb R", new Vector3(26, g - 0.02f, -16), new Vector3(26.4f, g + 0.15f, 40), curb);
+            var paint = MaterialLibrary.Surface(new Color(0.95f, 0.9f, 0.6f), 0.22f, MaterialLibrary.Ground.Paint);
             for (int i = 0; i < 6; i++)
-                EnvBox(env, "Stripe", new Vector3(-2.8f, g, -12 + i * 9f), new Vector3(-2.6f, g + 0.01f, -8 + i * 9f), new Color(0.95f, 0.9f, 0.6f));
+                EnvBox(env, "Stripe", new Vector3(-2.8f, g, -12 + i * 9f), new Vector3(-2.6f, g + 0.01f, -8 + i * 9f), paint);
 
             var rng = new System.Random(42);
             bool models = ModelLibrary.Load("Props/tree_round") != null;
