@@ -1510,3 +1510,78 @@ counted to make sure the run left none behind.
 Not in this round: playing favours with people (still the real test of their difficulty and fun), album pages or
 seals for favours (owner), re-laying out a screen live while its window is being resized (texts already follow the
 window; the packing list's widening and a few shortened lines wait for the screen to open again).
+
+## Round 11 results (2026-10-08)
+
+All three scope items shipped. The final full autopilot (`Tools/autopilot.sh`, all 33 trips, nested) on `2f496c2` had
+**384 PASS, 0 FAIL** (378 in round 10, plus 6 new checks; 19 minutes, load 15 at the start and 11 at the end) (`Recordings/round11/final-full.out`), with no exceptions, no player crash and the real save untouched.
+The crash test (`Tools/resume_test.sh`) passed 5/5 (`Recordings/round11/resume.out`) and the solver proves all 33
+levels (`Recordings/round11/solver.log`). Each item's commit was built on its own (`build-linux`, 0 errors, 0 warnings)
+and quick-tested on that build before the next was applied. The layout-only pass on the final build is **89/89 at all eight sizes** (800×600, 1024×768, 1280×720, 1280×800, 1440×900, 1600×900, 1200×900, 2100×900; load 8–16)
+(`Recordings/round11/final-layout-*`). `build-mac` wasn't re-run (round 11 is platform-independent C# and data).
+Screenshots are in `docs/media/improvements/round11/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| Baseline benchmark | `f07c4f8` | `-pttBench` on round-10 `main`, nested, at load 13–14 (see the scope). |
+| A. The neighbours pack their own things, and the words fit the pile | `cb89b5f` | Round 10's own 300 favours, checked with the new rule: `solve_levels.py --check-favours` rejects **265 of 300** for a family thing (`a-check-favours-round10-file.log`). Quick autopilot on this commit: **291/291** (load 23 at the start, 77 at the end; `a2-quick.out`). The generator check made 80 favours from the first 10 trips: none with a family thing, all packing completely (and 80/80 with the solver's rules); 63 got an errand that suits the pile, 15 different errands, all 16 neighbours taking turns (no neighbour again within 16 favours), every third text names something in its pile, and no held card names the family. Fragile things per pile: 0: 11, 1: 35, 2: 17, 3: 12, 4: 5. In the full run (all 33 trips closed, 300 favours in all 28 cars): 196 suited errands, 25 different errands, fragile 0: 23, 1: 118, 2: 100, 3: 46, 4: 13, and `--check-favours` 300/300. `a-favour-texts-fit-the-pile.jpg`, `a-favour-packing.jpg` |
+| B. Ask someone else | `8f5bef3` | Quick autopilot on this commit: **295/295** (load 20 → 19; `b-quick.out`). Through the real UI: two clicks swap favour 1 from Coach Dana's pickup (17 things) to Mr. Pickering's station wagon (12), then Mr. Haskins's pickup (19); same number, the page and the save follow, nothing counted. On favour 3 with 3 packed, the first click only asks ("UNPACK AND ASK?") and keeps the trunk, the ask lapses after 3 s, and a second click within it unpacks and asks The Nguyens instead of Mrs. Alvarez, with the done count unchanged. The keyboard cursor reaches the button (↓ walked Prev Page, then the pin, then the button) and Enter asks someone else. A new layout check puts the button inside the page and clear of the pin, its card and the note, at each window size. `b-ask-someone-else.jpg`, `b-unpack-and-ask.jpg` |
+| C. No hitch when the next favour is made | `8bb4f39` | Quick autopilot on this commit: **296/296** (load 23 → 15; `c-quick.out`). Closing favour 1 cost the main thread **1.82 ms**, and later closes 0.4–0.8 ms; the next favour was made on a worker in 16–19 ms while the postcard showed, and was saved before the postcard's buttons could be clicked. Every shape's 646 turns are worked out on a worker at boot (45–56 ms). Before, on round-10 `main`, the next favour was made on the postcard's frame (4.2–6.5 ms in round 10's logs) and the first favour of a session took 33 ms. |
+| Self-test timing fix | `2f496c2` | See below. Layout-only at 1600×900 on this build: 89/89 (`layout2-1600x900.out`). |
+
+**Benchmark (`-pttBench`, 1600×900, High, nested), back to back with round-10 `main`** (`Recordings/round11/bench-after.log`,
+`bench-main-ab.log`), at load 14–16 with other sessions busy, so frame times are GPU contention: round 11 read 5.1–12.4 ms on
+every screen and round-10 `main` straight after it 10.5–16.0 ms. The CPU column, which contention touches less, read 1.9–2.9 ms
+for round 11 and 2.2–3.3 ms for `main`. Both allocated 0 KB per frame. Round 11 costs nothing measurable; its only per-frame
+addition is one null check for a favour being made.
+
+How the round differed from the plan:
+
+- **An errand needs three of its things, not two.** With two, 78 of 80 favours got a themed errand (almost any pile has two
+  things from one of 16 lists) and the errands that fit anything nearly never came up. With three it's 63 of 80 in the quick
+  run and 196 of 300 in the full one.
+- **The legibility pass measured a favour's story too early.** Four texts instead of three bring LET'S PACK in later than
+  the pass's fixed 7-second wait, so it measured the button's "or press SPACE" while it was still scaling in: 10.1 px at
+  1600×900 in one layout run (FAIL), 12.7 px in the first full run, where the contrast check also read it at 3.9:1 (FAIL)
+  while it was still sliding in. The pass now waits for the button. Settled, on the same favour (Coach Dana's sedan), it's
+  15.0 px and every text on that screen passes contrast (lowest 5.4:1).
+  The first full run on `8bb4f39` (`Recordings/round11/full.out`: 383 PASS, that 1 FAIL) and its layout runs
+  (`layout-*.out`: 89/89 at seven sizes, 88/89 at 1600×900) are kept.
+- **A test-order bug from round 10.** The first quick run on A failed one check: with every trip packed, CONTINUE opened the
+  finale instead of the neighbours, because the quick run's earlier sections leave the finale half-packed, and a waiting trip
+  rightly comes first (round 10's own rule; round 10's final full run doesn't leave one). The favour check now clears that
+  trunk first.
+- **A small fix that came with the words.** Grandpa's hints said "the The Kitchen Sink", "the The Ring" and "the Mr. Buttons".
+  Names now get "the" only where it reads right.
+- **The neighbours page is measured at the default interface size.** The new button's layout check runs in the legibility
+  pass, at every window size, at the interface size each window starts with; 80% and 120% aren't measured on that page.
+
+Things round 11 turned up along the way:
+
+- **Family descriptions.** Many things' held-card lines name the family ("Dad's.", "Uncle Rick named it Bruce."), so 34 things
+  got a second, neighbour line (`neighbourDesc` in the data), and the self-test checks no held card in a favour names the family.
+- **Helpers.** After each nested run the `ksecretd` and portal counts were checked. None of this round's runs left one: the
+  new ones that appeared during the round belong to another session's private D-Bus.
+- **`[Audio]`:** 2.9 dBFS before the limiter and −1.5 dBFS after (round 10: 2.5 / −1.5).
+
+Known limits:
+
+- **Favours still haven't been played by a person.** Their difficulty by the solver's effort is in line with the story's trips
+  (`Recordings/round11/difficulty-r10.txt`), but whether they're fun is untested. The words repeat over a long run (16
+  neighbours, 26 errands, 8 sign-offs), a pile can still be an odd mix (a camp trip with two kitchen sinks), and a pile line
+  can read a little stiffly ("the Last Year's Trophy").
+- ASK SOMEONE ELSE was driven by the mouse and the keyboard cursor; the pad's D-pad uses the same cursor geometry but wasn't
+  run against it.
+- ASK SOMEONE ELSE avoids only the car you're swapping away from, so two swaps can come back to the same car. After seven
+  swaps of one favour, its neighbour can match the next favour's.
+- The main-thread cost of closing a favour is measured on the sandboxed save, so it leaves out writing the save file to disk
+  (which closing any trip does).
+- A text the 12 px floor changes is still sized again only when its screen opens, not while a window is being resized.
+
+Still open after round 11:
+
+- **Owner decisions:** the round-7 contrast look, Windows (needs the module), WebGL and hosting, signing and notarization,
+  licences, releases and version tags, re-cutting the trailer (still v0.1.0; no favours in it), and album pages or seals for
+  favours.
+- **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`), a Mac run, someone who plays
+  with the keyboard alone, and a few people playing favours.

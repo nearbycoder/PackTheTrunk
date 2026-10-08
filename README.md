@@ -144,9 +144,13 @@ texts you've already read (BACK TO PACKING). Each trip keeps its own trunk until
 
 **Favours for the neighbours.** Once chapter II is packed, the trip map gets one more page: the
 neighbours have heard you can make anything fit. Each favour borrows the car of a trip you've packed and
-brings a new pile, made only from things you've already packed in the story, so nothing is spoiled. The
+brings a new pile, made only from things you've already packed in the story, so nothing is spoiled (and
+never the family's own things: no heirlooms, no Biscuit). The
 game makes each pile by packing it into that trunk under its own rules, so every favour can be packed
-completely, and Grandpa's hints work on it. Stars work as on any trip; favours don't take album photos,
+completely, and Grandpa's hints work on it. The neighbours take turns asking, and their errand fits what's
+in the pile (surfboards mean a beach trip). Not in the mood for a 22-thing moving truck? **ASK SOMEONE ELSE**
+on the page swaps it for another neighbour, car and pile (if you've started packing it, it asks first).
+Stars work as on any trip; favours don't take album photos,
 earn seals or count towards the trips. A half-packed favour waits like a trip does, TRY AGAIN replays
 the same pile, NEXT FAVOUR asks the next neighbour, and once every trip in the story has stars, the
 title's CONTINUE goes straight to the neighbours (unless a trip's trunk is still waiting for you).
@@ -477,10 +481,10 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus ten rounds of improvements since that release (see
+Version **0.1.0** plus eleven rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
 settings are complete, favours for the neighbours keep going after the story, the game can be played
-with a mouse alone, a keyboard alone or a gamepad, and the autopilot (378 checks) passes every trip.
+with a mouse alone, a keyboard alone or a gamepad, and the autopilot (384 checks) passes every trip.
 Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
@@ -521,9 +525,10 @@ Still rough or missing:
   jumps to the nearest control by geometry, like the D-pad, so an unusual screen can take an extra
   press to reach a button.
 - **Favours are new and only machine-tested.** Every favour's pile is made by packing it, and the self-test
-  re-checks hundreds of them with the game's rules and the solver's, so each can be packed completely. Nobody
-  has played them yet to say whether they're too easy or too hard. The neighbours' texts come from a small
-  cast and repeat, and favours have no album page or seals.
+  re-checks hundreds of them with the game's rules and the solver's, so each can be packed completely. By the
+  solver's effort they sit where the story's trips do, but nobody has played them yet to say whether they're
+  too easy, too hard or fun. Their words come from 16 neighbours, 26 errands and 8 sign-offs, so they still
+  repeat over a long run, and favours have no album page or seals.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
   autopilot's queued input stopped registering and every input check failed. Re-run when it's
   quieter.
