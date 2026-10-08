@@ -1585,3 +1585,87 @@ Still open after round 11:
   favours.
 - **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`), a Mac run, someone who plays
   with the keyboard alone, and a few people playing favours.
+
+## Round 12 scope (2026-10-08, branch `improvements-12`)
+
+**Focus: AAA polish and a graphics fidelity slider.** The owner wants the game to look and feel like a polished release.
+Earlier rounds kept the look off-limits; this round may raise its quality as long as the style (toon shading, ink outlines,
+paper-craft UI, the round-7 contrast look) stays.
+
+**Baseline.** Round-11 `main` (`59fd05e`) was rebuilt (0 errors) and benchmarked nested with `-pttBench -pttBenchPreset n`
+for each of today's four presets, back to back (`Recordings/round12/bench-main-p0..3.log`). Load rose from 2.5 to 15.6 during
+the four runs as other sessions started, so these are a guide, not the comparison: the round ends with the fidelity table
+measured in one process (below). Average frame times (ms) on the busiest screens:
+
+| Preset (today) | Title | Minivan packing | Minivan, half packed, holding | Load |
+| --- | --- | --- | --- | --- |
+| Low | 1.1 | 2.8 | 2.8 | 2.5 |
+| Medium | 11.3 (contention spike) | 2.0 | 1.8 | 8.8 |
+| High (default) | 3.6 | 2.3 | 2.3 | 14.8 |
+| Ultra | 3.0 | 3.8 | 3.8 | 15.6 |
+
+**What a player sees today.** Reading the README stills and the round-11 self-test screenshots as a player would:
+
+- **The ground is most of every frame, and it's flat.** The driveway is one untextured mauve-grey box with a faint grain;
+  the lawn is one flat green. Everything else (cars, items, blanket, props) is modelled and shaded; the surface they sit on
+  reads as a placeholder.
+- **Ultra isn't much more than High.** Today's Ultra preset is High plus 125% render scale and a longer (so blurrier)
+  shadow distance. Settings has a "Quality preset" chooser (Low / Medium / High / Ultra / Custom) above seven fine-tune rows.
+- **The main menu sits in a dark box.** Round 7's scrim behind the menu (for text contrast) has short soft edges, so on the
+  title it reads as a translucent rectangle with visible corners.
+- Owed from round 11: ASK SOMEONE ELSE was driven by the mouse and the keyboard cursor, not the pad's D-pad.
+
+### A. Graphics fidelity slider (required)
+
+- **Acceptance:**
+  - The Graphics tab's "Quality preset" chooser grows into one **Graphics fidelity** slider with four steps: **Low, Medium,
+    High, Ultra** (no second control). It snaps to steps, shows the step's name, works by mouse (click or drag), keyboard
+    (arrows on the row) and pad (D-pad left / right), and is saved with the other settings. The fine-tune rows stay below
+    it; changing one shows "Custom" on the slider, which keeps the step's own detail settings. DEFAULTS puts it back to High.
+    A save from round 11 keeps its choice (its preset becomes the step; a Custom save keeps its rows on High).
+  - **High (the default) stays today's look and cost.**
+  - **Ultra** goes well past today: 150% render scale (supersampled), an 8192 sun shadow map, 12-sample ambient occlusion
+    (High uses 8), bokeh depth of field, high-quality bloom filtering, a blanket texture at twice the texel density with
+    16x anisotropic filtering, and 60% more particles (landing dust, sparkles, confetti).
+  - **Medium** is today's Medium with half-resolution ambient occlusion added; **Low** is today's Low (75% render scale,
+    FXAA, low shadows, no AO / bloom / depth of field) plus half the particles and the cheapest surface shading, so it stays
+    smooth on weak hardware.
+  - Shader variants that Ultra needs (12-sample AO) are kept in the build through URP's "include assets by label" setting,
+    not a second quality level; the build size is reported.
+- **Verify:** a new benchmark mode (`-pttBench -pttFidelity <dir>`) holds the same two scenes (the title and the half-packed
+  minivan while holding something) at each step in one process, logs `[Perf]` for each and saves a screenshot of each
+  after measuring, so the table compares like with like (load noted). The full `-pttBench` also runs at each step. A new
+  self-test section (`FidelityChecks`) drives the slider through the real UI with the mouse, the arrow keys and the
+  simulated pad, checks what each step applied (render scale, MSAA, shadow map size, AO samples, DOF mode, particle
+  density), that a fine-tune change reads Custom, that DEFAULTS restores High, and that the setting survives a save. The
+  results get a table of the steps, what each changes and its frame time, with the four screenshots side by side.
+
+### B. A street that looks finished
+
+- **Acceptance:** the driveway gets an asphalt surface (fine aggregate that fades with distance, darker resurfaced patches,
+  a few tar-sealed cracks), the lawn gets mowing stripes and clumps, and the curbs get joints, all procedural in the toon
+  shader (no new textures or downloaded assets). The palette and the overall brightness under the HUD stay the same, so
+  every text keeps its measured contrast. On Low the surfaces fall back to today's flat grain.
+- **Verify:** before/after stills of the same frames (title, packing, the minivan), the self-test's legibility and
+  contrast passes at every window size (no new FAIL), and the benchmark's cost at High.
+
+### C. The main menu without a box
+
+- **Acceptance:** the title menu's scrim becomes a wide, soft falloff with no visible edges or corners, still dark enough
+  behind every caption that the contrast check passes (WCAG 4.5:1); the pause menu's shade matches it.
+- **Verify:** before/after stills; the contrast pass measures the main menu at every size as before.
+
+### D. Owed from round 11: ASK SOMEONE ELSE with the pad
+
+- **Acceptance / verify:** a `FavourChecks` addition walks the simulated pad's D-pad to ASK SOMEONE ELSE on the neighbours
+  page and presses A, and the favour changes neighbour.
+
+### E. Housekeeping
+
+The round ends with `build-linux` (0 errors), the solver, a full autopilot (0 FAIL, real save untouched, load noted), the
+crash test, layout-only runs at the eight measured sizes, the fidelity table, and a `-pttBench` at High back to back with
+round-11 `main`. Each item is built and quick-tested on its own commit before the next. Screenshots go to
+`docs/media/improvements/round12/`. Helper processes are counted after nested runs.
+
+Not in this round: re-cutting the trailer or re-shooting the README gallery (owner's call, and the trailer still shows v0.1.0),
+Windows / WebGL, live re-layout while a window is resized.
