@@ -76,11 +76,17 @@ namespace PackTheTrunk
             titleMenu = UiKit.Rect("Main Menu", title).Pin(new Vector2(0, 0), new Vector2(0, 0), new Vector2(110, 96), new Vector2(760, 540));
             var v = UiKit.Vertical(titleMenu.gameObject, 4, null, TextAnchor.LowerLeft);
             // A soft shade behind the menu, so its small captions stay readable over bright grass or a parked car.
+            // Solid over the same area as before (the menu plus 80 / 60 / 40 units), then easing to clear over
+            // another 260 units, so it has no edge or corner to see.
+            const float feather = 260f;
             var scrim = UiKit.Image("Menu Scrim", titleMenu, new Color(0f, 0f, 0f, 0.4f), false);
-            scrim.sprite = UiTheme.ShadowSprite;
+            scrim.sprite = UiTheme.ScrimSprite;
             scrim.type = Image.Type.Sliced;
+            scrim.pixelsPerUnitMultiplier = 128f / feather;
             scrim.raycastTarget = false;
-            scrim.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(-80, -60), new Vector2(60, 40));
+            scrim.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(-80 - feather, -60 - feather), new Vector2(60 + feather, 40 + feather));
+            // Its faded top reaches the tagline and the logo: draw the menu before them, so they stay on top.
+            titleMenu.SetSiblingIndex(bottom.transform.GetSiblingIndex() + 1);
             scrim.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
             v.childForceExpandHeight = false;
             int n = 0;

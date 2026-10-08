@@ -76,6 +76,12 @@ namespace PackTheTrunk
 
         public static Sprite PaperSprite => paper != null ? paper : paper = MakePaper(96, 18);
         public static Sprite ShadowSprite => shadow != null ? shadow : shadow = MakeShadow(96, 22, 18);
+        static Sprite scrim;
+        /// <summary>
+        /// A sliced shade that is solid in the middle and eases to clear across its whole border (128 px
+        /// of falloff on each side, with round corners), for darkening behind text without a visible box.
+        /// </summary>
+        public static Sprite ScrimSprite => scrim != null ? scrim : scrim = MakeScrim(258);
         public static Sprite TapeSprite => tape != null ? tape : tape = MakeTape(128, 40);
         public static Sprite Circle => circle != null ? circle : circle = MakeCircle(128, false);
         public static Sprite Ring => ring != null ? ring : ring = MakeCircle(128, true);
@@ -305,6 +311,28 @@ namespace PackTheTrunk
             tex.SetPixels32(px);
             tex.Apply();
             float b = size * 0.45f;
+            return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+        }
+
+        static Sprite MakeScrim(int size)
+        {
+            var tex = NewTex(size, size);
+            var px = new Color32[size * size];
+            float border = (size - 2) * 0.5f;
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                // Distance from the 2-px solid core, so edges fall off straight and corners round.
+                float dx = Mathf.Max(0f, Mathf.Abs(x + 0.5f - size * 0.5f) - 1f);
+                float dy = Mathf.Max(0f, Mathf.Abs(y + 0.5f - size * 0.5f) - 1f);
+                float t = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy) / border);
+                // Ease out of the core and into clear, so neither end of the falloff shows a line.
+                float a = 1f - t * t * (3f - 2f * t);
+                px[y * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+            }
+            tex.SetPixels32(px);
+            tex.Apply();
+            float b = border;
             return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
         }
 
