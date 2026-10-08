@@ -1774,6 +1774,19 @@ namespace PackTheTrunk
                         ? $"is clear of everything ({(withTip.ContainsKey("now playing") ? "shown beside the tip" : "skipped while the tip has its spot")})"
                         : string.Join("; ", cassetteProblems)));
                 yield return Shot($"layout-{size}-{scale * 100:0}-cassette");
+
+                // The pause card's HOW TO PACK list names the keyboard-only controls, and every row fits the card.
+                game.AutoPause();
+                yield return Wait(1.2f);
+                var pauseRows = game.Ui.PauseKeyRows();
+                var pauseProblems = game.Ui.PauseKeysProblems();
+                bool arrowsRow = pauseRows.Any(r => r.StartsWith("ARROWS"));
+                Check(game.IsPaused && arrowsRow && pauseProblems.Count == 0,
+                    $"layout {size} at {scale * 100:0}%: the pause card lists {pauseRows.Count} keyboard rows" + (arrowsRow ? " (with ARROWS · ENTER)" : ", none for the arrow keys")
+                    + (pauseProblems.Count == 0 ? ", all inside the card" : ": " + string.Join("; ", pauseProblems)));
+                if (Mathf.Approximately(scale, 1f)) yield return Shot($"pause-keys-{size}");
+                game.AutoResume();
+                yield return Wait(0.5f);
             }
             GameSettings.ResetUiScale();
             GameSettings.Tips = tips;

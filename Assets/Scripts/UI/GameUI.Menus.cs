@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -263,6 +264,8 @@ namespace PackTheTrunk
             rules.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(46, -250), new Vector2(-40, -104));
             var keys = UiKit.Rect("Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(keys.gameObject, 8).childControlHeight = false;
+            pauseKeys = keys;
+            pauseCard = card;
             var padKeys = UiKit.Rect("Pad Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(padKeys.gameObject, 8).childControlHeight = false;
             bool filledToggle = false;
@@ -304,8 +307,8 @@ namespace PackTheTrunk
                     ($"{L(Bindings.Action.XRay)} ({(GameSettings.XRayToggle ? "press" : "hold")})", "see through everything packed"),
                     ($"{L(Bindings.Action.Undo)}  ·  {L(Bindings.Action.Hint)}", "undo (SHIFT: redo) · ask Grandpa"),
                     (L(Bindings.Action.Close), "close the trunk"),
-                    ("ESC", "put back · pause"),
-                    (L(Bindings.Action.Music), "music on / off"),
+                    ("ARROWS  ·  ENTER", "pack without a mouse"),
+                    ($"ESC  ·  {L(Bindings.Action.Music)}", "put back · pause · music on / off"),
                 };
             }
         }
@@ -348,6 +351,39 @@ namespace PackTheTrunk
             lt.horizontalOverflow = HorizontalWrapMode.Overflow;
             UiKit.Size(lt, lt.preferredWidth + 4, size + 18);
         }
+
+        RectTransform pauseKeys, pauseCard;
+
+        /// <summary>
+        /// The pause card's keyboard rows that don't fit (for the self-test): any row that sticks out of the card,
+        /// or whose key and words together are wider than the card leaves them.
+        /// </summary>
+        public List<string> PauseKeysProblems()
+        {
+            var problems = new List<string>();
+            if (pauseKeys == null || !pauseKeys.gameObject.activeInHierarchy) return problems;
+            Canvas.ForceUpdateCanvases();
+            var card = pauseCard.rect;
+            float right = card.width - 30f;
+            foreach (RectTransform row in pauseKeys)
+            {
+                var corners = new Vector3[4];
+                row.GetWorldCorners(corners);
+                var min = pauseCard.InverseTransformPoint(corners[0]);
+                var max = pauseCard.InverseTransformPoint(corners[2]);
+                float width = 0f;
+                foreach (RectTransform part in row) width += part.rect.width;
+                width += 14f * Mathf.Max(0, row.childCount - 1);
+                string name = row.GetComponentInChildren<Text>()?.text ?? row.name;
+                if (min.y < card.yMin || max.y > card.yMax) problems.Add($"{name} sticks out of the card");
+                if (min.x - card.xMin + width > right) problems.Add($"{name} is {min.x - card.xMin + width - right:0} units too wide");
+            }
+            return problems;
+        }
+
+        /// <summary>The pause card's keyboard rows (key, words), for the self-test.</summary>
+        public List<string> PauseKeyRows() => pauseKeys == null ? new List<string>()
+            : pauseKeys.Cast<Transform>().Select(r => string.Join(" | ", r.GetComponentsInChildren<Text>().Select(t => t.text))).ToList();
 
         public void ShowPause(LevelDef level)
         {
