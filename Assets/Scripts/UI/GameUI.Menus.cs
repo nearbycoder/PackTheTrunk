@@ -393,7 +393,7 @@ namespace PackTheTrunk
             pause.gameObject.SetActive(true);
             pause.SetAsLastSibling();
             if (nowPlaying != null) nowPlaying.SetAsLastSibling();
-            pauseTrip.text = level == null ? "" : $"Trip {level.Index + 1}  ·  {level.Title}";
+            pauseTrip.text = level == null ? "" : level.IsFavour ? $"Favour {level.Favour}  ·  {level.Title} for {level.Sender}" : $"Trip {level.Index + 1}  ·  {level.Title}";
         }
 
         public void HidePause()

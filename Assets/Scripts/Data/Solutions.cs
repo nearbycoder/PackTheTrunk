@@ -44,6 +44,15 @@ namespace PackTheTrunk
             return result;
         }
 
+        /// <summary>A favour's packing, as it was made, takes the place of a shipped solution for its id.</summary>
+        public static void Register(LevelDef level)
+        {
+            if (level.Packing == null) return;
+            LoadShipped();
+            raw[level.Id] = level.Packing;
+            cache.Remove(level.Id);
+        }
+
         /// <summary>Every known complete packing of this trip (the solver's first), or none if the data doesn't match.</summary>
         public static IReadOnlyList<List<SolvedPlacement>> For(LevelDef level)
         {
@@ -51,11 +60,7 @@ namespace PackTheTrunk
             var variants = new List<List<SolvedPlacement>>();
             cache[level.Id] = variants;
 
-            if (raw == null)
-            {
-                var asset = Resources.Load<TextAsset>("PackTheTrunkSolutions");
-                raw = asset != null ? Parse(asset.text) : new Dictionary<string, List<(string, List<Vector3Int>)>>();
-            }
+            LoadShipped();
             if (!raw.TryGetValue(level.Id, out var placements))
             {
                 Debug.LogWarning($"[Hints] no solution shipped for {level.Id}");
@@ -80,6 +85,13 @@ namespace PackTheTrunk
             }
             if (variants.Count == 0) Debug.LogWarning($"[Hints] the shipped solution for {level.Id} doesn't match the level data; no hints for this trip");
             return variants;
+        }
+
+        static void LoadShipped()
+        {
+            if (raw != null) return;
+            var asset = Resources.Load<TextAsset>("PackTheTrunkSolutions");
+            raw = asset != null ? Parse(asset.text) : new Dictionary<string, List<(string, List<Vector3Int>)>>();
         }
 
         /// <summary>Check a solution against the level (items, bounds, walls, overlaps, shapes) and work out each rotation.</summary>

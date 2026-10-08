@@ -10,6 +10,18 @@ namespace PackTheTrunk
         public PackItem Held => held;
 
         public int CurrentLevelIndex => levelIndex;
+        public LevelDef CurrentLevelDef => level;
+
+        public LevelDef AutoCurrentFavour() => CurrentFavour();
+        public void AutoBeginFavour(LevelDef favour) => BeginTrip(favour);
+        public void AutoResetFavours()
+        {
+            ResetFavours();
+            Prefs.Save();
+        }
+
+        /// <summary>The waiting favour as saved ("" if none).</summary>
+        public static string SavedFavour => Prefs.GetString(FavourKey, "");
         public Camera Camera => cam;
         public Vehicle CurrentVehicle => vehicle;
         public bool IsPlaying => mode == Mode.Playing;

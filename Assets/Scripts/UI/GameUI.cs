@@ -16,6 +16,23 @@ namespace PackTheTrunk
     public partial class GameUI : MonoBehaviour
     {
         public event Action<int> LevelChosen;
+        /// <summary>The neighbours page's pin: help the neighbour who's waiting.</summary>
+        public event Action FavourChosen;
+
+        /// <summary>What the trip map's last page, The Neighbours, shows.</summary>
+        public struct FavourPage
+        {
+            public bool Unlocked;
+            /// <summary>The trip whose closing opens the page.</summary>
+            public LevelDef LockedBy;
+            public LevelDef Favour;
+            public int Waiting, Done, ThreeStars;
+            /// <summary>Open the map on this page (coming back from a favour, or with every trip packed).</summary>
+            public bool OpenHere;
+        }
+
+        FavourPage menuFavours;
+        int NeighboursPage => GameDatabase.Chapters.Count;
         public event Action HintPressed;
         RectTransform keyboardHintsRow;
 
@@ -939,8 +956,9 @@ namespace PackTheTrunk
             mapPage.GetComponent<UiIntro>()?.Rehome();
         }
 
-        public void ShowMenu(IReadOnlyList<LevelDef> levels, Func<int, int> starsFor, Func<int, bool> unlocked)
+        public void ShowMenu(IReadOnlyList<LevelDef> levels, Func<int, int> starsFor, Func<int, bool> unlocked, FavourPage favours = default)
         {
+            menuFavours = favours;
             if (!menu.gameObject.activeSelf) FitMapPage();
             ShowOnly(menu);
             menuLevels = levels;
@@ -950,7 +968,7 @@ namespace PackTheTrunk
             int target = levels.Count - 1;
             for (int i = 0; i < levels.Count; i++)
                 if (unlocked(i) && starsFor(i) == 0) { target = i; break; }
-            menuPage = levels[target].Chapter.Index;
+            menuPage = favours.Unlocked && favours.OpenHere ? NeighboursPage : levels[target].Chapter.Index;
             mapSeals.text = SealsLine(SealCount(levels), levels.Count);
             DrawPage();
         }
@@ -958,7 +976,7 @@ namespace PackTheTrunk
         void FlipPage(int delta)
         {
             if (menuLevels == null) return;
-            int page = Mathf.Clamp(menuPage + delta, 0, GameDatabase.Chapters.Count - 1);
+            int page = Mathf.Clamp(menuPage + delta, 0, NeighboursPage);
             if (page == menuPage) return;
             menuPage = page;
             Sfx.Instance?.Page();
@@ -971,19 +989,24 @@ namespace PackTheTrunk
             UiKit.Clear(mapArea);
             UiKit.Clear(pageDots);
             var chapters = GameDatabase.Chapters;
-            var chapter = chapters[menuPage];
-            mapChapter.text = $"CHAPTER {chapter.Numeral}  ·  {chapter.Years.ToUpperInvariant()}";
-            mapTitle.text = chapter.Title;
-            mapSub.text = chapter.Intro;
             pagePrev.interactable = menuPage > 0;
-            pageNext.interactable = menuPage < chapters.Count - 1;
-            for (int i = 0; i < chapters.Count; i++)
+            pageNext.interactable = menuPage < NeighboursPage;
+            for (int i = 0; i <= NeighboursPage; i++)
             {
                 var dot = UiKit.Image("Dot", pageDots, i == menuPage ? UiTheme.Accent : new Color(0.45f, 0.4f, 0.35f, 0.35f), false);
                 dot.sprite = UiTheme.Dot;
                 dot.raycastTarget = false;
                 UiKit.Size(dot, i == menuPage ? 18 : 12, i == menuPage ? 18 : 12);
             }
+            if (menuPage == NeighboursPage)
+            {
+                DrawNeighboursPage();
+                return;
+            }
+            var chapter = chapters[menuPage];
+            mapChapter.text = $"CHAPTER {chapter.Numeral}  ·  {chapter.Years.ToUpperInvariant()}";
+            mapTitle.text = chapter.Title;
+            mapSub.text = chapter.Intro;
 
             var stops = chapter.Levels;
             var pins = PinsFor(stops.Count);
@@ -1081,6 +1104,75 @@ namespace PackTheTrunk
                 }
                 if (open && SealedFor != null && SealedFor(index)) UiTheme.Seal(starRow, 24).name = "Seal " + (index + 1);
             }
+        }
+
+        /// <summary>
+        /// The map's last page: the neighbour who needs a hand, as a pin like a trip's (the car's colour, the favour's
+        /// number), with a line of totals. Before chapter II is packed, a locked pin says what opens it.
+        /// </summary>
+        void DrawNeighboursPage()
+        {
+            var f = menuFavours;
+            mapChapter.text = "THE NEIGHBOURS  ·  WHENEVER THEY ASK";
+            mapTitle.text = "Favours";
+            mapSub.text = "Everyone on the street knows you can make anything fit.";
+            var pos = new Vector2(-300f, 80f);
+            if (f.Unlocked)
+            {
+                var halo = UiKit.Image("Halo", mapArea, new Color(1f, 0.85f, 0.3f, 0.6f), false);
+                halo.sprite = UiTheme.Circle;
+                halo.raycastTarget = false;
+                halo.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(124, 124));
+                halo.gameObject.AddComponent<Breathe>();
+            }
+            var pinSlot = UiKit.Rect("Favour Slot", mapArea).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(88, 88));
+            UiMotion.Intro(pinSlot, new Vector2(0, 40), 0.15f, 0.2f, -30f, 0.5f);
+            var pin = UiKit.Rect("Favour Pin", pinSlot).Fill();
+            var shadow = UiKit.Image("Shadow", pin, new Color(0, 0, 0, 0.25f), false);
+            shadow.sprite = UiTheme.Circle;
+            shadow.raycastTarget = false;
+            shadow.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(4, -8), new Vector2(4, -8));
+            var face = UiKit.Image("Face", pin, f.Unlocked ? f.Favour.BodyColor : new Color(0.62f, 0.6f, 0.58f), false);
+            face.sprite = UiTheme.Circle;
+            face.rectTransform.Fill();
+            var ring = UiKit.Image("Ring", pin, Color.white, false);
+            ring.sprite = UiTheme.Ring;
+            ring.raycastTarget = false;
+            ring.rectTransform.Fill(4);
+            bool inkNumber = UiTheme.Contrast(Color.white, face.color) < 3f;
+            var num = UiTheme.Label("Num", pin, f.Unlocked ? f.Favour.Favour.ToString() : "?", UiTheme.Display, 38, inkNumber ? UiTheme.Ink : Color.white, TextAnchor.MiddleCenter);
+            num.rectTransform.Fill();
+            while (num.fontSize > 24 && num.preferredWidth > 76f) num.fontSize--;
+            if (!inkNumber) num.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.35f);
+            var button = pin.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.interactable = f.Unlocked;
+            button.onClick.AddListener(() => FavourChosen?.Invoke());
+            pin.gameObject.AddComponent<PillHover>();
+
+            var labelCard = UiTheme.Card("Label", mapArea, UiTheme.Paper, -2f);
+            var holder = (RectTransform)labelCard.parent;
+            holder.Pin(new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), pos + new Vector2(58, -4), new Vector2(480, 82));
+            UiMotion.Intro(holder, new Vector2(-30, 0), 0.2f, 0.8f, 6f, 0.45f);
+            string title = f.Unlocked ? $"{f.Favour.Sender}: {f.Favour.Title}" : "???";
+            var tt = UiTheme.Label("Title", labelCard, title, UiTheme.Hand, 27, f.Unlocked ? UiTheme.Ink : UiTheme.InkSoft, TextAnchor.UpperLeft);
+            tt.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -38), new Vector2(-10, -4));
+            tt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            while (tt.fontSize > 18 && tt.preferredWidth > 452f) tt.fontSize--;
+            string sub = f.Unlocked
+                ? (f.Waiting > 0 ? $"{f.Waiting} PACKED, WAITING" : $"FAVOUR {f.Favour.Favour}  ·  {f.Favour.Vehicle.ToUpperInvariant()}  ·  {f.Favour.Required.Count + f.Favour.Bonus.Count} THINGS")
+                : "LOCKED";
+            var subText = UiTheme.Label("When", labelCard, sub, UiTheme.Body, 18, f.Waiting > 0 ? UiTheme.AccentInk : UiTheme.InkSoft, TextAnchor.UpperLeft);
+            subText.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -58), new Vector2(-10, -38));
+            subText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            if (f.Unlocked && f.Waiting == 0 && subText.preferredWidth > 452f) subText.text = $"FAVOUR {f.Favour.Favour}  ·  {f.Favour.Vehicle.ToUpperInvariant()}";
+
+            var note = UiTheme.Label("Favours Note", mapArea, f.Unlocked
+                    ? (f.Done == 0 ? "Each favour is a new pile for a car you've packed.\nClick the pin to see who's asking."
+                        : $"{f.Done} favour{(f.Done == 1 ? "" : "s")} done, {f.ThreeStars} with three stars.\nEach one is a new pile for a car you've packed.")
+                    : $"The neighbours start asking once you've packed {f.LockedBy?.Title ?? "chapter II"} (trip {(f.LockedBy?.Index ?? 8) + 1}).",
+                UiTheme.Hand, 27, UiTheme.InkSoft, TextAnchor.UpperLeft);
+            note.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(680, 160));
         }
 
         static Vector2 CatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t)
@@ -1234,7 +1326,7 @@ namespace PackTheTrunk
             string sender = string.IsNullOrEmpty(level.Sender) ? "Mom" : level.Sender;
             ShowConversation(sender, level.Messages, waiting > 0 ? "BACK TO PACKING" : "LET'S PACK!", true, level.IsNote,
                 waiting > 0 || !level.IsFirstInChapter ? null : level.Chapter, waiting > 0);
-            tripNumber.text = $"CHAPTER {level.Chapter.Numeral}  ·  TRIP {tripIndex + 1} OF {tripCount}";
+            tripNumber.text = level.IsFavour ? $"THE NEIGHBOURS  ·  FAVOUR {level.Favour}" : $"CHAPTER {level.Chapter.Numeral}  ·  TRIP {tripIndex + 1} OF {tripCount}";
             tripPlace.text = level.Year > 0 ? $"{level.Trip} · {level.Year}" : level.Trip;
             tripTitle.text = level.Title;
             tripTitle.fontSize = 66;
@@ -1278,6 +1370,8 @@ namespace PackTheTrunk
             phoneName.text = sender;
             phoneAvatarLetter.text = sender.Length > 0 ? sender.Split(' ').Last().Substring(0, 1).ToUpperInvariant() : "?";
             phoneAvatar.color = Color.HSVToRGB(Mathf.Abs(sender.GetHashCode() % 360) / 360f, 0.55f, 0.85f);
+            // A pale colour (a yellow or a green) gets an ink letter, like a light car's pin on the map.
+            phoneAvatarLetter.color = UiTheme.Contrast(Color.white, phoneAvatar.color) < 3f ? UiTheme.Ink : Color.white;
             startLabel.text = buttonText;
             backButton.gameObject.SetActive(showBack);
             startButton.transform.parent.gameObject.SetActive(false);
@@ -1530,11 +1624,12 @@ namespace PackTheTrunk
         {
             ShowOnly(hud);
             HideHudForCutscene(false);
-            tagTrip.text = $"TRIP {level.Index + 1}  ·  {(level.Trip ?? "").ToUpperInvariant()}  ·  {level.Vehicle.ToUpperInvariant()}";
+            string number = level.IsFavour ? $"FAVOUR {level.Favour}" : $"TRIP {level.Index + 1}";
+            tagTrip.text = $"{number}  ·  {(level.Trip ?? "").ToUpperInvariant()}  ·  {level.Vehicle.ToUpperInvariant()}";
             // On a small window's bigger text, drop the car, then the month, rather than wrap into the title.
             string place = (level.Trip ?? "").Split('·').Last().Trim().ToUpperInvariant();
-            if (tagTrip.preferredWidth > tagTrip.rectTransform.rect.width) tagTrip.text = $"TRIP {level.Index + 1}  ·  {(level.Trip ?? "").ToUpperInvariant()}";
-            if (tagTrip.preferredWidth > tagTrip.rectTransform.rect.width) tagTrip.text = $"TRIP {level.Index + 1}  ·  {place}";
+            if (tagTrip.preferredWidth > tagTrip.rectTransform.rect.width) tagTrip.text = $"{number}  ·  {(level.Trip ?? "").ToUpperInvariant()}";
+            if (tagTrip.preferredWidth > tagTrip.rectTransform.rect.width) tagTrip.text = $"{number}  ·  {place}";
             tagTitle.text = level.Title;
             tagBlurb.text = level.Blurb;
             listFrom.text = string.IsNullOrEmpty(level.PackFor) ? "" : "for " + level.PackFor;
@@ -2354,8 +2449,9 @@ namespace PackTheTrunk
             bool gnome = level.Required.Concat(level.Bonus).Any(d => d.Id == "gnome");
             leftBehindText.text = behind.Count == 0 ? (gnome ? "Nothing left behind. Not even the gnome." : "Nothing left behind. Not one thing.") : "Left on the curb: " + string.Join(", ", behind) + ".";
             resultsCounts.text = $"Essentials  <b>{reqDone}/{req}</b>\nExtras  <b>{bonusDone}/{bonus}</b>\n<size={ReadableText.Tag(21)}>{(level.Title.Contains(level.Vehicle) ? "" : level.Vehicle + " · ")}{level.Title}{(level.Year > 0 ? " · " + level.Year : "")}</size>";
-            nextLabel.text = hasNext ? "NEXT TRIP" : "THE END";
-            resultsKeys.text = hasNext ? "<b>SPACE</b>  next trip      <b>R</b>  try again      <b>ESC</b>  map" : "<b>SPACE</b>  the end      <b>R</b>  try again      <b>ESC</b>  map";
+            string next = level.IsFavour ? "next favour" : hasNext ? "next trip" : "the end";
+            nextLabel.text = next.ToUpperInvariant();
+            resultsKeys.text = $"<b>SPACE</b>  {next}      <b>R</b>  try again      <b>ESC</b>  map";
 
             UiKit.Clear(resultsStars);
             var images = new List<Image>();

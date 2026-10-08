@@ -24,7 +24,7 @@ BEFORE="$(save_hash)"
 # Unity's native Wayland backend has (rarely) segfaulted inside wl_display_dispatch_queue_pending
 # mid-run; that is a player crash, not a test failure, so keep the log and run once more.
 for attempt in 1 2; do
-  timeout 1200 "$ROOT/Tools/play.sh" ${PTT_SIZE:+-screen-width "${PTT_SIZE%x*}" -screen-height "${PTT_SIZE#*x}"} \
+  timeout 1800 "$ROOT/Tools/play.sh" ${PTT_SIZE:+-screen-width "${PTT_SIZE%x*}" -screen-height "${PTT_SIZE#*x}"} \
     -logFile "$OUT/player.log" -pttAutopilot "$OUT" -pttSolutions "$OUT/solutions.txt" ${PTT_QUICK:+-pttQuick} ${PTT_LAYOUT:+-pttLayoutOnly} > /dev/null 2>&1 || true
   grep -q "Caught fatal signal" "$OUT/player.log" || break
   cp "$OUT/player.log" "$OUT/player-crash-$attempt.log"

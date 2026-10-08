@@ -142,6 +142,15 @@ trunk, CONTINUE and the trip map say how much is waiting, and coming back skips 
 texts you've already read (BACK TO PACKING). Each trip keeps its own trunk until you close it.
 (Asking Grandpa is remembered too, so leaving and coming back doesn't earn the seal.)
 
+**Favours for the neighbours.** Once chapter II is packed, the trip map gets one more page: the
+neighbours have heard you can make anything fit. Each favour borrows the car of a trip you've packed and
+brings a new pile, made only from things you've already packed in the story, so nothing is spoiled. The
+game makes each pile by packing it into that trunk under its own rules, so every favour can be packed
+completely, and Grandpa's hints work on it. Stars work as on any trip; favours don't take album photos,
+earn seals or count towards the trips. A half-packed favour waits like a trip does, TRY AGAIN replays
+the same pile, NEXT FAVOUR asks the next neighbour, and once every trip in the story has stars, the
+title's CONTINUE goes straight to the neighbours.
+
 On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
 aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →
 Gameplay turns them off, and turning them back on shows them all again.
@@ -262,6 +271,8 @@ Also in the box:
 - **116 items**, 29 of them fragile, from egg cartons and a bowling ball to a unicycle, a
   grandfather clock, a flat-pack crib, a disco ball and a second, folding clown.
 - A finale, an ending and a credits roll. No spoilers here.
+- After chapter II, **favours for the neighbours**: as many new piles as you like, for the cars you've
+  packed, each one made by the game and packed completely before you see it.
 
 ## Screenshots
 
@@ -318,6 +329,7 @@ PTT_QUICK=1 Tools/autopilot.sh           # the same with three trips (about eigh
 PTT_LAYOUT=1 PTT_SIZE=1280x800 Tools/autopilot.sh   # only the layout and text-size checks, at a Deck-sized window
 Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL the player, check a new one restores it (and its undo history)
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
+python3 Tools/solve_levels.py --check-favours Recordings/autopilot/favours.json   # re-check the self-test's favours with the solver's rules
 ```
 
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with

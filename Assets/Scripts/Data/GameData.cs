@@ -114,6 +114,14 @@ namespace PackTheTrunk
         /// <summary>"phone" for text messages, "note" for a handwritten note.</summary>
         public string Medium = "phone";
 
+        /// <summary>The Blender body to use (Resources/Models/Vehicles/&lt;id&gt;); a favour borrows a trip's car.</summary>
+        public string ModelId;
+        /// <summary>A favour for the neighbours (its number, from 1), or 0 for a trip in the story.</summary>
+        public int Favour;
+        /// <summary>A favour's pile packed completely, as it was made (Grandpa's hints use it).</summary>
+        public List<(string Id, List<Vector3Int> Cells)> Packing;
+
+        public bool IsFavour => Favour > 0;
         public bool IsNote => Medium == "note";
         public bool IsFirstInChapter => Chapter != null && Chapter.Levels.Count > 0 && Chapter.Levels[0] == this;
 
@@ -234,6 +242,13 @@ namespace PackTheTrunk
             foreach (var id in j.required) level.Required.Add(Item(id));
             foreach (var id in j.bonus) level.Bonus.Add(Item(id));
             return level;
+        }
+
+        /// <summary>The thing with this id, or null if this version of the game doesn't have it.</summary>
+        public static ItemDef ItemOrNull(string id)
+        {
+            EnsureLoaded();
+            return items.TryGetValue(id, out var def) ? def : null;
         }
 
         static ItemDef Item(string id)

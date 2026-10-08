@@ -6,10 +6,14 @@ completely (required + bonus) under the in-game rules:
   * nothing may sit directly on top of a fragile item
 
 Usage: python3 Tools/solve_levels.py [level_id ...] [--dump <file>]
+       python3 Tools/solve_levels.py --check-favours <favours.json>
   --dump x.json   every solution as JSON (the autopilot and the recorders read this)
   --dump x.txt    the same as tab-separated lines (level, item, x,y,z;...), the format the game
                   ships for Grandpa's hints:
                   python3 Tools/solve_levels.py --dump Assets/Resources/PackTheTrunkSolutions.txt
+  --check-favours favours made by the game (the autopilot writes them to <out>/favours.json): checks
+                  that each one's packing is complete and follows these rules in that trip's trunk, so
+                  every favour can be packed 100%, independently of the game's own rule code.
 """
 import json
 import sys
@@ -183,10 +187,93 @@ def render(sol):
     return "\n".join(out)
 
 
+def check_favours(path, data, items):
+    """Each favour: a complete, legal packing of its pile in its car's trunk, drawn from its pool."""
+    levels = {l["id"]: l for l in data["levels"]}
+    favours = json.loads(Path(path).read_text())
+    shapes = {}
+    bad = 0
+    fills = []
+    for f in favours:
+        problems = []
+        level = levels.get(f["car"])
+        if level is None:
+            print(f"favour {f['number']}: unknown car {f['car']}")
+            bad += 1
+            continue
+        W, H, D = level["w"], level["h"], level["d"]
+        blocked = set(parse_layers(level["blocked"])) if level["blocked"] else set()
+        free = W * H * D - len(blocked)
+        pile = sorted(f["required"] + f["bonus"])
+        packed = sorted(p["id"] for p in f["packing"])
+        if pile != packed:
+            problems.append("the packing packs different things than the pile")
+        pool = set(f["pool"])
+        outside = sorted(set(pile) - pool)
+        if outside:
+            problems.append("not from a closed trip: " + ", ".join(outside))
+        owner = {}
+        for n, p in enumerate(f["packing"]):
+            k = p["id"]
+            if k not in items:
+                problems.append(f"unknown item {k}")
+                continue
+            if k not in shapes:
+                shapes[k] = set(orientations(parse_layers(items[k]["layers"])))
+            cells = [tuple(c) for c in p["cells"]]
+            if normalize(cells) not in shapes[k]:
+                problems.append(f"{k} isn't any turn of its shape")
+            for c in cells:
+                x, y, z = c
+                if not (0 <= x < W and 0 <= y < H and 0 <= z < D) or c in blocked:
+                    problems.append(f"{k} is outside the trunk or in a wall at {c}")
+                elif c in owner:
+                    problems.append(f"{k} overlaps at {c}")
+                owner[c] = n
+        for n, p in enumerate(f["packing"]):
+            k = p["id"]
+            if k not in items:
+                continue
+            cells = set(tuple(c) for c in p["cells"])
+            supported = False
+            for x, y, z in cells:
+                below = (x, y - 1, z)
+                if below in cells:
+                    continue
+                if y == 0 or below in blocked:
+                    supported = True
+                elif below in owner:
+                    under = f["packing"][owner[below]]["id"]
+                    if items[under]["fragile"]:
+                        problems.append(f"{k} sits on the fragile {under}")
+                    supported = True
+            if not supported:
+                problems.append(f"{k} floats")
+        fill = len(owner) / free
+        fills.append(fill)
+        count = len(f["packing"])
+        if not (0.82 <= fill <= 0.95):
+            problems.append(f"fill {fill:.2f} outside 0.82-0.95")
+        if not (6 <= count <= 22):
+            problems.append(f"{count} things (6-22 expected)")
+        if len(f["bonus"]) < 2:
+            problems.append("fewer than two extras")
+        if problems:
+            bad += 1
+            print(f"favour {f['number']} ({f['car']}): " + "; ".join(sorted(set(problems))[:6]))
+    cars = sorted(set(f["car"] for f in favours))
+    if fills:
+        print(f"checked {len(favours)} favours in {len(cars)} cars: {len(favours) - bad} complete and legal, {bad} not; "
+              f"fill {min(fills):.2f}-{sum(fills) / len(fills):.2f}-{max(fills):.2f}")
+    return bad == 0 and len(favours) > 0
+
+
 def main():
     data = json.loads(DATA.read_text())
     items = {i["id"]: i for i in data["items"]}
     args = sys.argv[1:]
+    if "--check-favours" in args:
+        sys.exit(0 if check_favours(args[args.index("--check-favours") + 1], data, items) else 1)
     dump = None
     if "--dump" in args:
         i = args.index("--dump")

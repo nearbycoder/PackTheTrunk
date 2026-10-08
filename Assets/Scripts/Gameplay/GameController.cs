@@ -124,7 +124,18 @@ namespace PackTheTrunk
             InputReport.UnsupportedController += name => ui.Toast($"{name} isn't a gamepad the game understands. Try Steam Input or its Xbox mode.", 5f);
             music.TrackStarted += (title, artist) => ui.ShowNowPlaying(title, artist);
             ui.TitleKeyPressed += () => sfx.Confirm();
-            ui.ContinuePressed += () => ui.Transition(() => BeginTrip(NextTripIndex()));
+            ui.ContinuePressed += () => ui.Transition(() =>
+            {
+                // With every trip packed, CONTINUE goes to the neighbour who needs a hand.
+                var favour = AllTripsPacked ? CurrentFavour() : null;
+                if (favour != null) BeginTrip(favour);
+                else BeginTrip(NextTripIndex());
+            });
+            ui.FavourChosen += () => ui.Transition(() =>
+            {
+                var favour = CurrentFavour();
+                if (favour != null) BeginTrip(favour);
+            });
             ui.TripMapPressed += ShowMenu;
             ui.AlbumPressed += () => ShowAlbum(false);
             ui.CreditsPressed += ShowCredits;
@@ -148,13 +159,14 @@ namespace PackTheTrunk
             ui.RestartPressed += () =>
             {
                 if (mode == Mode.Playing) UnpackEverything();
-                else ui.Transition(() => StartLevel(levelIndex));
+                else ui.Transition(() => StartLevel(level));
             };
             ui.MenuPressed += () => ui.Transition(ShowMenu);
             ui.ClosePressed += () => { if (mode == Mode.Playing && CanClose()) StartCoroutine(CloseTrunk()); };
             ui.NextPressed += () => ui.Transition(() =>
             {
-                if (levelIndex + 1 < GameDatabase.Levels.Count) BeginTrip(levelIndex + 1);
+                if (level != null && level.IsFavour) BeginTrip(CurrentFavour() ?? level);
+                else if (levelIndex + 1 < GameDatabase.Levels.Count) BeginTrip(levelIndex + 1);
                 else ShowEnding();
             });
             ui.PutBackPressed += PutBack;
@@ -301,6 +313,8 @@ namespace PackTheTrunk
 
         bool Unlocked(int index) => index == 0 || StarsFor(index - 1) > 0;
 
+        bool AllTripsPacked => Enumerable.Range(0, GameDatabase.Levels.Count).All(i => StarsFor(i) > 0);
+
         /// <summary>The next trip to play: the first unlocked one without stars (or the finale).</summary>
         int NextTripIndex()
         {
@@ -347,7 +361,10 @@ namespace PackTheTrunk
             int next = NextTripIndex();
             var nl = GameDatabase.Levels[next];
             int waiting = SavedTrunkCount(nl.Id);
-            string cont = waiting > 0 ? $"Trip {next + 1}  ·  {nl.Title}  ·  {waiting} packed, waiting for you"
+            var favour = done == count ? CurrentFavour() : null;
+            int favourWaiting = favour != null ? SavedTrunkCount(favour.Id) : 0;
+            string cont = favour != null ? $"The neighbours need a hand  ·  {favour.Sender}" + (favourWaiting > 0 ? $"  ·  {favourWaiting} packed, waiting" : "")
+                : waiting > 0 ? $"Trip {next + 1}  ·  {nl.Title}  ·  {waiting} packed, waiting for you"
                 : done == 0 ? $"Begin the story  ·  {nl.Title}"
                 : done == count ? "Every trip is packed  ·  play the last one again"
                 : $"Trip {next + 1}  ·  {nl.Title}  ·  Chapter {nl.Chapter.Numeral}";
@@ -358,10 +375,12 @@ namespace PackTheTrunk
 
         void ShowMenu()
         {
+            // Coming back from a favour, the map opens on the neighbours' page.
+            bool fromFavour = level != null && level.IsFavour;
             ShowPreview();
             mode = Mode.Menu;
             sfx.WhooshIn();
-            ui.ShowMenu(GameDatabase.Levels, StarsFor, Unlocked);
+            ui.ShowMenu(GameDatabase.Levels, StarsFor, Unlocked, FavourPageInfo(fromFavour));
         }
 
         void ShowCredits()
@@ -379,6 +398,7 @@ namespace PackTheTrunk
                 Prefs.DeleteKey(BestLeftKey(l.Id));
                 ForgetTrunk(l.Id);
             }
+            ResetFavours();
             Prefs.Save();
             foreach (var tex in photos.Values) if (tex != null) Destroy(tex);
             photos.Clear();
@@ -439,11 +459,13 @@ namespace PackTheTrunk
         bool showingEnding;
 
         /// <summary>Park the car, then let the person you're packing for explain the trip.</summary>
-        void BeginTrip(int index)
+        void BeginTrip(int index) => BeginTrip(GameDatabase.Levels[index]);
+
+        void BeginTrip(LevelDef trip)
         {
             StopAllCoroutines();
             ResetPause();
-            BuildLevel(index, false);
+            BuildLevel(trip, false);
             previewIndex = -1;
             mode = Mode.Story;
             showingEnding = false;
@@ -456,7 +478,7 @@ namespace PackTheTrunk
             music.Play(level.Music);
             music.SetMuffled(true);
             arrival = StartCoroutine(Arrive());
-            ui.ShowStory(level, index, GameDatabase.Levels.Count, SavedTrunkCount(level.Id), BestSoFar(index));
+            ui.ShowStory(level, levelIndex, GameDatabase.Levels.Count, SavedTrunkCount(level.Id), level.IsFavour ? null : BestSoFar(levelIndex));
         }
 
         static string BestLeftKey(string levelId) => "ptt.bestleft." + levelId;
@@ -498,11 +520,13 @@ namespace PackTheTrunk
             ui.ShowEnding();
         }
 
-        void StartLevel(int index)
+        void StartLevel(int index) => StartLevel(GameDatabase.Levels[index]);
+
+        void StartLevel(LevelDef trip)
         {
             StopAllCoroutines();
             ResetPause();
-            BuildLevel(index, false);
+            BuildLevel(trip, false);
             previewIndex = -1;
             rig.SweepIn(-10f, -6f, 1.15f, 1.2f, 2.5f);
             Play();
@@ -602,13 +626,17 @@ namespace PackTheTrunk
             if (vehicle.FlapPivot != null) vehicle.FlapPivot.localRotation = flapOpen;
         }
 
-        void BuildLevel(int index, bool menuPreview)
+        void BuildLevel(int index, bool menuPreview) => BuildLevel(GameDatabase.Levels[index], menuPreview);
+
+        void BuildLevel(LevelDef trip, bool menuPreview)
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
             arriving = false;
             arrival = null;
-            levelIndex = index;
-            level = GameDatabase.Levels[index];
+            // A favour borrows a trip's car (and its blanket), but isn't a trip: no index.
+            levelIndex = trip.IsFavour ? -1 : trip.Index;
+            level = trip;
+            if (trip.IsFavour) Solutions.Register(trip);
             ClearTips();
             ClearHint();
             ClearSeeThrough();
@@ -1492,9 +1520,9 @@ namespace PackTheTrunk
             int stars = StarRating(true, bonusDone, bonus);
             LastStars = stars;
             string key = "ptt.stars." + level.Id;
-            int best = Prefs.GetInt(key, 0);
-            // The album keeps the best trunk: a quick replay for fewer stars doesn't replace the photo.
-            if (stars >= best || PhotoFor(level.Id) == null) StartCoroutine(TakeTrunkPhoto());
+            int best = level.IsFavour ? 0 : Prefs.GetInt(key, 0);
+            // The album keeps the best trunk: a quick replay for fewer stars doesn't replace the photo. Favours aren't in it.
+            if (!level.IsFavour && (stars >= best || PhotoFor(level.Id) == null)) StartCoroutine(TakeTrunkPhoto());
             foreach (var item in packed)
             {
                 item.SetColliderEnabled(false);
@@ -1536,6 +1564,18 @@ namespace PackTheTrunk
                 yield return null;
             }
 
+            if (level.IsFavour)
+            {
+                RecordFavour(level, stars);
+                mode = Mode.Results;
+                sfx.TripComplete();
+                music.Duck(0.35f, 2.6f);
+                atmosphere.SetBlur(0.7f);
+                sfx.SetAmbience(0.7f, true);
+                ui.HideHudForCutscene(false);
+                ui.ShowResults(level, stars, req, req, bonusDone, bonus, left.Select(i => i.Def.Name), true, false, false);
+                yield break;
+            }
             Prefs.SetInt(key, Mathf.Max(best, stars));
             // What the best run left on the curb, for the trip card next time (a worse replay doesn't replace it).
             string bestLeft = Prefs.HasKey(BestLeftKey(level.Id)) ? Prefs.GetString(BestLeftKey(level.Id)) : null;

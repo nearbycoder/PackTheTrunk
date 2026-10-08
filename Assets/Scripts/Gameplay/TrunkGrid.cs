@@ -22,6 +22,9 @@ namespace PackTheTrunk
         public readonly Vector3Int Size;
         readonly int[,,] cells;
         readonly Dictionary<int, PackItem> items = new Dictionary<int, PackItem>();
+        // Whether each placed thing is fragile: packed items, and things placed only as data (a favour being made).
+        readonly Dictionary<int, bool> isFragile = new Dictionary<int, bool>();
+        int nextDataId = 1 << 24;
 
         public TrunkGrid(Vector3Int size, IEnumerable<Vector3Int> blocked)
         {
@@ -33,6 +36,9 @@ namespace PackTheTrunk
 
         public bool InBounds(Vector3Int p) =>
             p.x >= 0 && p.y >= 0 && p.z >= 0 && p.x < Size.x && p.y < Size.y && p.z < Size.z;
+
+        /// <summary>Inside the trunk, not a wall, and nothing in it.</summary>
+        public bool IsFree(Vector3Int p) => InBounds(p) && cells[p.x, p.y, p.z] == Empty;
 
         public bool IsWall(Vector3Int p) => InBounds(p) && cells[p.x, p.y, p.z] == Wall;
 
@@ -66,10 +72,9 @@ namespace PackTheTrunk
                 int id = cells[below.x, below.y, below.z];
                 if (id == Wall) { supported = true; continue; }
                 if (id == Empty) continue;
-                var under = items[id];
-                if (under.Def.Fragile)
+                if (isFragile[id])
                 {
-                    culprit = under;
+                    items.TryGetValue(id, out culprit);
                     return PlacementResult.OnFragile;
                 }
                 supported = true;
@@ -81,10 +86,10 @@ namespace PackTheTrunk
                 foreach (var v in shape.Voxels)
                 {
                     if (shape.Contains(v.Pos + Vector3Int.up)) continue;
-                    var above = ItemAt(v.Pos + offset + Vector3Int.up);
-                    if (above != null)
+                    var up = v.Pos + offset + Vector3Int.up;
+                    if (InBounds(up) && cells[up.x, up.y, up.z] > 0)
                     {
-                        culprit = above;
+                        culprit = ItemAt(up);
                         return PlacementResult.CrushesFragile;
                     }
                 }
@@ -109,16 +114,26 @@ namespace PackTheTrunk
         public void Place(PackItem item, VoxelShape shape, Vector3Int offset)
         {
             items[item.Uid] = item;
+            Fill(item.Uid, item.Def.Fragile, shape, offset);
+        }
+
+        /// <summary>Place a thing that has no game object (a favour's pile being packed while it's made).</summary>
+        public void PlaceData(bool fragile, VoxelShape shape, Vector3Int offset) => Fill(nextDataId++, fragile, shape, offset);
+
+        void Fill(int id, bool breakable, VoxelShape shape, Vector3Int offset)
+        {
+            isFragile[id] = breakable;
             foreach (var v in shape.Voxels)
             {
                 var p = v.Pos + offset;
-                cells[p.x, p.y, p.z] = item.Uid;
+                cells[p.x, p.y, p.z] = id;
             }
         }
 
         public void Remove(PackItem item)
         {
             if (!items.Remove(item.Uid)) return;
+            isFragile.Remove(item.Uid);
             for (int x = 0; x < Size.x; x++)
             for (int y = 0; y < Size.y; y++)
             for (int z = 0; z < Size.z; z++)

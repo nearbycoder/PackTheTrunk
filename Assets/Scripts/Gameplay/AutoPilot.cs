@@ -247,6 +247,7 @@ namespace PackTheTrunk
             yield return MouseRedoChecks(solutions);
             yield return KeyMenuChecks();
             yield return KeyboardOnlyChecks(solutions);
+            yield return FavourChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
             yield return MenuLayoutChecks();
@@ -1882,12 +1883,12 @@ namespace PackTheTrunk
                 yield return ClickUi("Prev Page");
                 yield return Wait(0.3f);
             }
-            for (int page = 1; page < GameDatabase.Chapters.Count; page++)
+            for (int page = 1; page <= GameDatabase.Chapters.Count; page++)
             {
                 yield return ClickUi("Next Page");
                 // The page's last label finishes fading in about 1.1 s after the flip.
                 yield return Wait(1.5f);
-                yield return Measure($"trip map page {page + 1}");
+                yield return Measure(page < GameDatabase.Chapters.Count ? $"trip map page {page + 1}" : $"trip map neighbours ({(game.FavoursUnlocked ? "open" : "locked")})");
             }
             yield return Press(Key.Escape);
             yield return Wait(1f);
@@ -1924,6 +1925,39 @@ namespace PackTheTrunk
                 yield return Measure("postcard");
                 yield return Shot($"legibility-{size}-postcard");
             }
+            // A favour for the neighbours: its page (open), texts, packing and postcard.
+            {
+                var savedStars = GameDatabase.Levels.ToDictionary(l => l.Id, l => Prefs.GetInt("ptt.stars." + l.Id, 0));
+                bool hadFavour = GameController.SavedFavour != "";
+                for (int i = 0; i <= LevelIndex(Favours.UnlockedBy); i++)
+                    if (savedStars[GameDatabase.Levels[i].Id] == 0) Prefs.SetInt("ptt.stars." + GameDatabase.Levels[i].Id, 1);
+                PerfProbe.Begin("menus");
+                game.AutoShowMenu();
+                yield return Wait(1.8f);
+                yield return FlipToNeighbours();
+                yield return Measure("trip map neighbours (open)");
+                yield return Shot($"legibility-{size}-neighbours");
+                var favour = game.AutoCurrentFavour();
+                game.AutoBeginFavour(favour);
+                yield return Wait(7f);
+                yield return Measure("favour story");
+                PerfProbe.Begin("playing");
+                yield return StoryToPacking();
+                yield return Wait(2f);
+                game.AutoHold(game.Items.Last(i => i.State == ItemState.Pile));
+                yield return Wait(1f);
+                yield return Measure("favour packing");
+                yield return Shot($"legibility-{size}-favour-packing");
+                game.AutoPutBack();
+                yield return PackAll(favour.Id, favour.Packing);
+                yield return CloseAndWait();
+                yield return Wait(3f);
+                yield return Measure("favour postcard");
+                yield return Shot($"legibility-{size}-favour-postcard");
+                foreach (var kv in savedStars) Prefs.SetInt("ptt.stars." + kv.Key, kv.Value);
+                if (!hadFavour) game.AutoResetFavours();
+            }
+
             game.AutoShowMenuAlbum();
             yield return WaitForAlbum();
             yield return Measure("album");

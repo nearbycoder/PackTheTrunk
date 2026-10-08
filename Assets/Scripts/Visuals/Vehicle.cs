@@ -85,7 +85,7 @@ namespace PackTheTrunk
             Length = front + 0.8f;
 
             // A Blender-built body (Resources/Models/Vehicles/<level>.fbx) replaces the box car.
-            var model = ModelLibrary.Instantiate("Vehicles/" + level.Id, transform);
+            var model = ModelLibrary.Instantiate("Vehicles/" + (level.ModelId ?? level.Id), transform);
             if (model != null) model.name = $"{level.Vehicle} Body";
 
             // --- Trunk interior ---------------------------------------------------------------
