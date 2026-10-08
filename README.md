@@ -62,6 +62,7 @@ way.)
 | **`F`** | Roll it sideways |
 | Click the **`R`** / **`T`** / **`F`** / **`Tab`** key hints | Turn, tip, roll or X-ray with the mouse alone (see below) |
 | **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
+| **Arrow keys** + **`Enter`** | Without a mouse: walk the menus and the packing list, pick up, move what you hold one square at a time, drop (see below) |
 | **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
 | **`Z`** / **`Backspace`** | Undo (hold **`Shift`** to redo, or click **REDO**) |
 | **RESTART** button | Unpack everything back onto the blanket (one undo puts it all back) |
@@ -104,7 +105,12 @@ are on-screen buttons, and a **REDO** button appears beside UNDO whenever there'
 switch, slider, map pin or polaroid in that direction (hold to keep going), ← / → change a slider or
 setting, and **Enter** clicks what the cursor is on, so Enter on the postcard's TRY AGAIN tries again
 (`Space` keeps its own jobs: next trip, start packing, close the trunk). `Esc` goes back as always,
-and moving the mouse hands straight back to it.
+and moving the mouse hands straight back to it. Packing works the same way: with empty hands the
+arrows walk the packing list and the buttons, and Enter on a row picks that thing up (or lifts it back
+out of the trunk). Holding it, the arrows move it **one square at a time** across the trunk (↑ away
+from the camera, ↓ towards you, ← / → sideways), the usual keys turn, tip, roll and pick a shelf
+(`W` / `S`), **Enter** drops it and `Esc` puts it back. The key hints switch to ARROWS and ENTER while
+you do. An arrow key you've bound to a packing action keeps that job.
 
 Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
 click a key and press the new one. A key that's already taken swaps with it, and **Defaults**

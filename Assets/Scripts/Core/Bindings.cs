@@ -114,6 +114,14 @@ namespace PackTheTrunk
             Changed?.Invoke();
         }
 
+        /// <summary>Some action has this key as its own (not just as a spare), so it keeps that job.</summary>
+        public static bool IsBound(Key key)
+        {
+            foreach (var action in All)
+                if (KeyFor(action) == key) return true;
+            return false;
+        }
+
         static bool BoundElsewhere(Key key, Action except)
         {
             foreach (var other in All)

@@ -117,6 +117,9 @@ namespace PackTheTrunk
 
         public static event Action ActiveChanged;
 
+        /// <summary>The arrow keys started or stopped pointing (the keyboard hints say how to use them).</summary>
+        public static event Action KeysActiveChanged;
+
         /// <summary>The drawn cursor's screen position.</summary>
         public static Vector2 Position { get; private set; }
 
@@ -136,6 +139,12 @@ namespace PackTheTrunk
         public static bool KeyClickedThisFrame => keyClickFrame == Time.frameCount;
 
         static int keyClickFrame = -1;
+
+        /// <summary>Hand pointing to the keyboard (keyboard aiming starts this, so the mouse can take it back).</summary>
+        public static void UseKeys()
+        {
+            if (instance != null && source != Source.Keys) instance.SetSource(Source.Keys);
+        }
 
         Mouse virtualMouse;
         RectTransform cursor, canvasRect;
@@ -363,7 +372,7 @@ namespace PackTheTrunk
 
         void SetSource(Source next)
         {
-            bool wasPad = source == Source.Pad;
+            bool wasPad = source == Source.Pad, wasKeys = source == Source.Keys;
             if (source == Source.None)
             {
                 var real = Mouse.current;
@@ -376,6 +385,7 @@ namespace PackTheTrunk
             if (cursor != null) cursor.gameObject.SetActive(next != Source.None);
             Cursor.visible = next == Source.None;
             if (wasPad != (next == Source.Pad)) ActiveChanged?.Invoke();
+            if (wasKeys != (next == Source.Keys)) KeysActiveChanged?.Invoke();
         }
     }
 }

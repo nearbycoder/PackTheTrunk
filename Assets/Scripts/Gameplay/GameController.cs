@@ -72,6 +72,12 @@ namespace PackTheTrunk
         // tip hint, say) the held thing stays there and its ghost follows the turn.
         Vector3Int? lastAimCell;
 
+        // Keyboard aiming: the arrow keys step the landing spot a cell at a time and Enter drops.
+        bool keyAim;
+        Vector2Int keyOrigin;
+        int keyAimY;
+        readonly StepRepeat keyAimRepeat = new StepRepeat();
+
         /// <summary>Running a self-test, benchmark or recording rather than being played.</summary>
         public static readonly bool Automated = System.Environment.GetCommandLineArgs()
             .Any(a => a == "-pttAutopilot" || a == "-pttShowcase" || a == "-pttBench");
@@ -190,8 +196,8 @@ namespace PackTheTrunk
 
             // In menus the D-pad jumps between buttons; while packing it keeps its packing jobs.
             GamepadCursor.MenuNavigation = () => (mode != Mode.Playing || paused) && !ui.InTransition && !ui.IsAlbumZoomOpen && !ui.IsRebinding;
-            // The arrow keys do the same (and Enter clicks).
-            GamepadCursor.KeyNavigation = () => (mode != Mode.Playing || paused) && !ui.InTransition && !ui.IsAlbumZoomOpen
+            // The arrow keys do the same, and also walk the packing list and the HUD buttons while your hands are empty.
+            GamepadCursor.KeyNavigation = () => (mode != Mode.Playing || paused || held == null) && !ui.InTransition && !ui.IsAlbumZoomOpen
                 && !ui.IsRebinding && !ui.IsTitleWaiting;
 
             ShowTitle(true);
@@ -720,6 +726,9 @@ namespace PackTheTrunk
             var mouse = Mouse.current;
             var keyboard = Keyboard.current;
             bool overUi = ui.PointerOverUi;
+            // Touching the mouse hands aiming straight back to it.
+            if (keyAim && (held == null || !GamepadCursor.KeysActive)) keyAim = false;
+            bool keyDrop = false;
             rig.ZoomEnabled = held == null;
             scrollCooldown -= Time.deltaTime;
 
@@ -764,10 +773,25 @@ namespace PackTheTrunk
                     if (Bindings.Pressed(Bindings.Action.Turn)) Rotate(Vector3.up, shift);
                     if (Bindings.Pressed(Bindings.Action.Tip)) Rotate(rig.SnappedRight(), shift);
                     if (Bindings.Pressed(Bindings.Action.Roll)) Rotate(rig.SnappedForward(), shift);
-                    if (Bindings.Pressed(Bindings.Action.ShelfUp)) { heightBias++; tipShelfPicked = true; }
-                    if (Bindings.Pressed(Bindings.Action.ShelfDown)) { heightBias--; tipShelfPicked = true; }
+                    // ↑ / ↓ also pick a shelf, except while the arrows are aiming.
+                    bool upAims = keyAim && !Bindings.IsBound(Key.UpArrow), downAims = keyAim && !Bindings.IsBound(Key.DownArrow);
+                    if (Bindings.Pressed(Bindings.Action.ShelfUp) && !(upAims && keyboard.upArrowKey.wasPressedThisFrame)) { heightBias++; tipShelfPicked = true; }
+                    if (Bindings.Pressed(Bindings.Action.ShelfDown) && !(downAims && keyboard.downArrowKey.wasPressedThisFrame)) { heightBias--; tipShelfPicked = true; }
+
+                    // ← / → start keyboard aiming (and ↑ / ↓ join in once it's on); each step is one cell,
+                    // relative to the camera. An arrow bound to a packing action keeps that job.
+                    var arrows = StepRepeat.Arrows(keyboard);
+                    if (arrows.x > 0 && Bindings.IsBound(Key.RightArrow) || arrows.x < 0 && Bindings.IsBound(Key.LeftArrow)) arrows.x = 0;
+                    if (!keyAim || arrows.y > 0 && Bindings.IsBound(Key.UpArrow) || arrows.y < 0 && Bindings.IsBound(Key.DownArrow)) arrows.y = 0;
+                    var step = keyAimRepeat.Next(arrows);
+                    if (step != Vector2Int.zero)
+                    {
+                        if (!keyAim) BeginKeyAim();
+                        StepKeyAim(step);
+                    }
+                    keyDrop = keyAim && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame);
                 }
-                if (Bindings.Pressed(Bindings.Action.Close) && CanClose() && ConfirmKeyClose())
+                if (Bindings.Pressed(Bindings.Action.Close) && !keyDrop && !GamepadCursor.KeyClickedThisFrame && CanClose() && ConfirmKeyClose())
                 {
                     StartCoroutine(CloseTrunk());
                     return;
@@ -813,6 +837,13 @@ namespace PackTheTrunk
                 UpdateTarget(ray, overUi);
                 UpdateHeldVisuals(ray);
 
+                if (keyDrop)
+                {
+                    if (hasTarget && targetValid) PlaceHeld();
+                    else if (hasTarget) RefusePlacement();
+                    return;
+                }
+
                 bool dragDrop = false;
                 if (dragArmed)
                 {
@@ -837,17 +868,59 @@ namespace PackTheTrunk
                 if ((mouse.leftButton.wasPressedThisFrame || dragDrop) && !overUi)
                 {
                     if (hasTarget && targetValid) PlaceHeld();
-                    else if (hasTarget)
-                    {
-                        sfx.Error();
-                        ui.Toast(ExplainProblem(held.Shape, targetPos.x, targetPos.z));
-                        held.Squash(0.4f);
-                        QueueTip(Tip.Turn);
-                    }
+                    else if (hasTarget) RefusePlacement();
                     else PutBack();
                 }
             }
         }
+
+        void RefusePlacement()
+        {
+            sfx.Error();
+            ui.Toast(ExplainProblem(held.Shape, targetPos.x, targetPos.z));
+            held.Squash(0.4f);
+            QueueTip(Tip.Turn);
+        }
+
+        /// <summary>Keyboard aiming starts where the thing was aimed (or packed), else in the middle of the trunk.</summary>
+        void BeginKeyAim()
+        {
+            keyAim = true;
+            GamepadCursor.UseKeys();
+            var size = grid.Size;
+            var s = held.Shape.Size;
+            if (hasTarget)
+            {
+                keyOrigin = new Vector2Int(targetPos.x, targetPos.z);
+                keyAimY = targetPos.y;
+            }
+            else if (heldFromTrunk)
+            {
+                keyOrigin = new Vector2Int(heldOrigin.x, heldOrigin.z);
+                keyAimY = heldOrigin.y;
+            }
+            else
+            {
+                keyOrigin = new Vector2Int(Mathf.Max(0, (size.x - s.x) / 2), Mathf.Max(0, (size.z - s.z) / 2));
+                keyAimY = size.y;
+            }
+        }
+
+        /// <summary>One arrow press: ↑ away from the camera, ↓ towards it, ← / → sideways, one cell, staying at about the same height.</summary>
+        void StepKeyAim(Vector2Int arrows)
+        {
+            var world = rig.SnappedRight() * arrows.x + rig.SnappedForward() * arrows.y;
+            var local = vehicle.transform.InverseTransformDirection(world);
+            var d = new Vector2Int(Mathf.RoundToInt(local.x), Mathf.RoundToInt(local.z));
+            var size = grid.Size;
+            var s = held.Shape.Size;
+            if (hasTarget) keyAimY = targetPos.y;
+            var next = new Vector2Int(Mathf.Clamp(keyOrigin.x + d.x, 0, Mathf.Max(0, size.x - s.x)), Mathf.Clamp(keyOrigin.y + d.y, 0, Mathf.Max(0, size.z - s.z)));
+            if (next == keyOrigin) sfx.Error();
+            keyOrigin = next;
+        }
+
+        public bool KeyAiming => keyAim;
 
         // Drag to pack: the item was picked up by a press that hasn't been let go yet.
         bool dragArmed, dragMoved;
@@ -909,7 +982,12 @@ namespace PackTheTrunk
             Vector3Int cell = default;
             bool found = false;
 
-            if (overUi)
+            if (keyAim)
+            {
+                cell = new Vector3Int(keyOrigin.x + (shape.Size.x - 1) / 2, keyAimY, keyOrigin.y + (shape.Size.z - 1) / 2);
+                found = true;
+            }
+            else if (overUi)
             {
                 // Over the HUD (a key-hint button, the list): stay where the pointer last aimed.
                 if (lastAimCell is Vector3Int last)
@@ -930,7 +1008,7 @@ namespace PackTheTrunk
                 }
             }
 
-            if (!found && !overUi)
+            if (!found && !overUi && !keyAim)
             {
                 var plane = new Plane(Vector3.up, new Vector3(0f, size.y, 0f));
                 if (plane.Raycast(ray, out float enter))
@@ -943,7 +1021,7 @@ namespace PackTheTrunk
                     }
                 }
             }
-            if (!overUi) lastAimCell = found ? cell : (Vector3Int?)null;
+            if (!overUi && !keyAim) lastAimCell = found ? cell : (Vector3Int?)null;
             if (!found) return;
 
             cell.x = Mathf.Clamp(cell.x, 0, size.x - 1);
@@ -951,6 +1029,7 @@ namespace PackTheTrunk
             cell.z = Mathf.Clamp(cell.z, 0, size.z - 1);
             int ox = Mathf.Clamp(cell.x - (shape.Size.x - 1) / 2, 0, Mathf.Max(0, size.x - shape.Size.x));
             int oz = Mathf.Clamp(cell.z - (shape.Size.z - 1) / 2, 0, Mathf.Max(0, size.z - shape.Size.z));
+            if (keyAim) keyOrigin = new Vector2Int(ox, oz);
 
             var column = new Vector2Int(ox, oz);
             if (column != lastColumn)
@@ -1090,6 +1169,9 @@ namespace PackTheTrunk
             heightBias = 0;
             hasTarget = false;
             lastAimCell = null;
+            keyAim = false;
+            // Picked up with the keyboard (Enter on a list row): aim with the arrow keys straight away.
+            if (GamepadCursor.KeysActive) BeginKeyAim();
             sfx.Pickup(item);
             ui.ShowHeld(item);
             RefreshHud();

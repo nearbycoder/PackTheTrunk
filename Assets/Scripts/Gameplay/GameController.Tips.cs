@@ -59,9 +59,15 @@ namespace PackTheTrunk
                     case Tip.Undo: return $"Changed your mind? {P(PadBindings.Action.Undo)} undoes (LB + {P(PadBindings.Action.Undo)} redoes), and anything packed can be picked back out.";
                     case Tip.Orbit: return "Can't see the gap? The right stick walks you around the car.";
                 }
+            if (GamepadCursor.KeysActive)
+                switch (tip)
+                {
+                    case Tip.Pickup: return "The arrow keys walk the packing list. Enter picks that thing up.";
+                    case Tip.Aim: return $"The arrow keys move it one square at a time. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. Enter drops it.";
+                }
             switch (tip)
             {
-                case Tip.Pickup: return "Click something on the blanket to pick it up, or drag it straight into the trunk.";
+                case Tip.Pickup: return "Click something on the blanket to pick it up, or drag it straight into the trunk. (No mouse? The arrow keys and Enter work too.)";
                 case Tip.Aim: return $"Point into the trunk. {(blue ? "Blue" : "Green")} shows where it lands; striped means it won't fit. Click (or let go) to drop it.";
                 case Tip.Turn: return $"Won't fit like that? {K(Bindings.Action.Turn)} turns it, {K(Bindings.Action.Tip)} tips it over and {K(Bindings.Action.Roll)} rolls it sideways. (You can click those keys along the bottom, too.)";
                 case Tip.Shelf: return $"There's room underneath too! The mouse wheel or {K(Bindings.Action.ShelfUp)} / {K(Bindings.Action.ShelfDown)} picks the shelf.";

@@ -25,14 +25,17 @@ namespace PackTheTrunk
             if (keyboardHintsRow == null) return;
             UiKit.Clear(keyboardHintsRow);
             string L(Bindings.Action a) => Bindings.Label(a);
-            Hint(keyboardHintsRow, "CLICK", "grab / drop", 0);
+            // With the arrow keys pointing (no mouse), the strip says how to pick up, move and drop with them.
+            bool keys = GamepadCursor.KeysActive;
+            if (keys) Hint(keyboardHintsRow, "ARROWS", "move", 0);
+            Hint(keyboardHintsRow, keys ? "ENTER" : "CLICK", "grab / drop", 0);
             // Turn, tip, roll and X-ray can be clicked as well as pressed, so the mouse alone can pack
             // anything (right click turns and the wheel picks a shelf; tipping, rolling and X-ray had no
             // mouse way in). Shift + click turns the other way, as Shift + the key does.
             Clickable(Hint(keyboardHintsRow, L(Bindings.Action.Turn), "turn", 1), () => TurnPressed?.Invoke(ShiftHeld));
             Clickable(Hint(keyboardHintsRow, L(Bindings.Action.Tip), "tip", 2), () => TipPressed?.Invoke(ShiftHeld));
             Clickable(Hint(keyboardHintsRow, L(Bindings.Action.Roll), "roll", 3), () => RollPressed?.Invoke(ShiftHeld));
-            Hint(keyboardHintsRow, "WHEEL", "shelf", 6);
+            Hint(keyboardHintsRow, keys ? L(Bindings.Action.ShelfUp) + " " + L(Bindings.Action.ShelfDown) : "WHEEL", "shelf", 6);
             Hint(keyboardHintsRow, "ESC", "back / pause", 9);
             Hint(keyboardHintsRow, L(Bindings.Action.Undo), "undo", 5);
             Hint(keyboardHintsRow, L(Bindings.Action.LookLeft) + " " + L(Bindings.Action.LookRight), "orbit", 8);
@@ -1430,6 +1433,7 @@ namespace PackTheTrunk
             }
             ShowPadHints();
             GamepadCursor.ActiveChanged += ShowPadHints;
+            GamepadCursor.KeysActiveChanged += BuildKeyboardHints;
         }
 
         public void ShowHud(LevelDef level, IReadOnlyList<PackItem> items)
@@ -1561,6 +1565,14 @@ namespace PackTheTrunk
             else if (bottom > offset + view) offset = bottom - view;
             offset = Mathf.Clamp(offset, 0f, Mathf.Max(0f, itemList.rect.height - view));
             itemList.anchoredPosition = new Vector2(0f, offset);
+        }
+
+        /// <summary>The item whose packing-list row is under this screen point, if any (self-test).</summary>
+        public PackItem RowAt(Vector2 screen)
+        {
+            foreach (var kv in rows)
+                if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)kv.Value.Name.transform.parent, screen, null)) return kv.Key;
+            return null;
         }
 
         /// <summary>Is this item's row entirely inside the visible part of the list? (self-test)</summary>
