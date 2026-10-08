@@ -460,9 +460,10 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus eight rounds of improvements since that release (see
+Version **0.1.0** plus nine rounds of improvements since that release (see
 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, and the autopilot (317 checks) passes every trip. Still rough or missing:
+settings are complete, the game can be played with a mouse alone, a keyboard alone or a gamepad, and
+the autopilot (330 checks) passes every trip. Still rough or missing:
 
 - **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
   (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
@@ -497,6 +498,10 @@ settings are complete, and the autopilot (317 checks) passes every trip. Still r
   text's background from the screen, along the text's own tilt, and uses the text's own colour (a
   `<color>` part inside a line isn't checked separately), and it covers the screens the self-test
   visits, not every possible moment.
+- **Keyboard-only play is new.** The self-test packs a whole trip with keyboard events only and
+  walks every kind of menu, but no one who relies on a keyboard has tried it yet. The keyboard cursor
+  jumps to the nearest control by geometry, like the D-pad, so an unusual screen can take an extra
+  press to reach a button.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
   autopilot's queued input stopped registering and every input check failed. Re-run when it's
   quieter.

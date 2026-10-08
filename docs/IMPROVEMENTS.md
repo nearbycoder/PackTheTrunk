@@ -1186,3 +1186,71 @@ Each item is built (`build-linux`, 0 errors) and tested on its own commit before
 autopilot (load checked first) and screenshots in `docs/media/improvements/round9/`. The round ends with a full
 autopilot (0 FAIL, real save untouched, load noted) and the crash test. If an item turns out bigger or riskier than
 planned, the others land first and it's reported rather than half-landed.
+
+## Round 9 results (2026-10-07)
+
+All five scope items shipped. The final full autopilot (`Tools/autopilot.sh`, all 33 trips, run nested) had
+**330 PASS, 0 FAIL** (317 before, plus 13 new checks), with no exceptions, no player crash, and the real save
+untouched. It took 17 minutes, at load 17 at the start and 13 at the end. The crash test (`Tools/resume_test.sh`) passed 5/5. The solver proves all 33 levels.
+Every item's commit was built on its own (`build-linux`, 0 errors, 0 warnings) and tested with a quick autopilot
+before the next item was committed. The layout-only pass on the final build is **50/50 at all seven sizes**:
+1024×768, 1280×720, 1280×800, 1440×900, 1600×900, 1200×900 and 2100×900 (load 7–11). `build-mac` wasn't re-run
+(round 9 is platform-independent C#). Screenshots are in `docs/media/improvements/round9/`.
+
+| Item | Commit | Verified by |
+| --- | --- | --- |
+| A/B benchmark, round 7 vs round 8 (owed) | `b76b397` | Both builds back to back, nested, at load 0.7–10: round 8 1.7–2.0 ms on every screen, round 7 1.8–2.4 ms (see the scope). |
+| E. Test windows off the shared desktop | `5c0f985` | `play.sh` nests automated runs in `kwin_wayland --virtual`. The benchmark, a nested quick autopilot (229/229, renderer radeonsi in the log), the crash test (5/5, the SIGKILL hits the game's own PID) and every later run in this round ran nested; no test window opened on the desktop. The nested KWin used about 7% of one core. |
+| D. Readable at 1024×768 | `392bb7e` | Layout-only at 1024×768 on round-8 `main`: 19 FAIL (text at 10.6–11.7 px on 18 screens, ERASE at 4.4:1). After: 50/50, and 50/50 at the five sizes measured before. `d-1024x768-packing-before-after.jpg`, `d-1024x768-map-before-after.jpg` |
+| C. Mouse only: REDO and a steady hand | `83e61ac` | `MouseRedoChecks` (3), mouse events only. The Big Suitcase aimed at (1, 0, 1); a click on the tip hint keeps its ghost at (1, 0, 1), tipped (3, 1, 2) → (3, 2, 1) and still fitting, and a click back on the trunk drops it there. REDO is hidden on a fresh trip, shows after UNDO, and a click gives exactly Shift + Z's layout, then hides. **The wheel** (owed since round 8): over the skis on First Snow, one step down tucks a small thing into the gap under them and one step up puts it back on top. The layout pass measures the button row with REDO showing. Quick autopilot on this commit: 232/232. `c-mouse-only-steady-hand.jpg`, `c-mouse-only-redo.jpg` |
+| A. Menus with the keyboard | `ca4f40d` | `KeyMenuChecks` (5), keyboard events only. An arrow shows the cursor (keyboard hints stay) and Enter on SETTINGS opens it; on the master volume slider → raises it 0.90 → 0.95 and ← lowers it back; the arrows reach RESUME and Enter resumes; on the postcard the arrows reach TRY AGAIN and Enter retries the wagon instead of going on; moving the mouse hides the cursor and hands back. The D-pad menu checks pass unchanged. Quick autopilot on this commit: 237/237. `a-keyboard-menu.jpg`, `a-keyboard-postcard.jpg` |
+| B. Pack with the keyboard alone | `b86c20f` | `KeyboardOnlyChecks` (5). **Weekend Getaway packed 8/8 and closed for three stars with keyboard events only**: ↓ / ↑ to each row, Enter to pick up, R / T / F to turn it the solver's way, 16 arrow steps (each moved the ghost exactly one cell the way the camera faces, 16 of 16), W / S for the shelf, Enter to drop, Space to close. Enter on a packed row lifts it out and Escape puts it back in the same cell. While the arrows aim, the hint strip reads ARROWS move, ENTER grab / drop, W S shelf and fits on one line; moving the mouse brings back CLICK and WHEEL. Quick autopilot on this commit: 242/242. `b-keyboard-aiming.jpg`, `b-keyboard-packed.jpg` |
+
+**Benchmark (`-pttBench`, 1600×900, High, nested), back to back with round-8 `main`** (`Recordings/round9/bench-ab-*.log`).
+Round 9 read **1.7–2.2 ms on every screen** at load 6.4–8.0, with the minivan at 2.1 ms packing and 2.2 ms holding, 0 KB
+allocated per frame and no frames over 33 ms. Round-8 `main`, built and run straight after at load 9.5–10.2, read 1.8–4.7 ms,
+higher on the story, the wagon, the album and holding. Those are screens round 9 barely changes, so that's the busier machine,
+not a cost of round 9. Round 9's new per-frame work is one float comparison (the text floor) and reading four arrow keys.
+
+How the round differed from the plan:
+
+- **Space doesn't click.** The scope said Enter "or Space" would click the control under the keyboard cursor. In practice
+  that made the postcard's own "SPACE next trip" line untrue while the cursor was showing, so only **Enter** clicks, and
+  Space keeps its jobs (skip texts, start packing, next trip, close the trunk) everywhere.
+- **↑ / ↓ only aim once aiming has started.** They were already spare shelf keys (beside W / S) for mouse players. So
+  keyboard aiming starts when something is picked up with Enter, or with ← / →, and only then do ↑ / ↓ move instead of
+  picking a shelf. An arrow key bound to a packing action keeps that job.
+- **The hint strip follows the keyboard.** This wasn't in the scope. While the arrows aim, the strip says ARROWS move, ENTER
+  grab / drop and W S shelf instead of CLICK and WHEEL, because a keyboard-only player would otherwise be told to click.
+- **The 12 px floor is measured at the default interface size.** The first version used the chosen size, which made 80%
+  at 1024×768 grow its labels to 28 units and pushed the counts line off the list. Picking a smaller interface size now
+  shrinks everything evenly, as before.
+- **REDO and the now-playing cassette.** The cassette assumed the button row was always 546 units wide, so with REDO
+  showing it overlapped the row at 1600×900. It now uses the row's real width.
+
+Things round 9 turned up along the way:
+
+- **A nested KWin is a better place to measure.** The first nested benchmark was the tightest yet (p99 2.3–4.2 ms), and the
+  desktop compositor's throttling of covered windows can't affect it. Earlier rounds' numbers came from desktop windows,
+  so compare nested runs with nested runs.
+- **The commits were split after building.** C, A and B were written together, then split into three stages with a script
+  (`Recordings/round9/split.py`). Each stage was built and quick-tested on its own before it was committed, so unlike
+  round 7 every intermediate commit has been compiled and run.
+- **`[Audio]`:** 2.5 dBFS before the limiter and −1.5 dBFS after (round 8: 2.8 / −1.5).
+
+Known limits:
+
+- Keyboard-only play has only been driven by the self-test. The cursor picks the nearest control by geometry, like
+  the D-pad. With the key hints switched off, nothing on screen mentions the arrows except Grandpa's first tip.
+- The keyboard can't orbit the camera with the arrows (Q / E do that, as before) and can't drag.
+- Windows narrower than 1024 pixels aren't measured. Settings doesn't offer them, but a resized window can be that small.
+- The scroll wheel is now covered by its own check. The full mouse-only trip still doesn't need it.
+
+Still open after round 9:
+
+- **Owner decisions:** the round-7 contrast look (outlined labels, deeper orange), Windows (needs the module), WebGL and
+  hosting, signing and notarization, licences, releases and re-cutting the trailer (still the v0.1.0 cut). Also whether
+  automated runs should stay nested by default (`PTT_NESTED=0` restores a visible window).
+- **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`), a Mac run, and someone
+  who plays with the keyboard alone.
+- **Bigger ideas:** replayability from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
