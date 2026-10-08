@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 namespace PackTheTrunk
 {
@@ -146,6 +147,46 @@ namespace PackTheTrunk
                 yield return Wait(0.3f);
             }
             yield return Wait(1.4f);
+        }
+
+        /// <summary>
+        /// ASK SOMEONE ELSE with the pad (owed from round 11): on the neighbours page the D-pad walks the cursor to
+        /// the button and A asks another neighbour. Pages are flipped with the pad too (the stick and A), since
+        /// the mouse is the pad's virtual cursor by now.
+        /// </summary>
+        IEnumerator PadFavourSwapChecks(Gamepad pad)
+        {
+            var savedStars = GameDatabase.Levels.ToDictionary(l => l.Id, l => Prefs.GetInt("ptt.stars." + l.Id, 0));
+            game.AutoResetFavours();
+            for (int i = 0; i <= LevelIndex(Favours.UnlockedBy); i++)
+                if (Prefs.GetInt("ptt.stars." + GameDatabase.Levels[i].Id, 0) == 0) Prefs.SetInt("ptt.stars." + GameDatabase.Levels[i].Id, 1);
+            PerfProbe.Begin("menus");
+            game.AutoShowMenu();
+            yield return Wait(1.8f);
+            for (int i = 0; i <= GameDatabase.Chapters.Count; i++) yield return PadClick(pad, "Next Page");
+            yield return Wait(1.4f);
+            var before = game.AutoCurrentFavour();
+
+            var walked = new List<string>();
+            foreach (var direction in new[] { GamepadButton.DpadDown, GamepadButton.DpadRight, GamepadButton.DpadUp, GamepadButton.DpadLeft, GamepadButton.DpadDown })
+                for (int k = 0; k < 5 && GamepadCursor.LastNavigation != "Favour Swap"; k++)
+                {
+                    yield return PadPress(pad, direction);
+                    yield return Wait(0.25f);
+                    walked.Add(GamepadCursor.LastNavigation);
+                }
+            bool reached = GamepadCursor.LastNavigation == "Favour Swap";
+            yield return Shot("favours-pad-swap");
+            yield return PadPress(pad, GamepadButton.South);
+            yield return Wait(1f);
+            var after = game.AutoCurrentFavour();
+            Check(reached && before != null && after != null && after.Favour == before.Favour && after.Sender != before.Sender,
+                $"favours: the pad's D-pad reaches ASK SOMEONE ELSE ({string.Join(" > ", walked)}) and A asks {after?.Sender} instead of {before?.Sender}");
+
+            foreach (var kv in savedStars) Prefs.SetInt("ptt.stars." + kv.Key, kv.Value);
+            game.AutoResetFavours();
+            game.AutoShowMainMenu();
+            yield return Wait(1f);
         }
 
         int PackedCount => game.Items.Count(i => i.State == ItemState.Packed || i.State == ItemState.Dropping);
