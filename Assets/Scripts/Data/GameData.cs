@@ -10,7 +10,9 @@ namespace PackTheTrunk
         public string id;
         public string name;
         public string desc;
+        public string neighbourDesc;
         public bool fragile;
+        public bool family;
         public string[] palette;
         public string[] layers;
     }
@@ -82,10 +84,32 @@ namespace PackTheTrunk
         public string Id;
         public string Name;
         public string Description;
+        /// <summary>The held card's line when the thing is a neighbour's (the story's line names the family).</summary>
+        public string NeighbourDescription;
         public bool Fragile;
+        /// <summary>The family's own (an heirloom, the cat, someone's named thing): never in a neighbour's pile.</summary>
+        public bool Family;
         public Color[] Colors;
         public VoxelShape Shape;
         public int Volume => Shape.Voxels.Length;
+
+        public string Describe(bool neighbours) => neighbours && !string.IsNullOrEmpty(NeighbourDescription) ? NeighbourDescription : Description;
+
+        /// <summary>
+        /// The name after "the" in a sentence: "the Tuba", "the Kitchen Sink" (not "the The Kitchen Sink"), and no article
+        /// for a name of its own ("Mr. Buttons", "Grandma's Armchair").
+        /// </summary>
+        public string WithThe
+        {
+            get
+            {
+                if (Name.StartsWith("The ", StringComparison.Ordinal) || Name.StartsWith("A ", StringComparison.Ordinal)) return "the " + Name.Substring(Name.IndexOf(' ') + 1);
+                if (Name.StartsWith("Mr. ", StringComparison.Ordinal) || Name.StartsWith("Biscuit", StringComparison.Ordinal)) return Name;
+                int space = Name.IndexOf(' ');
+                string first = space > 0 ? Name.Substring(0, space) : Name;
+                return first.EndsWith("'s", StringComparison.Ordinal) && first != "Kid's" ? Name : "the " + Name;
+            }
+        }
     }
 
     public class LevelDef
@@ -210,7 +234,9 @@ namespace PackTheTrunk
                 Id = j.id,
                 Name = j.name,
                 Description = j.desc,
+                NeighbourDescription = j.neighbourDesc,
                 Fragile = j.fragile,
+                Family = j.family,
                 Colors = colors.ToArray(),
                 Shape = new VoxelShape(voxels),
             };

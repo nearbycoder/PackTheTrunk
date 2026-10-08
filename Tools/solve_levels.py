@@ -13,7 +13,8 @@ Usage: python3 Tools/solve_levels.py [level_id ...] [--dump <file>]
                   python3 Tools/solve_levels.py --dump Assets/Resources/PackTheTrunkSolutions.txt
   --check-favours favours made by the game (the autopilot writes them to <out>/favours.json): checks
                   that each one's packing is complete and follows these rules in that trip's trunk, so
-                  every favour can be packed 100%, independently of the game's own rule code.
+                  every favour can be packed 100%, independently of the game's own rule code, and that
+                  no pile has one of the family's own things ("family": true in the data).
 """
 import json
 import sys
@@ -188,7 +189,7 @@ def render(sol):
 
 
 def check_favours(path, data, items):
-    """Each favour: a complete, legal packing of its pile in its car's trunk, drawn from its pool."""
+    """Each favour: a complete, legal packing of its pile in its car's trunk, drawn from its pool, nothing of the family's."""
     levels = {l["id"]: l for l in data["levels"]}
     favours = json.loads(Path(path).read_text())
     shapes = {}
@@ -212,6 +213,9 @@ def check_favours(path, data, items):
         outside = sorted(set(pile) - pool)
         if outside:
             problems.append("not from a closed trip: " + ", ".join(outside))
+        family = sorted(k for k in set(pile) if items.get(k, {}).get("family"))
+        if family:
+            problems.append("the family's own things: " + ", ".join(family))
         owner = {}
         for n, p in enumerate(f["packing"]):
             k = p["id"]

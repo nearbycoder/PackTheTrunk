@@ -25,6 +25,8 @@ namespace PackTheTrunk
             if (!pile.SequenceEqual(packed)) return "the packing packs different things than the pile";
             var outside = pile.Where(id => !pool.Contains(id)).Distinct().ToList();
             if (outside.Count > 0) return "not from a closed trip: " + string.Join(", ", outside);
+            var family = f.Required.Concat(f.Bonus).Where(d => d.Family).Select(d => d.Id).Distinct().ToList();
+            if (family.Count > 0) return "the family's own things: " + string.Join(", ", family);
             if (f.FreeCells < Favours.MinFreeCells) return $"a trunk of {f.FreeCells} cells";
             var grid = new TrunkGrid(f.Size, f.Blocked);
             foreach (var (id, cells) in f.Packing)
@@ -42,6 +44,29 @@ namespace PackTheTrunk
             if (fill < Favours.MinFill - 0.001f || fill > Favours.MaxFill + 0.001f) return $"fill {fill:0.00}";
             if (f.Packing.Count < Favours.MinItems || f.Packing.Count > Favours.MaxItems) return $"{f.Packing.Count} things";
             if (f.Bonus.Count < 2) return "fewer than two extras";
+            return null;
+        }
+
+        /// <summary>The family's names: a neighbour's pile shouldn't say "Dad's" or "Grandma's" on the held card.</summary>
+        static readonly System.Text.RegularExpressions.Regex FamilyNames = new System.Text.RegularExpressions.Regex(
+            @"\b(Grandpa|Grandma|Joe|JOE|Rose|Mom|Dad|Sam|Rosie|Rick|Wes|Dev|Dee|Bonko|Biscuit|Buttons|Quacksalot|Uncle|Aunt|cousin)\b");
+
+        /// <summary>
+        /// A favour's words: the errand suits the pile if any errand does (at least three of its things), the third text
+        /// names something in the pile, and no held card names the family. Null if they're fine.
+        /// </summary>
+        static string FavourWordsProblem(LevelDef f)
+        {
+            var pile = f.Required.Concat(f.Bonus).ToList();
+            var ids = pile.Select(d => d.Id).ToList();
+            var things = Favours.ErrandThings(f.Title);
+            var suiting = Favours.ErrandsSuiting(ids).ToList();
+            if (things != null && ids.Count(things.Contains) < 3) return $"\"{f.Title}\" with only {ids.Count(things.Contains)} of its things";
+            if (things == null && suiting.Count > 0) return $"\"{f.Title}\" when {suiting[0]} suits the pile";
+            if (f.Messages.Length != 4) return $"{f.Messages.Length} texts";
+            if (!pile.Any(d => f.Messages[2].Contains(d.WithThe, StringComparison.OrdinalIgnoreCase))) return $"\"{f.Messages[2]}\" names nothing in the pile";
+            var named = pile.FirstOrDefault(d => FamilyNames.IsMatch(d.Describe(true)));
+            if (named != null) return $"the {named.Id}'s card says \"{named.Describe(true)}\"";
             return null;
         }
 
@@ -63,6 +88,10 @@ namespace PackTheTrunk
             var times = new List<double>();
             var fills = new List<float>();
             var used = new HashSet<string>();
+            var senders = new List<string>();
+            var errands = new HashSet<string>();
+            var fragileCounts = new SortedDictionary<int, int>();
+            int themed = 0;
             var inv = CultureInfo.InvariantCulture;
             var json = new StringBuilder("[");
             string poolJson = string.Join(",", poolIds.OrderBy(x => x, StringComparer.Ordinal).Select(id => "\"" + id + "\""));
@@ -75,8 +104,13 @@ namespace PackTheTrunk
                 if (f == null) { problems.Add($"favour {10001 + i} wasn't made"); continue; }
                 used.Add(f.ModelId);
                 fills.Add(f.Packing.Sum(p => p.Cells.Count) / (float)f.FreeCells);
-                var problem = FavourProblem(f, poolIds);
+                var problem = FavourProblem(f, poolIds) ?? FavourWordsProblem(f);
                 if (problem != null) problems.Add($"favour {f.Favour} ({f.ModelId}): {problem}");
+                senders.Add(f.Sender);
+                errands.Add(f.Title);
+                if (Favours.ErrandThings(f.Title) != null) themed++;
+                int fragile = f.Required.Concat(f.Bonus).Count(d => d.Fragile);
+                fragileCounts[fragile] = fragileCounts.TryGetValue(fragile, out var c) ? c + 1 : 1;
                 if (i > 0) json.Append(',');
                 json.Append("{\"number\":").Append(f.Favour.ToString(inv)).Append(",\"car\":\"").Append(f.ModelId).Append("\",\"required\":[")
                     .Append(string.Join(",", f.Required.Select(d => "\"" + d.Id + "\""))).Append("],\"bonus\":[")
@@ -88,11 +122,20 @@ namespace PackTheTrunk
             }
             json.Append(']');
             File.WriteAllText(Path.Combine(outDir, "favours.json"), json.ToString());
+            // The neighbours take turns: the shortest gap between two asks by the same neighbour.
+            int gap = int.MaxValue;
+            for (int i = 0; i < senders.Count; i++)
+                for (int j = i + 1; j < senders.Count; j++)
+                    if (senders[j] == senders[i]) { gap = Mathf.Min(gap, j - i); break; }
             PerfProbe.Ignore();
             Check(problems.Count == 0 && times.Count == count,
                 $"favours: made {count} from {closed.Count} closed trips ({poolIds.Count} things), in {used.Count} of {cars.Count} cars, " +
                 $"{times.Average():0.0} ms on average and {times.Max():0.0} ms at most, fill {fills.DefaultIfEmpty().Min():0.00}-{fills.DefaultIfEmpty().Average():0.00}-{fills.DefaultIfEmpty().Max():0.00}; " +
-                (problems.Count == 0 ? "every one is drawn from closed trips and packs completely under TrunkGrid's rules (favours.json)" : string.Join("; ", problems.Take(5))));
+                (problems.Count == 0 ? "every one is drawn from closed trips (none of the family's own things) and packs completely under TrunkGrid's rules (favours.json)" : string.Join("; ", problems.Take(5))));
+            Check(problems.Count == 0 && gap >= 16 && fragileCounts.Count >= 4,
+                $"favours: the words follow the pile: {themed} of {count} got an errand that suits it (the rest had none that did), {errands.Count} different errands, " +
+                $"{senders.Distinct().Count()} neighbours taking turns (the same one asks again after {gap} favours at the soonest), every third text names something in its pile, " +
+                $"no held card names the family; fragile things per pile: {string.Join(", ", fragileCounts.Select(kv => $"{kv.Key}: {kv.Value}"))}");
         }
 
         IEnumerator FlipToNeighbours()
@@ -228,6 +271,9 @@ namespace PackTheTrunk
 
             // With every trip packed, the title's CONTINUE goes to the neighbours.
             foreach (var l in GameDatabase.Levels) if (Prefs.GetInt("ptt.stars." + l.Id, 0) == 0) Prefs.SetInt("ptt.stars." + l.Id, 1);
+            // A trip's waiting trunk comes before the neighbours, and earlier sections can leave one (the quick run leaves
+            // the finale half-packed), so this check starts without one.
+            GameController.AutoForgetTrunk(GameDatabase.Levels[game.NextTrip].Id);
             PerfProbe.Begin("menus");
             game.AutoShowMainMenu();
             yield return Wait(1.6f);

@@ -1624,6 +1624,7 @@ namespace PackTheTrunk
         {
             ShowOnly(hud);
             HideHudForCutscene(false);
+            hudForNeighbours = level.IsFavour;
             string number = level.IsFavour ? $"FAVOUR {level.Favour}" : $"TRIP {level.Index + 1}";
             tagTrip.text = $"{number}  ·  {(level.Trip ?? "").ToUpperInvariant()}  ·  {level.Vehicle.ToUpperInvariant()}";
             // On a small window's bigger text, drop the car, then the month, rather than wrap into the title.
@@ -1915,6 +1916,9 @@ namespace PackTheTrunk
             toastHolder.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, Ease.OutCubic(toastShown));
         }
 
+        /// <summary>The trip on the HUD is a favour: the held card uses the things' neighbour lines.</summary>
+        bool hudForNeighbours;
+
         public void ShowHeld(PackItem item)
         {
             heldPanel.gameObject.SetActive(item != null);
@@ -1926,7 +1930,7 @@ namespace PackTheTrunk
             UiTheme.StampLabel(heldStamps, item.IsBonus ? "EXTRA" : "ESSENTIAL", item.IsBonus ? new Color(0.85f, 0.6f, 0.1f) : UiTheme.Teal, 18, -3f);
             if (item.Def.Fragile) UiTheme.StampLabel(heldStamps, "FRAGILE · NOTHING ON TOP", UiTheme.Stamp, 18, 2f);
             UiTheme.StampLabel(heldStamps, $"{item.Def.Volume} SPACE{(item.Def.Volume == 1 ? "" : "S")}", UiTheme.InkSoft, 18, -1f);
-            heldDesc.text = "“" + item.Def.Description + "”";
+            heldDesc.text = "“" + item.Def.Describe(hudForNeighbours) + "”";
         }
 
         public void SetHover(string text) => hoverText.text = text ?? "";

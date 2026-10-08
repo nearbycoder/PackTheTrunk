@@ -177,7 +177,7 @@ namespace PackTheTrunk
 
             // 4. Nothing fits where it should: something packed is in the way.
             if (bestMisplaced.Count > 0)
-                return new Hint { Blocked = true, Message = $"Grandpa's hint: the {bestMisplaced[0].Def.Name} is in the way. {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo))} undoes a step, or RESTART starts fresh." };
+                return new Hint { Blocked = true, Message = $"Grandpa's hint: {bestMisplaced[0].Def.WithThe} is in the way. {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo))} undoes a step, or RESTART starts fresh." };
             return new Hint { Message = "Grandpa's hint: you've got it from here. Close it up!" };
         }
 
@@ -185,7 +185,7 @@ namespace PackTheTrunk
         {
             bool turned = spot.Rotation != Quaternion.identity && Quaternion.Angle(spot.Rotation, Quaternion.identity) > 1f;
             string where = turned ? "goes here, turned like the ghost" : "goes here";
-            string message = move ? $"Grandpa's hint: move the {item.Def.Name} over here." : $"Grandpa's hint: the {item.Def.Name} {where}.";
+            string message = move ? $"Grandpa's hint: move {item.Def.WithThe} over here." : $"Grandpa's hint: {item.Def.WithThe} {where}.";
             return new Hint { Item = item, Pos = spot.Min, Rotation = spot.Rotation, Move = move, Message = message };
         }
 
