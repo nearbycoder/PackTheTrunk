@@ -1254,3 +1254,86 @@ Still open after round 9:
 - **Needs hardware or people:** a physical controller and Steam Deck test (`docs/GAMEPAD-TEST.md`), a Mac run, and someone
   who plays with the keyboard alone.
 - **Bigger ideas:** replayability from ranked #12 (per-trip challenges, a solver-generated Garage Sale mode).
+
+## Round 10 scope (2026-10-07, branch `improvements-10`)
+
+**Baseline.** Round-9 `main` (`2529f85`) was rebuilt (0 errors) and benchmarked nested at the start of the round
+(`-pttBench`, 1600×900, High; `Recordings/round10/bench-main.log`). Load went from 3 to 11 during the run as other
+sessions started. Every screen averaged **1.9–2.9 ms**, and the 25-item minivan was **2.3 ms** packing and **3.4 ms**
+holding (p99 7.0). There were no frames over 33 ms and 0 KB allocated per frame.
+
+**A first look below 1024×768.** Settings stops at 1024 wide, but a window can be dragged smaller. A layout-only run
+at 800×600 on round-9 `main` (`Recordings/round10/layout-800x600-before`) kept the menus and most of the HUD clean,
+but **9 checks failed**. At 80% and 100% the packing list's counts line doesn't fit on one line. The trip map's seal
+card is at 9.6 px on all six pages, and the postcard's counts line and seal text are at 9.6–10.1 px; all of these
+set their size inside the text (`<size=…>`), which the 12 px floor doesn't reach. The postcard's title drops to
+4.0:1, because at that size it no longer counts as large text.
+
+Rounds 1–9 covered how to play, getting unstuck, not losing work, motion, size and colour, controllers, the mouse
+alone and the keyboard alone. Round 10 picks up the oldest open idea on the ranked list, **a reason to keep
+playing once the story's done** (ranked #12, deferred since round 1), plus two smaller gaps: the keyboard-only
+controls are written down nowhere a player can look them up, and windows below 1024×768.
+
+### A. The pause card lists the keyboard-only controls
+
+Round 9 made the whole game playable with the arrow keys and Enter, but the pause card's HOW TO PACK list (the
+one place that lists every control) starts with CLICK and never mentions them. With the key hints turned off,
+only Grandpa's first tip does.
+
+- **Acceptance:** the pause card's keyboard list has an **ARROWS · ENTER** row (walk the list and the buttons, aim
+  one square at a time, pick up and drop). Every row still fits inside the card at every interface size, and the
+  pad list is unchanged. Legibility and contrast stay clean.
+- **Verify:** an autopilot check opens the pause menu, finds the row, and checks that every row of the keyboard
+  list sits inside the card at 80/100/120%. Layout-only runs at 1024×768 and 1600×900. Screenshot.
+
+### B. Readable in an 800×600 window
+
+- **Acceptance:** at 800×600 every text is 12 px or more and passes contrast on all 20 screens, and the HUD and menu
+  layouts stay clean at 80/100/120%. Sizes set inside a text (`<size=…>`) get the same floor as the text itself.
+  Nothing changes size at 1280×720 and up, and the round-7 contrast style (waiting on the owner) is unchanged.
+  800×600 joins the measured sizes in the README; smaller windows stay unmeasured.
+- **Verify:** layout-only runs at 800×600 before (9 FAIL) and after (0 FAIL), and after at 1024×768, 1280×720 and
+  1600×900. Before/after screenshots.
+
+### C. Favours for the neighbours (ranked #12)
+
+Once the 33 trips are packed, the only thing left is replaying them for a seal, and CONTINUE replays the finale.
+A packing puzzle can make new puzzles. Here a new pile is built by packing it under the game's own rules, so a
+complete packing of every new pile exists by construction, and Grandpa can hint it.
+
+- **Acceptance:**
+  - **Where it is.** The trip map gets a seventh page, **The Neighbours**. It unlocks once chapter II is packed
+    (trip 9); before that the page says what unlocks it. It shows the neighbour who needs a hand now (a pin and a
+    label: who, which car, and "PACKED, WAITING" if you left it half-packed) and a line of totals (favours done,
+    how many with three stars).
+  - **The puzzle.** A favour borrows the car of a trip you've closed (trunks of 24 cells or more). Its pile comes
+    only from things you've already packed in the story, so there are no spoilers. The game builds the pile by
+    packing it into that trunk under the game's rules: 6 to 22 things filling 82–95% of the trunk, the biggest
+    of them (about 60% of the volume) essentials and the rest extras. That packing is what Ask Grandpa hints. A
+    favour is saved once it's made, so leaving, quitting or a crash brings back the same pile, and a half-packed
+    favour waits like a trip does (undo history and all).
+  - **Playing it.** The neighbour texts you first (a short note from a small cast of neighbours). Stars work as
+    on any trip. A favour takes no album photo, gives no seal, and doesn't change the trip counts on the title or
+    the map. The postcard's TRY AGAIN replays the same favour, and NEXT FAVOUR makes a new one. Erasing progress
+    clears the favours.
+  - **After the story.** Once every trip has stars, the title's CONTINUE goes to the neighbours' current favour
+    instead of the last trip.
+- **Verify:**
+  - Autopilot `FavourChecks`, generator: hundreds of favours made across every eligible car. Each one is checked
+    against the game's `TrunkGrid` rules: in range for size and fill, drawn only from closed trips, made in a few
+    milliseconds. They're written to a file that `solve_levels.py --check-favours` checks again with the Python
+    solver's own rules.
+  - Through the real UI: the page is locked before chapter II and opens after; clicking the pin goes to the texts,
+    then packing; the favour packs to 100% by following hints only and closes for three stars, with no seal and no
+    polaroid; NEXT FAVOUR gives a different pile; leaving half-packed through the pause menu and coming back restores
+    it; TRY AGAIN gives the same pile; with every trip packed, CONTINUE opens the favour.
+  - The layout, legibility and contrast passes cover the neighbours page and a favour's texts, HUD and postcard.
+    The existing checks pass unchanged.
+- This is the riskiest item, so it's built last. If it can't land cleanly, A and B ship and it's reported instead.
+
+### D. Housekeeping
+
+`build-mac` is re-run (last run in round 7) and checked with `file`. The round ends with `build-linux` (0 errors),
+the solver, a full autopilot (0 FAIL, real save untouched, load noted), the crash test, and a nested `-pttBench`
+compared with the baseline above. Each item is built and quick-tested on its own commit before the next starts,
+with screenshots in `docs/media/improvements/round10/`.
