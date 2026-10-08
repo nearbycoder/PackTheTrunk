@@ -442,7 +442,7 @@ namespace PackTheTrunk
         static readonly string[] FidelityHints =
         {
             "Low: 75% resolution, simple shadows, no glow or blur, fewer particles. Smooth on older laptops.",
-            "Medium: full resolution, soft shadows, lighter ambient occlusion, bloom and depth of field.",
+            "Medium: full resolution, SMAA, soft shadows, bloom and depth of field, no ambient occlusion.",
             "High: the game's own look, with MSAA 4x + SMAA and full ambient occlusion.",
             "Ultra: 150% supersampling, 8K shadows, finer occlusion, bloom and fabric, more confetti.",
         };

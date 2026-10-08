@@ -202,7 +202,7 @@ namespace PackTheTrunk
             switch (preset)
             {
                 case 0: Put(0.75f, 1, 1, false, true, false, false); break;
-                case 1: Put(1f, 2, 2, true, true, true, true); break;
+                case 1: Put(1f, 2, 2, false, true, true, true); break;
                 case 2: Put(1f, 3, 3, true, true, true, true); break;
                 case 3: Put(1.5f, 3, 4, true, true, true, true); break;
             }
@@ -347,7 +347,8 @@ namespace PackTheTrunk
         static readonly int DetailId = Shader.PropertyToID("_PttDetail");
 
         /// <summary>
-        /// Ambient occlusion quality follows the fidelity step: half resolution with a Gaussian blur on Medium,
+        /// Ambient occlusion quality follows the fidelity step: half resolution with a Gaussian blur on Medium (off
+        /// there unless its row is switched on; at half resolution it measured no cheaper than High's full pass),
         /// full resolution with the bilateral blur on High, and 12 samples instead of 8 on Ultra (that variant
         /// is kept in the build by Assets/Settings/PC_UltraVariants_RPAsset, see ProjectSetup.EnsureUltraVariants).
         /// </summary>

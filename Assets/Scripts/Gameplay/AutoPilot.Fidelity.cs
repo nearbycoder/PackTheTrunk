@@ -47,7 +47,7 @@ namespace PackTheTrunk
             int[] msaa = { 1, 1, 4, 4 };
             int[] shadowMap = { 1024, 2048, 4096, 8192 };
             float[] particles = { 0.5f, 0.75f, 1f, 1.6f };
-            string[] ao = { "off", "Medium samples, half res", "Medium samples, full res", "High samples, full res" };
+            string[] ao = { "off", "off", "Medium samples, full res", "High samples, full res" };
             if (GameSettings.Fidelity != step) problems.Add($"step {GameSettings.Fidelity}");
             if (GameSettings.FidelityCustom) problems.Add("reads Custom");
             if (!Mathf.Approximately(GameSettings.AppliedRenderScale, scale[step])) problems.Add($"render scale {GameSettings.AppliedRenderScale}");

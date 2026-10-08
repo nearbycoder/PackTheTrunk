@@ -144,6 +144,14 @@ namespace PackTheTrunk
 
         IEnumerator Steps(string scene)
         {
+            // One unmeasured pass first: each step's first frames build its render targets and shader
+            // variants (and a freshly built trip settles), which would otherwise land on whichever step goes first.
+            PerfProbe.Begin("(settle)");
+            for (int step = 0; step < GameSettings.FidelitySteps.Length; step++)
+            {
+                SetStep(step);
+                yield return new WaitForSecondsRealtime(1.5f);
+            }
             for (int step = 0; step < GameSettings.FidelitySteps.Length; step++)
             {
                 SetStep(step);
