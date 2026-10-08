@@ -675,7 +675,7 @@ namespace PackTheTrunk
             {
                 var k = UnityEngine.InputSystem.Keyboard.current;
                 var m = UnityEngine.InputSystem.Mouse.current;
-                if ((k != null && (k.spaceKey.wasPressedThisFrame || k.enterKey.wasPressedThisFrame)) || (m != null && m.leftButton.wasPressedThisFrame && !PointerOverUi))
+                if ((k != null && (k.spaceKey.wasPressedThisFrame || (k.enterKey.wasPressedThisFrame && !GamepadCursor.KeyClickedThisFrame))) || (m != null && m.leftButton.wasPressedThisFrame && !PointerOverUi))
                     skipMessages = true;
             }
 

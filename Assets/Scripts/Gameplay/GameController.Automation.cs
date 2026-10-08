@@ -8,6 +8,8 @@ namespace PackTheTrunk
     {
         public IReadOnlyList<PackItem> Items => items;
         public PackItem Held => held;
+
+        public int CurrentLevelIndex => levelIndex;
         public Camera Camera => cam;
         public Vehicle CurrentVehicle => vehicle;
         public bool IsPlaying => mode == Mode.Playing;

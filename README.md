@@ -100,6 +100,12 @@ thing in your hands stays over the spot you were aiming at, and its ghost shows 
 can turn it in place and click back on the trunk to drop it. UNDO, HINT, RESTART and CLOSE THE TRUNK
 are on-screen buttons, and a **REDO** button appears beside UNDO whenever there's something to redo.
 
+**Keyboard only.** Every menu works with the arrow keys: they move a cursor to the nearest button,
+switch, slider, map pin or polaroid in that direction (hold to keep going), ← / → change a slider or
+setting, and **Enter** clicks what the cursor is on, so Enter on the postcard's TRY AGAIN tries again
+(`Space` keeps its own jobs: next trip, start packing, close the trunk). `Esc` goes back as always,
+and moving the mouse hands straight back to it.
+
 Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
 click a key and press the new one. A key that's already taken swaps with it, and **Defaults**
 puts everything back. The key hints, the pause card and Grandpa's tips all show your keys. Key

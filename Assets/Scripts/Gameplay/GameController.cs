@@ -190,6 +190,9 @@ namespace PackTheTrunk
 
             // In menus the D-pad jumps between buttons; while packing it keeps its packing jobs.
             GamepadCursor.MenuNavigation = () => (mode != Mode.Playing || paused) && !ui.InTransition && !ui.IsAlbumZoomOpen && !ui.IsRebinding;
+            // The arrow keys do the same (and Enter clicks).
+            GamepadCursor.KeyNavigation = () => (mode != Mode.Playing || paused) && !ui.InTransition && !ui.IsAlbumZoomOpen
+                && !ui.IsRebinding && !ui.IsTitleWaiting;
 
             ShowTitle(true);
             // On its own host: level changes stop this controller's coroutines.
@@ -701,7 +704,7 @@ namespace PackTheTrunk
             }
             if (kb != null || Pad.Current != null)
             {
-                bool go = (kb != null && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)) || Pad.Start;
+                bool go = (kb != null && (kb.spaceKey.wasPressedThisFrame || ((kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) && !GamepadCursor.KeyClickedThisFrame))) || Pad.Start;
                 if (mode == Mode.Story && go && ui.StoryReady) ui.PressStart();
                 else if (mode == Mode.Results && ui.ResultsReady)
                 {

@@ -245,6 +245,7 @@ namespace PackTheTrunk
             yield return SeeThroughChecks();
             yield return MouseOnlyChecks(solutions);
             yield return MouseRedoChecks(solutions);
+            yield return KeyMenuChecks();
             yield return RebindChecks();
             yield return LayoutChecks();
             yield return MenuLayoutChecks();
