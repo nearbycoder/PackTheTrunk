@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/media/teaser.webp" alt="Pack The Trunk in motion: a suitcase is picked up, turned and dropped into a sedan, a moving truck fills up in seconds, and a minivan's trunk slams shut" width="880">
+<img src="docs/media/teaser.webp" alt="Pack The Trunk in motion: a suitcase is dragged into a sedan, a moving truck fills up in seconds, and a minivan's trunk slams shut" width="880">
 
 # Pack The Trunk
 
@@ -21,12 +21,20 @@
 
 </div>
 
+> [!NOTE]
+> **The download is older than this page.** The [v0.1.0 release](https://github.com/nearbycoder/PackTheTrunk/releases/tag/v0.1.0)
+> is the launch build from October 4, 2026. The trailer, screenshots and features below show the game as it is in
+> `main` today, after twelve rounds of improvements ([docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)). Ask Grandpa's hints, X-ray,
+> drag to pack, redo, the star meter and Grandpa's seal, gamepad and keyboard-only play, favours for the neighbours and the
+> Graphics fidelity slider aren't in v0.1.0. Until a new release is cut, [build from source](#build-from-source) to play them.
+
 ## Trailer
 
 [![Pack The Trunk trailer: click to watch (MP4, 1080p)](docs/media/trailer-poster.jpg)](docs/media/pack-the-trunk-trailer.mp4)
 
-<sub>Click the poster to open the 1080p MP4 (1:50, with sound). It's also attached to the
-[v0.1.0 release](https://github.com/nearbycoder/PackTheTrunk/releases/tag/v0.1.0).</sub>
+<sub>Click the poster to open the 1080p MP4 (1:53, with sound). All the footage is the game itself, recorded by its
+own capture mode at the **Ultra** graphics step with its sound effects; the captions and title cards are added in the edit,
+and the music is a track from the game's soundtrack. The v0.1.0 release still has the launch cut attached.</sub>
 
 ## About
 
@@ -44,131 +52,8 @@ and eventually the kitchen sink.
 Between the puzzles, the family texts you. Over 33 trips and six chapters you pack for a
 grandmother's big move, a dorm, a festival, a wedding, a first house and a nursery, until you're
 back in Grandpa's wagon teaching your own daughter. Every trunk you close is photographed for
-the family album.
-
-## How to play
-
-Pick something up off the blanket, turn it until it fits, and drop it into the trunk (click to
-pick up and click to drop, or press, drag it in and let go). A green
-ghost shows where it will land; a red, striped one means it won't fit, and the game tells you
-why. (Settings → Accessibility → Placement colours switches to blue / orange; the stripes stay either
-way.)
-
-| Input | Action |
-| --- | --- |
-| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in. Or press on it, drag, and let go over the trunk (anywhere else puts it back) |
-| **`R`** or **right click** | Turn it (hold **`Shift`** to turn the other way) |
-| **`T`** | Tip it over, away from the camera |
-| **`F`** | Roll it sideways |
-| Click the **`R`** / **`T`** / **`F`** / **`Tab`** key hints | Turn, tip, roll or X-ray with the mouse alone (see below) |
-| **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
-| **Arrow keys** + **`Enter`** | Without a mouse: walk the menus and the packing list, pick up, move what you hold one square at a time, drop (see below) |
-| **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
-| **`Z`** / **`Backspace`** | Undo (hold **`Shift`** to redo, or click **REDO**) |
-| **RESTART** button | Unpack everything back onto the blanket (one undo puts it all back) |
-| **`H`** or the **HINT** button | Ask Grandpa: an orange ghost shows where one thing goes |
-| **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
-| **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
-| **`Tab`** (hold) | X-ray: everything packed turns see-through, and you aim straight through it (Settings → Accessibility → X-ray: Toggle makes it a press on, press off) |
-| **`M`** | Music on / off |
-| **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
-| **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
-
-**Gamepad (new):** the left stick moves a cursor and **A** clicks, so every menu and button works
-by pointing. In menus (the title, settings, the trip map, story texts, pause, the postcard and the
-album) the **D-pad** also jumps the cursor to the next button in that direction (hold it to keep
-going), and on a settings slider, switch or choice D-pad left / right changes the value. While packing, **X** / **Y** / **RB** turn, tip and roll (hold **LB** to go the other
-way), **D-pad up/down** picks a shelf, **D-pad left** asks Grandpa, holding the **left stick** in is X-ray (or one click, with X-ray set to Toggle), **D-pad right** closes the
-trunk, **View** undoes (**LB** + **View** redoes), **B** puts back or backs out, **Menu** pauses (and moves on from story
-texts and postcards), the **right stick** looks around and the **triggers** zoom. The key hints and
-the tips switch to controller buttons as soon as you touch the pad, and back when you move the
-mouse. The packing buttons can be moved in **Settings → Controls** (pick an action with **A**,
-then press the button you want; **B** cancels): X, Y, RB, View, the D-pad, L3 and R3 can take any
-packing action, while A, B, Menu, LB (the other way / redo), the sticks and the triggers keep their
-jobs so the menus and the camera always work. It has only been tested with a simulated gamepad in
-the autopilot, not on a physical controller or a Steam Deck yet. There's no touch support.
-If you try it on real hardware, [docs/GAMEPAD-TEST.md](docs/GAMEPAD-TEST.md) is a ten-minute
-checklist. The game logs every controller it sees (`[Input]` lines in `Player.log`), and if
-Unity only recognises a pad as a generic joystick, the game tells you and suggests Steam Input or
-the pad's Xbox mode.
-
-**Mouse only.** The whole game can be played with just a mouse. Right click turns what you're
-holding and the wheel picks a shelf, and the key hints along the bottom of the screen are buttons
-too: click **turn**, **tip** or **roll** to turn it (Shift + click goes the other way), and **x-ray**
-to see through everything packed for as long as you hold that item (it switches off when you drop
-it or put it back, so you can always click packed things back out). While you click those hints, the
-thing in your hands stays over the spot you were aiming at, and its ghost shows the new turn, so you
-can turn it in place and click back on the trunk to drop it. UNDO, HINT, RESTART and CLOSE THE TRUNK
-are on-screen buttons, and a **REDO** button appears beside UNDO whenever there's something to redo.
-
-**Keyboard only.** Every menu works with the arrow keys: they move a cursor to the nearest button,
-switch, slider, map pin or polaroid in that direction (hold to keep going), ← / → change a slider or
-setting, and **Enter** clicks what the cursor is on, so Enter on the postcard's TRY AGAIN tries again
-(`Space` keeps its own jobs: next trip, start packing, close the trunk). `Esc` goes back as always,
-and moving the mouse hands straight back to it. Packing works the same way: with empty hands the
-arrows walk the packing list and the buttons, and Enter on a row picks that thing up (or lifts it back
-out of the trunk). Holding it, the arrows move it **one square at a time** across the trunk (↑ away
-from the camera, ↓ towards you, ← / → sideways), the usual keys turn, tip, roll and pick a shelf
-(`W` / `S`), **Enter** drops it and `Esc` puts it back. The key hints switch to ARROWS and ENTER while
-you do, and the pause card's HOW TO PACK list has an ARROWS · ENTER row, so it's written down even with the
-key hints off. An arrow key you've bound to a packing action keeps that job.
-
-Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
-click a key and press the new one. A key that's already taken swaps with it, and **Defaults**
-puts everything back. The key hints, the pause card and Grandpa's tips all show your keys. Key
-hints run along the bottom of the screen while you pack.
-**Seeing into the trunk.** While you hold something, anything packed that hides part of the
-ghost (say, when you tuck a thing into a gap under a shelf) turns into a faint see-through
-silhouette. Hold **`Tab`** (or click the left stick) to see through everything packed and aim at
-any spot underneath or behind it. If holding a key or the stick while you aim is awkward, set
-Settings → Accessibility → X-ray to **Toggle**: one press turns it on (the key hint reads "x-ray on")
-and the next turns it off. It also switches off when you leave the trip.
-
-Stuck? **Ask Grandpa** (`H`) shows where one thing goes, taken from a complete 100% packing of
-the trip. Pick the hinted item up and it turns itself to match. If something already in the
-trunk is somewhere that packing doesn't have it, he tells you to move it (or to undo). Hints are
-only ever shown when you ask, and they never place anything for you. They never cost stars either,
-but pack a trip to three stars **without** asking and Grandpa stamps his **seal** on the postcard.
-The trip map and the album show which trips have one, so there's a reason to go back. Starting a
-trip you've closed before, the trip card says what's still to win: your best stars and what that
-run left on the curb ("Best so far: 2 stars. On the curb: Tuba, Lava Lamp."), or that the seal is
-still waiting.
-
-**Your trunk waits for you.** Every change to the trunk is saved, so leaving a trip half-packed
-(the trip map, the main menu, quitting, even a crash) costs nothing: start that trip again and
-everything is back where it was, with your undo and redo history (the last 50 steps), so `Z` still
-takes back what you did before you left, even a RESTART. The title's parked car shows the waiting
-trunk, CONTINUE and the trip map say how much is waiting, and coming back skips straight past the
-texts you've already read (BACK TO PACKING). Each trip keeps its own trunk until you close it.
-(Asking Grandpa is remembered too, so leaving and coming back doesn't earn the seal.)
-
-**Favours for the neighbours.** Once chapter II is packed, the trip map gets one more page: the
-neighbours have heard you can make anything fit. Each favour borrows the car of a trip you've packed and
-brings a new pile, made only from things you've already packed in the story, so nothing is spoiled (and
-never the family's own things: no heirlooms, no Biscuit). The
-game makes each pile by packing it into that trunk under its own rules, so every favour can be packed
-completely, and Grandpa's hints work on it. The neighbours take turns asking, and their errand fits what's
-in the pile (surfboards mean a beach trip). Not in the mood for a 22-thing moving truck? **ASK SOMEONE ELSE**
-on the page swaps it for another neighbour, car and pile (if you've started packing it, it asks first).
-Stars work as on any trip; favours don't take album photos,
-earn seals or count towards the trips. A half-packed favour waits like a trip does, TRY AGAIN replays
-the same pile, NEXT FAVOUR asks the next neighbour, and once every trip in the story has stars, the
-title's CONTINUE goes straight to the neighbours (unless a trip's trunk is still waiting for you).
-
-On your first trips, **Grandpa's tips** explain each move the first time it matters (picking up,
-aiming, turning, fragile things, shelves, undo, the camera). Each one shows once; Settings →
-Gameplay turns them off, and turning them back on shows them all again.
-
-### The rules
-
-- Items snap to a grid and can't overlap the car, wheel wells, sloped hatch glass, toolboxes, or
-  the clown who was already in the car.
-- Everything has to rest on something. Nothing floats.
-- **Fragile** things (eggs, cakes, the garden gnome, the lava lamp…) can't have anything on top.
-  They wear a red FRAGILE stamp while they wait on the blanket.
-- Stars: ★ every essential packed, ★★ at least half the extras, ★★★ everything. The three stars
-  beside PACKING LIST show what closing the trunk right now would earn, and the drop that earns
-  a star tells you what the next one needs.
+the family album. Once the story's second chapter is packed, the neighbours start asking for
+favours too.
 
 ## Features
 
@@ -178,45 +63,58 @@ Gameplay turns them off, and turning them back on shows them all again.
 <td width="50%">
 
 **A tactile packing puzzle.** 116 objects modelled in Blender, each filling exactly the grid cells
-it occupies, so what you see is what you pack. Turn, tip and roll anything with three keys that
-follow the camera, choose between shelves and gaps, and orbit the trunk to find the space you
-missed. Undo and redo are unlimited, anything can be lifted back out, and a half-packed trunk
-waits for you if you leave.
+it occupies, so what you see is what you pack. Click to pick something up and click to drop it, or
+drag it straight in. Turn, tip and roll it with three keys that follow the camera, choose between
+shelves and gaps, and orbit the trunk to find the space you missed. Undo and redo are unlimited,
+RESTART unpacks everything in one go (and one undo puts it back), and anything can be lifted back out.
 
 </td>
 </tr>
 <tr>
+<td width="50%">
+
+**Stuck? Ask Grandpa.** HINT (or `H`) shows an orange ghost where one thing goes, taken from a
+complete packing of the trip. Pick the hinted thing up and it turns itself to match; Grandpa never
+places it for you. Hold `Tab` for **X-ray**: everything packed turns see-through and you can aim at
+the gap behind it.
+
+</td>
+<td width="50%"><img src="docs/media/screenshots/11-ask-grandpa.jpg" alt="Ask Grandpa: an orange ghost in the SUV's trunk shows where the sleeping bag goes"></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/media/screenshots/05-fragile.jpg" alt="The game refusing to put a grocery bag on top of the fragile birthday cake"></td>
 <td width="50%">
 
 **Awkward spaces, fragile things.** Eleven rides, from a toy wagon and a Mini to a pickup, a
 convertible, a minivan and a moving truck, each with its own trunk shape and obstacles. Fragile
-cargo has to ride on top, so the order you pack in matters. Every level is proven solvable to
-100% by an offline solver.
+cargo has to ride on top, so the order you pack in matters, and the game always says *why*
+something won't fit. Every level is proven solvable to 100% by an offline solver.
 
 </td>
-<td width="50%"><img src="docs/media/screenshots/05-fragile.jpg" alt="The game refusing to put a grocery bag on top of the fragile birthday cake"></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/media/screenshots/03-slam.jpg" alt="The sedan's trunk slams shut and confetti pops over the roof"></td>
 <td width="50%">
 
-**The slam.** Close the trunk and it slams, confetti pops, the horn honks, and the car pulls out
-of the driveway. A postcard stamps your stars and lists what got left on the curb.
+**The slam, the stars and Grandpa's seal.** Close the trunk and it slams, confetti pops, the horn
+honks and the car pulls out of the driveway. A postcard stamps your stars and lists what got left
+on the curb. The three stars beside the packing list show what you'd earn right now. Pack a trip to
+three stars without asking for a hint and Grandpa stamps his seal on the postcard.
 
 </td>
+<td width="50%"><img src="docs/media/screenshots/14-grandpas-seal.jpg" alt="The honeymoon postcard: three stars and Grandpa's seal for packing it without a hint"></td>
 </tr>
 <tr>
+<td width="50%"><img src="docs/media/screenshots/04-story.jpg" alt="Mom's texts on a phone next to the trip card for Weekend Getaway"></td>
 <td width="50%">
 
 **A family story in 33 trips.** Texts from Mom, notes from Grandpa, chapter cards, and
 heirlooms (Mr. Buttons the teddy, Grandpa's guitar, the grandfather clock, the gnome) that come
-back trip after trip, scored with a lo-fi soundtrack.
+back trip after trip, scored with a lo-fi soundtrack. On your first trips, Grandpa's tips explain
+each move the first time it matters.
 
 </td>
-<td width="50%"><img src="docs/media/screenshots/04-story.jpg" alt="Mom's texts on a phone next to the trip card for Weekend Getaway"></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/media/screenshots/10-family-album.jpg" alt="The family album: a polaroid of every packed trunk from 1998 to 2027"></td>
 <td width="50%">
 
 **The family album.** The game photographs every trunk you close. The trip map is a scrapbook
@@ -225,43 +123,150 @@ photo up close (960×720, supersampled) with its stars and seal, and flip throug
 the arrow keys.
 
 </td>
+<td width="50%"><img src="docs/media/screenshots/10-family-album.jpg" alt="The family album: a polaroid of every packed trunk from 1998 to 2027"></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/media/screenshots/15-favours.jpg" alt="The trip map's last page: a neighbour's favour pinned to the map, with an ASK SOMEONE ELSE button"></td>
+<td width="50%">
+
+**Favours for the neighbours.** After chapter II, the trip map gets one more page. Each favour
+borrows the car of a trip you've packed and brings a new pile, made only from things you've already
+packed in the story. The game packs every pile into its trunk before you see it, so each one can be
+packed completely, and Grandpa's hints work on it. Not in the mood for a 22-thing moving truck?
+**ASK SOMEONE ELSE** swaps it for another neighbour, car and pile.
+
+</td>
 </tr>
 </table>
 
-Also in the box:
+**Your trunk waits for you.** Every change to the trunk is saved, so leaving a trip half-packed
+(the trip map, the main menu, quitting, even a crash) costs nothing: start that trip again and
+everything is back where it was, with the last 50 steps of undo and redo. The title's parked car
+shows the waiting trunk, and coming back skips the texts you've already read. Starting a trip you've
+closed before, the trip card says what's still to win: your best stars and what that run left on
+the curb, or that the seal is still waiting.
 
-- **Menus and settings that feel finished.** A title screen with the next trip's car parked in
-  the driveway, a pause menu that blurs the world behind it (and pauses by itself if the window
-  loses focus), and a paper-wipe transition with a little car driving across. Settings are saved
-  and applied live: volumes, window mode, resolution, V-Sync, frame cap, FOV, interface size,
-  a **Graphics fidelity** slider (Low, Medium, High, Ultra) over fine-tune rows for render scale,
-  anti-aliasing (up to MSAA 4x + SMAA), shadows, ambient occlusion, ink outlines, depth of field and
-  bloom, then camera speed, key hints and Grandpa's tips. High is the game's own look. Ultra
-  supersamples at 150%, renders the sun's shadows into an 8192 map, uses 12-sample ambient occlusion
-  and high-quality bloom, weaves the picnic blanket at twice the texel density and throws 60% more
-  dust and confetti; Low (75% resolution, simple shadows, no glow or blur, half the particles) is for
-  older laptops.
-  An **Accessibility** tab gathers placement colours, X-ray (hold or toggle), screen shake,
-  **reduce motion** (cards fade instead of sliding, nothing bobs or pulses, scene changes fade
-  instead of wiping, and the camera neither sweeps in nor shakes) and story text speed. The
-  HUD, the main menu and the trip map fit 16:9, 16:10, 4:3 and 21:9 screens at every interface
-  size from 80% to 120%. When a big trip's packing list wouldn't fit at a readable size, it
-  scrolls (and follows whatever you're holding).
-- **Readable on small screens.** Until you pick an interface size, it follows the screen: a Steam
-  Deck–sized 1280×800 window starts at 110%, and every text in the game comes out at 12 screen
-  pixels or more there, in a 1280×720 window, in a 1024×768 one (the smallest Settings offers) and in
-  an 800×600 window (smaller than Settings offers, but a window can be dragged that small), checked
-  screen by screen by the self-test (Valve's recommended minimum). On windows that small the
-  tiniest labels grow just enough to stay at 12 pixels, the packing list widens so a name and its
-  FRAGILE / EXTRA stamps still fit side by side, and the self-test checks that no word is broken across
-  two lines and no wrapped text runs out of its box; picking a smaller interface size still shrinks
-  everything evenly.
-  The same pass measures every text's contrast against what's actually behind it on screen and
-  holds it to WCAG's 4.5:1 (3:1 for large or bold text): orange and teal words use deeper inks,
-  button labels carry a thin ink outline, and the main menu has a soft shade behind it.
-- **A sound design pass.** Landing sounds picked by material and size (soft bags, wood, metal,
-  glass), spatial panning, music that crossfades between screens, muffles behind the story texts
-  and ducks under the trunk slam, and a bus compressor and limiter so nothing clips.
+## Graphics, settings and accessibility
+
+Settings are saved and applied live, in six tabs:
+
+- **Audio:** master, music, sound effects and ambience volumes, and muting when the window loses focus.
+- **Display:** window mode, resolution, V-Sync, frame rate limit, field of view and interface size.
+- **Graphics:** the **Graphics fidelity** slider, with fine-tune rows below it for render resolution,
+  anti-aliasing, shadows, ambient occlusion, ink outlines, depth of field and bloom. Changing a row
+  makes the slider read *Custom*, and picking a step again sets every row back.
+- **Gameplay:** camera speed, invert camera tilt, key hints, Grandpa's tips and erasing progress.
+- **Accessibility:** placement colours, X-ray (hold or toggle), screen shake, reduce motion and story text speed.
+- **Controls:** remap every keyboard key and the gamepad's packing buttons.
+
+**DEFAULTS** (on every tab) puts the settings and controls back, with Graphics fidelity on High; it leaves the
+window mode and resolution alone.
+
+**Graphics fidelity.** Four steps, from older laptops to supersampling. High is the default and the game's own
+look. The GPU times are from the development machine's Radeon 8060S iGPU (Vulkan, 1600×900; title screen /
+a half-packed minivan) and come from [round 12's measurements](docs/IMPROVEMENTS.md#round-12-results-2026-10-08).
+
+| Step | What it sets | GPU time |
+| --- | --- | --- |
+| **Low** | 75% render resolution, FXAA, a 1024 shadow map with hard shadows, no ambient occlusion, bloom or depth of field, half the particles, and the street's detail reduced to a single grain | 0.43 / 0.47 ms |
+| **Medium** | Full resolution, SMAA, a 2048 soft shadow map, bloom and depth of field, no ambient occlusion, ¾ of the particles, and the street's asphalt, lawn and curb detail (as on High) | 1.11 / 1.06 ms |
+| **High** (default) | Full resolution, MSAA 4x + SMAA, a 4096 shadow map with high-quality soft shadows, 8-sample ambient occlusion, bloom, depth of field and all the particles | 2.00 / 1.87 ms |
+| **Ultra** | 150% supersampling, an 8192 shadow map, 12-sample ambient occlusion, high-quality bloom, the picnic blanket woven at twice the texel density, 1.6× the dust and confetti, and finer street detail further out | 4.84 / 4.74 ms |
+
+The first switch to a new step costs one 60–90 ms frame while its buffers are made; it happens in Settings, while
+the slider moves.
+
+**Accessibility.** *Placement colours* switches the green / red ghost to blue / orange (the red ghost's stripes
+and the FRAGILE stamps stay either way). *Reduce motion* makes cards fade instead of sliding, stops anything
+bobbing or pulsing, fades scene changes instead of wiping, and keeps the camera from sweeping or shaking. X-ray
+can be held or toggled, screen shake can be turned off, and story texts come in at three speeds. Every input
+method below can play the whole game.
+
+**Readable on small screens.** Until you pick an interface size, it follows the screen: a Steam Deck–sized
+1280×800 window starts at 110%. The self-test measures every text on every screen it visits at eight window
+sizes from 800×600 to 2100×900 (including 1024×768, 1280×720 and 1280×800): each one comes out at 12 screen
+pixels or more (Valve's recommended minimum), no word is broken across two lines, and text contrast against
+what's actually behind it meets WCAG's 4.5:1 (3:1 for large or bold text). The HUD, the main menu and the trip map fit 16:9, 16:10, 4:3 and 21:9
+screens at every interface size from 80% to 120%, and a big trip's packing list scrolls instead of shrinking.
+
+## How to play
+
+Pick something up off the blanket, turn it until it fits, and drop it into the trunk. A green
+ghost shows where it will land; a red, striped one means it won't fit, and the game tells you
+why.
+
+- Items snap to a grid and can't overlap the car, wheel wells, sloped hatch glass, toolboxes, or
+  the clown who was already in the car.
+- Everything has to rest on something. Nothing floats.
+- **Fragile** things (eggs, cakes, the garden gnome, the lava lamp…) can't have anything on top.
+  They wear a red FRAGILE stamp while they wait on the blanket.
+- Stars: ★ every essential packed, ★★ at least half the extras, ★★★ everything. The drop that
+  earns a star tells you what the next one needs.
+- Hints never cost stars, but a trip packed to three stars **without** one earns Grandpa's seal.
+  The trip map and the album show which trips have it.
+
+### Controls
+
+**Mouse and keyboard**
+
+| Input | Action |
+| --- | --- |
+| **Left click** | Pick up an item (from the driveway, the packing list, or back out of the trunk) / drop it in. Or press on it, drag, and let go over the trunk (anywhere else puts it back) |
+| **`R`** or **right click** | Turn it (hold **`Shift`** to turn the other way) |
+| **`T`** | Tip it over, away from the camera |
+| **`F`** | Roll it sideways |
+| **Mouse wheel** / **`W`** **`S`** | Choose between resting heights (on top of something, or tucked into a gap underneath) |
+| **`Esc`** or click off the trunk | Put the item back (`Esc` with empty hands pauses) |
+| **`Z`** / **`Backspace`** | Undo (hold **`Shift`** to redo, or click **REDO**) |
+| **RESTART** button | Unpack everything back onto the blanket (one undo puts it all back) |
+| **`H`** or the **HINT** button | Ask Grandpa: an orange ghost shows where one thing goes |
+| **`Tab`** (hold) | X-ray: everything packed turns see-through, and you aim straight through it |
+| **`Space`** / **`Enter`** | Close the trunk once the essentials are packed (press twice if an extra would still fit) |
+| **Right-drag**, **`Q`** **`E`** | Orbit the camera (the wheel zooms when your hands are empty) |
+| **`M`** | Music on / off |
+| **`Space`** / click during story texts | Hurry the texts along; `Space` / `Enter` then starts packing |
+| **`Space`** / **`R`** / **`Esc`** on the postcard | Next trip / try again / trip map |
+
+Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
+click a key and press the new one. A key that's already taken swaps with it. The key hints along
+the bottom of the screen, the pause card and Grandpa's tips all show your keys.
+
+**Mouse only.** Right click turns what you're holding and the wheel picks a shelf. The key hints
+along the bottom of the screen are buttons too: click **turn**, **tip** or **roll** (Shift + click
+goes the other way), and **x-ray** to see through everything packed for as long as you hold that
+item. While you click them, the thing in your hands stays over the spot you were aiming at. UNDO,
+HINT, RESTART and CLOSE THE TRUNK are on-screen buttons, and REDO appears beside UNDO whenever there's
+something to redo.
+
+**Keyboard only.** In every menu the arrow keys move a cursor to the nearest button, switch,
+slider, map pin or polaroid in that direction, ← / → change a setting, and **Enter** clicks. While
+packing with empty hands, the arrows walk the packing list and the buttons, and Enter picks a thing
+up (or lifts it back out of the trunk). Holding it, the arrows move it **one square at a time** across
+the trunk, the usual keys turn, tip, roll and pick a shelf, and **Enter** drops it. The pause card's
+HOW TO PACK list includes the ARROWS · ENTER row, so it's there even with the key hints off.
+
+**Gamepad.** The left stick moves a cursor and **A** clicks, so every menu and button works by
+pointing, and in menus the **D-pad** jumps to the next button in that direction (on a slider or
+setting, left / right changes it). While packing:
+
+| Button | Action |
+| --- | --- |
+| **X** / **Y** / **RB** | Turn / tip / roll (hold **LB** for the other way) |
+| **D-pad up / down** | Pick a shelf |
+| **D-pad left** | Ask Grandpa |
+| **D-pad right** | Close the trunk |
+| **Left stick click** | X-ray (hold, or click once with X-ray set to Toggle) |
+| **View** | Undo (**LB** + **View** redoes) |
+| **B** | Put back / back out |
+| **Menu** | Pause (and move on from story texts and postcards) |
+| **Right stick** / **triggers** | Look around / zoom |
+
+The packing buttons can be moved in **Settings → Controls** (X, Y, RB, View, the D-pad, L3 and R3 can
+take any packing action; A, B, Menu, LB, the sticks and the triggers keep their jobs). The key hints
+and tips switch to controller buttons as soon as you touch the pad, and back when you move the mouse.
+Gamepad support has only been tested with a simulated pad (see [Status](#status-and-known-issues)).
+
+**Touch:** not supported.
 
 ## Content
 
@@ -281,31 +286,47 @@ Also in the box:
   grandfather clock, a flat-pack crib, a disco ball and a second, folding clown.
 - A finale, an ending and a credits roll. No spoilers here.
 - After chapter II, **favours for the neighbours**: as many new piles as you like, for the cars you've
-  packed, each one made by the game and packed completely before you see it.
+  packed. Favours earn stars but don't take album photos, earn seals or count towards the trips.
 
 ## Screenshots
+
+All taken from the game at its Ultra graphics step.
 
 | | |
 | --- | --- |
 | ![Title screen: the next trip's car parked in the driveway under the logo](docs/media/screenshots/01-title.jpg) | ![Holding a suitcase over the sedan's trunk, the green ghost showing where it lands](docs/media/screenshots/02-packing.jpg) |
 | ![The trunk slams shut and confetti pops over the sedan](docs/media/screenshots/03-slam.jpg) | ![Mom's texts on a phone next to the trip card for Weekend Getaway](docs/media/screenshots/04-story.jpg) |
 | ![A grocery bag held over the birthday cake: the cake is fragile, nothing goes on top of it](docs/media/screenshots/05-fragile.jpg) | ![The Clown Car: there's already a clown sitting in the trunk, so the tuba won't fit there](docs/media/screenshots/06-clown-car.jpg) |
-| ![Everyone, Everything: a minivan nearly full, 23 of 25 things packed](docs/media/screenshots/07-everyone-everything.jpg) | ![The postcard: two stars, with the garden gnome and the box of cables left on the curb](docs/media/screenshots/08-postcard.jpg) |
+| ![Everyone, Everything: a minivan nearly full, 23 of 25 things packed](docs/media/screenshots/07-everyone-everything.jpg) | ![The postcard: two stars, with what didn't fit left on the curb](docs/media/screenshots/08-postcard.jpg) |
 | ![The trip map, paged by chapter, with stars for every trip](docs/media/screenshots/09-trip-map.jpg) | ![The family album, with a polaroid of every trunk from 1998 to 2027](docs/media/screenshots/10-family-album.jpg) |
-| ![Ask Grandpa: an orange ghost in the SUV's trunk shows where the sleeping bag goes](docs/media/screenshots/11-ask-grandpa.jpg) | ![One of Grandpa's tips explaining the green ghost while the first suitcase is aimed into the sedan](docs/media/screenshots/12-grandpas-tip.jpg) |
-| ![X-ray: a nearly full minivan with every packed thing see-through and the toy box's ghost showing where it fits](docs/media/screenshots/13-x-ray.jpg) | ![The honeymoon postcard: three stars and Grandpa's seal for packing it without a hint](docs/media/screenshots/14-grandpas-seal.jpg) |
+| ![Ask Grandpa: an orange ghost in the SUV's trunk shows where one thing goes](docs/media/screenshots/11-ask-grandpa.jpg) | ![One of Grandpa's tips explaining the green ghost while the first suitcase is aimed into the sedan](docs/media/screenshots/12-grandpas-tip.jpg) |
+| ![X-ray: a nearly full minivan with every packed thing see-through and the next thing's ghost showing where it fits](docs/media/screenshots/13-x-ray.jpg) | ![The honeymoon postcard: three stars and Grandpa's seal for packing it without a hint](docs/media/screenshots/14-grandpas-seal.jpg) |
+| ![Favours for the neighbours: a neighbour's request pinned to the trip map's last page](docs/media/screenshots/15-favours.jpg) | ![Settings, Graphics tab: the Graphics fidelity slider on Ultra above the fine-tune rows](docs/media/screenshots/16-settings-graphics.jpg) |
 
 ## Play it
 
 1. Download `PackTheTrunk-v0.1.0-linux-x86_64.zip` from the
-   [latest release](https://github.com/nearbycoder/PackTheTrunk/releases/latest).
+   [latest release](https://github.com/nearbycoder/PackTheTrunk/releases/latest). That's the **launch build**
+   (October 4, 2026), without the features added since. To play the game as this page shows it,
+   [build from source](#build-from-source).
 2. Unzip it and run `./PackTheTrunk.sh` (or `./PackTheTrunk.x86_64` directly). If your unzip tool
    drops the executable bits, `chmod +x PackTheTrunk.sh PackTheTrunk.x86_64` first.
 
-It needs a 64-bit Linux desktop with OpenGL 4.5 or Vulkan. The launcher script uses Unity's native
-Wayland backend when you're on Wayland, because the player hung at startup through XWayland on
-the development machine. Progress, settings and album photos are saved under
-`~/.config/unity3d/Nearby Games/Pack The Trunk/`.
+Progress, settings and album photos are saved under `~/.config/unity3d/Nearby Games/Pack The Trunk/`.
+
+### System requirements
+
+- **OS:** 64-bit Linux (x86_64) with a desktop session. On Wayland, the launcher script uses Unity's
+  native Wayland backend, because the player hung at startup through XWayland on the development machine.
+  An X11 session hasn't been tried.
+- **Graphics:** a GPU and driver that Unity 6 can run with OpenGL Core or Vulkan. The player uses OpenGL
+  Core by default; add `-force-vulkan` for Vulkan.
+- **Disk:** about 150 MB.
+- **Input:** a mouse, a keyboard, or an Xbox-style gamepad that Unity recognises (no physical pad has been tried yet).
+- **Tested on:** one machine only: CachyOS (KDE Plasma, Wayland), AMD Ryzen AI Max+ 395 with its Radeon
+  8060S integrated GPU. Every Graphics fidelity step runs there with no frame over 33 ms at 1600×900. Low is
+  meant for weaker GPUs, but nobody has tried one yet.
+- macOS and Windows builds aren't published (see [Status](#status-and-known-issues)).
 
 ## Build from source
 
@@ -343,15 +364,16 @@ python3 Tools/solve_levels.py --check-favours Recordings/autopilot/favours.json 
 ```
 
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
-`-pttAutopilot`. It clicks, rotates, drops and undoes with real input events, packs all 33 trips
-from the solver's solutions, closes every trunk, plays a few favours and makes hundreds more (written to
-`favours.json` for `solve_levels.py --check-favours`), opens the ending and the album, and writes
-screenshots to `Recordings/autopilot` (about 20 minutes). It also checks the HUD and menu layout at
-three interface sizes and measures every visible text's size in screen pixels on each screen. Like the recorders and the benchmark, it
-plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings and progress in memory,
-photos in a cache folder), and `autopilot.sh` checks that your own save is byte-for-byte untouched.
-`resume_test.sh` keeps its sandbox in a file instead (`-pttPrefsFile`), so a second player can pick
-up where the killed one left off; it makes the same check on your save.
+`-pttAutopilot`. It clicks, rotates, drops and undoes with real input events (mouse, keyboard and a
+simulated gamepad), packs all 33 trips from the solver's solutions, closes every trunk, plays a few
+favours and makes hundreds more (written to `favours.json` for `solve_levels.py --check-favours`), steps
+the Graphics fidelity slider and reads each step back from the renderer, opens the ending and the album,
+and writes screenshots to `Recordings/autopilot` (about 20 minutes). It also checks the HUD and menu layout
+at three interface sizes and measures every visible text's size and contrast on each screen. Like the
+recorders and the benchmark, it plays on a sandboxed fresh save (`Assets/Scripts/Core/Prefs.cs`: settings
+and progress in memory, photos in a cache folder), and `autopilot.sh` checks that your own save is
+byte-for-byte untouched. `resume_test.sh` keeps its sandbox in a file instead (`-pttPrefsFile`), so a
+second player can pick up where the killed one left off; it makes the same check on your save.
 
 Automated runs (the autopilot, the crash test, the benchmark and the recorders) don't open a window on
 your desktop: when `kwin_wayland` is installed, `Tools/play.sh` starts the player inside a private,
@@ -379,21 +401,22 @@ unzipped under `$KENNEY` (default `/tmp/kenney`) and Thimras' park ambiences und
 Tools/record.sh [name]          # gameplay video with captions -> Recordings/<name>.mp4
 Tools/record_trailer.sh         # scripted trailer footage + clean stills -> Recordings/trailer-capture
 Tools/make_trailer.py           # cut the trailer, poster, teaser and screenshots -> docs/media
-PTT_STILLS_ONLY=1 Tools/record_trailer.sh Recordings/stills   # just the README stills (~3 min, no video)
+PTT_STILLS_ONLY=1 Tools/record_trailer.sh Recordings/stills   # just the README stills (no video)
 Tools/package_release.sh 0.1.0  # zip the Linux build for a release -> Builds/PackTheTrunk-v0.1.0-linux-x86_64.zip
 Tools/package_release.sh 0.1.0 mac  # zip the macOS app (with Gatekeeper instructions) -> ...-macos-universal.zip
 ```
 
 Both recorders run the real game at a locked 30 fps (`Time.captureFramerate`) and capture its
-audio in lockstep with `AudioRenderer`, so every take is identical and nothing stutters. They
-start from a sandboxed fresh save and leave yours alone (`record_trailer.sh` hashes your save
-folder before and after to prove it). The trailer script (`Showcase.Trailer.cs`) is split into sections, so one shot can be
-re-taken without the rest: `PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/retake`,
-then pass both folders to `make_trailer.py` (later folders win). To refresh only the README
-screenshots, capture stills-only and run `make_trailer.py <all capture folders> Recordings/stills --only stills`.
-The trailer, poster and teaser are still the v0.1.0 cut, so they show the HUD without the
-HINT button. `make_trailer.py` needs Pillow
-(`pip install pillow`); the edit, the captions and the music bed are defined at the top of the script.
+audio in lockstep with `AudioRenderer`, so every take is identical and nothing stutters. The
+trailer script (`Showcase.Trailer.cs`) plays at the Ultra graphics step, which costs nothing
+there because the capture waits for every frame. Both start from a sandboxed fresh save and leave
+yours alone (`record_trailer.sh` hashes your save folder before and after to prove it). The trailer
+script is split into sections, so one shot can be re-taken without the rest:
+`PTT_TRAILER_ONLY=fragile,clown Tools/record_trailer.sh Recordings/retake`, then pass both folders
+to `make_trailer.py` (later folders win). To refresh only the README screenshots, capture stills-only
+and run `make_trailer.py <all capture folders> Recordings/stills --only stills`. `make_trailer.py`
+needs Pillow (`pip install pillow`); the edit, the captions and the music bed are defined at the top
+of the script.
 
 ## Project structure
 
@@ -407,12 +430,12 @@ Assets/
   Shaders/                          toon (with the street's procedural asphalt, lawn and curbs), ink outline, ghost, sky, FX sprite
   Scenes/Main.unity                 just the camera, sun and post-processing volume
   Scripts/Data/                     JSON loading, VoxelShape (rotations)
-  Scripts/Gameplay/                 GameController, TrunkGrid (rules), PackItem, CameraRig,
+  Scripts/Gameplay/                 GameController, TrunkGrid (rules), PackItem, CameraRig, Favours,
                                     AutoPilot / Showcase / Bench (test, capture and benchmark modes)
   Scripts/Visuals/                  voxel mesher, procedural cars, model and material libraries, FX
   Scripts/UI/                       runtime-built uGUI: title, menus, settings, HUD, results, album
   Scripts/Audio/                    MusicDirector, Sfx, MasterBus (compressor + limiter)
-  Scripts/Core/                     GameSettings (applied live), UiTime, OwnedAssets
+  Scripts/Core/                     GameSettings (applied live), Bindings, PadBindings, Prefs, UiTime, OwnedAssets
   Editor/                           build entry points, import settings, project setup
 Tools/
   solve_levels.py                   level solver / validator
@@ -422,7 +445,10 @@ Tools/
   package_release.sh, release/      release zip and its launcher script
   blender/                          model generators (items.py, vehicles.py, props.py, ptt_lib.py)
   audio/                            build_sfx.sh, render_stingers.py
-docs/media/                         trailer, poster, teaser and screenshots used by this README
+docs/
+  IMPROVEMENTS.md                   every improvement round's plan and measured results
+  GAMEPAD-TEST.md                   a ten-minute checklist for a first real-controller test
+  media/                            trailer, poster, teaser and screenshots used by this README
 ```
 
 ## Tech highlights
@@ -440,7 +466,8 @@ docs/media/                         trailer, poster, teaser and screenshots used
   rules. It proves every level packs 100%, and its solutions drive the autopilot, the gameplay
   recorder, the trailer and Grandpa's hints (shipped as `Resources/PackTheTrunkSolutions.txt`;
   `Solutions.cs` checks them against the level data at load, adds mirror images for symmetric
-  trunks, and hides the HINT button for any trip that doesn't match).
+  trunks, and hides the HINT button for any trip that doesn't match). Favours are made the same
+  way in the game: each pile is packed into its trunk on a worker thread before it's offered.
 - **Blender as a build step.** Every model is generated by Python in Blender
   (`Tools/blender/`): one builder per item, sized to the exact grid cells the item occupies, and
   one body per level wrapped around that level's trunk (with `Lid`, `Tailgate` and `Wheel_*`
@@ -454,13 +481,13 @@ docs/media/                         trailer, poster, teaser and screenshots used
   `RuntimeInitializeOnLoadMethod`; cars, the driveway, the UI and even UI sprites are created in
   code, and runtime meshes, textures and materials are freed with their trip (`OwnedAssets`).
 - **No hitch on the money shot.** The album photo is rendered when the trunk closes, read back
-  from the GPU asynchronously and encoded to PNG on a worker thread. The packing loop allocates
-  nothing per frame. On the development machine (Ryzen AI Max+ 395 / Radeon 8060S, 1600×900,
-  High) every screen averages 2–3 ms uncapped, with no frames over 33 ms during play.
-- **Audio that behaves.** `Sfx` pools 16 voices, pans by screen position, never repeats the same
-  variation twice in a row and never steals a stinger. `MusicDirector` gives each trip its own
-  track, crossfades, loops seamlessly and low-passes the music behind story texts. The mix runs
-  through `MasterBus`: make-up gain, a 2:1 bus compressor and a −1.5 dBFS peak limiter.
+  from the GPU asynchronously and encoded on a worker thread. The packing loop allocates nothing
+  per frame.
+- **Audio that behaves.** `Sfx` pools 16 voices, pans by screen position, picks landing sounds by
+  material and size, never repeats the same variation twice in a row and never steals a stinger.
+  `MusicDirector` gives each trip its own track, crossfades, loops seamlessly and low-passes the music
+  behind story texts. The mix runs through `MasterBus`: make-up gain, a 2:1 bus compressor and a
+  −1.5 dBFS peak limiter.
 - **Deterministic capture.** The showcase and trailer modes drive the real game with queued
   input events, lock the frame rate with `Time.captureFramerate`, and pull audio through
   `AudioRenderer` every frame, so video and sound stay in sync even while capture is paused
@@ -491,63 +518,42 @@ licence next to each font in [`Assets/Resources/Fonts/`](Assets/Resources/Fonts)
 
 ## Status and known issues
 
-Version **0.1.0** plus twelve rounds of improvements since that release (see
-[docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)): all 33 trips, the story, the album, menus and
-settings are complete, favours for the neighbours keep going after the story, the game can be played
-with a mouse alone, a keyboard alone or a gamepad, a Graphics fidelity slider runs from Low to Ultra,
-and the autopilot (394 checks) passes every trip.
+`main` is version **0.1.0** plus twelve rounds of improvements ([docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)):
+all 33 trips, the story, the album, menus and settings are complete, favours for the neighbours keep going
+after the story, the game can be played with a mouse alone, a keyboard alone or a gamepad, a Graphics fidelity
+slider runs from Low to Ultra, and the full autopilot (394 checks in round 12) passes every trip.
 Still rough or missing:
 
-- **Linux only (for now).** The release ships a Linux x86_64 build. A macOS build
-  (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel `.app`, bundle id
-  `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
+- **The release is behind `main`.** The only published build is v0.1.0 (October 4, 2026, Linux). It has
+  none of the twelve rounds' features, and its attached trailer is the launch cut. A new release hasn't been cut.
+- **Linux only (for now).** A macOS build (`Tools/unity.sh build-mac`: a universal Apple Silicon + Intel
+  `.app`, bundle id `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
-  and isn't published**. Round 6 re-ran the build (universal, 0 errors).
-  Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't installed
-  here, and WebGL hasn't been built or tested.
-- **Gamepad support is new and untested on hardware.** It passes the autopilot's simulated-gamepad
-  checks (pointing, every packing action, undo, hint, pause, menu clicks, D-pad menu navigation,
-  the album close-up's D-pad and bumpers, remapping a button through Settings, handing back to the mouse), but no physical controller or Steam Deck has tried it yet. `docs/GAMEPAD-TEST.md` is the
-  checklist for that first test, and `[Input]` lines in `Player.log` show what the player saw. No touch support. Keyboard
-  keys and the pad's packing buttons can be remapped (A, B, Menu, LB, the sticks and triggers are fixed).
-- **Wayland/XWayland.** On the development machine (CachyOS, Wayland) the player hung at startup
-  under XWayland, so the launchers force Unity's native Wayland backend. The player picks
-  OpenGL Core by default; Vulkan works with `-force-vulkan`.
+  and isn't published**. Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't
+  installed here, and WebGL hasn't been built or tested.
+- **Gamepad support is untested on hardware.** It passes the autopilot's simulated-gamepad checks
+  (pointing, every packing action, undo, hint, pause, menu clicks, D-pad menu navigation, the album
+  close-up, the fidelity slider, ASK SOMEONE ELSE, remapping a button, handing back to the mouse), but no
+  physical controller or Steam Deck has tried it yet. [docs/GAMEPAD-TEST.md](docs/GAMEPAD-TEST.md) is the
+  checklist for that first test, and `[Input]` lines in `Player.log` show what the player saw. If Unity only
+  recognises a pad as a generic joystick, the game says so and suggests Steam Input or the pad's Xbox mode.
+- **Keyboard-only play and favours are only machine-tested.** The self-test packs a whole trip with
+  keyboard events only and re-checks hundreds of favours with the game's rules and the solver's, but nobody
+  who relies on a keyboard has tried it, and nobody has played favours yet to say whether they're too easy,
+  too hard or fun. Their words come from 16 neighbours, 26 errands and 8 sign-offs, so they repeat over a long run.
+- **Graphics fidelity is measured on one machine.** Nobody has tried Low on a genuinely weak GPU or Ultra at
+  4K, where its 150% render scale means a 5760×3240 render. Ultra's 8192 shadow map takes 128–256 MB of video
+  memory; on a GPU with little memory, set the Shadows row to High.
+- **Small screens are checked, not seen.** Text size, wrapping and contrast are measured at eight window
+  sizes from 800×600 to 2100×900, but nobody has looked at the game on a real Deck, and live re-layout while a
+  window is being resized is untested.
+- **Wayland/XWayland.** On the development machine the player hung at startup under XWayland, so the
+  launchers force Unity's native Wayland backend. The player has segfaulted a couple of times mid-run inside
+  that backend (`wl_display_dispatch_queue_pending`, not game code); it hasn't been reproduced on demand. A crash
+  doesn't cost the trunk you were packing: it's saved after every change.
 - **Editor on Arch-based distros.** The Unity editor needs `libxml2.so.2`; install
   `libxml2-legacy` (or point `LD_LIBRARY_PATH` at a copy, as `Tools/unity.sh` does).
-- **Rare player crash on Wayland.** The player has segfaulted a couple of times mid-run (once while
-  recording, once in the autopilot). The crash log from the autopilot one shows it on the main
-  thread inside `wl_display_dispatch_queue_pending`, which is Unity's native Wayland backend handling
-  compositor events, not game code. It hasn't been reproduced on demand. The recorders and
-  `autopilot.sh` keep the log and retry once. Since round 4 a crash doesn't cost the trunk you
-  were packing: it's saved after every change and comes back when you start the trip again.
-- **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
-  meter, Grandpa's seal, dragging or the round-7 contrast look (outlined button labels, deeper
-  orange). The README screenshots were refreshed in round 8, so they don't show round 12's street
-  (asphalt, mown lawn) or the softer menu shade either.
-- **Graphics fidelity is measured on one machine.** On the development machine's Radeon 8060S at
-  1600×900, a frame takes about 0.45 ms of GPU time on Low, 1.1 on Medium, 2 on High and 4.8 on Ultra
-  (round 12's table in docs/IMPROVEMENTS.md). Nobody has tried Low on a genuinely weak GPU or Ultra at
-  4K, where its 150% render scale means a 5760×3240 render. Moving the slider costs one 60–90 ms frame
-  while the new step's buffers are made.
-- **Small screens are checked, not seen.** Text size, wrapping and contrast were measured at 800×600,
-  1024×768, 1280×720, 1280×800 (Steam Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has
-  looked at the game on a real Deck. Windows smaller than 800×600 (which Settings doesn't offer, but a
-  resized window can be) aren't measured. The contrast check reads each
-  text's background from the screen, along the text's own tilt, and uses the text's own colour (a
-  `<color>` part inside a line isn't checked separately), and it covers the screens the self-test
-  visits, not every possible moment.
-- **Keyboard-only play is new.** The self-test packs a whole trip with keyboard events only and
-  walks every kind of menu, but no one who relies on a keyboard has tried it yet. The keyboard cursor
-  jumps to the nearest control by geometry, like the D-pad, so an unusual screen can take an extra
-  press to reach a button.
-- **Favours are new and only machine-tested.** Every favour's pile is made by packing it, and the self-test
-  re-checks hundreds of them with the game's rules and the solver's, so each can be packed completely. By the
-  solver's effort they sit where the story's trips do, but nobody has played them yet to say whether they're
-  too easy, too hard or fun. Their words come from 16 neighbours, 26 errands and 8 sign-offs, so they still
-  repeat over a long run, and favours have no album page or seals.
 - **The self-test needs a calm machine.** Under very heavy load (load average 40+ on 32 cores) the
-  autopilot's queued input stopped registering and every input check failed. Re-run when it's
-  quieter.
+  autopilot's queued input stopped registering and every input check failed. Re-run when it's quieter.
 - No licence has been chosen for the project's own code and content yet. Third-party assets keep
   the licences listed above.
