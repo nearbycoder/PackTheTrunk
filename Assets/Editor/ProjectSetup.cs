@@ -52,6 +52,53 @@ namespace PackTheTrunk.EditorTools
             if (Application.isBatchMode) EditorApplication.Exit(0);
         }
 
+        const string VariantAsset = "Assets/Settings/PC_UltraVariants_RPAsset.asset";
+        const string VariantRenderer = "Assets/Settings/PC_UltraVariants_Renderer.asset";
+
+        /// <summary>
+        /// The Ultra fidelity step switches SSAO to 12 samples at runtime, but the build strips every SSAO
+        /// sample count that no quality level's pipeline asset uses. This keeps a copy of the PC pipeline
+        /// whose only difference is 12-sample SSAO; ProjectSettings/QualitySettings.asset lists it as a
+        /// third quality level ("PC Ultra Variants") that the game never selects, so its variants stay in.
+        /// (URP's "include assets by label" setting isn't enough: it feeds URP's own stripper, while the
+        /// sample count is removed earlier by the engine's keyword filter, which reads quality levels.)
+        /// Run with -executeMethod PackTheTrunk.EditorTools.ProjectSetup.EnsureUltraVariants.
+        /// </summary>
+        [MenuItem("Pack The Trunk/Keep Ultra Shader Variants")]
+        public static void EnsureUltraVariants()
+        {
+            AssetDatabase.DeleteAsset(VariantAsset);
+            AssetDatabase.DeleteAsset(VariantRenderer);
+            bool ok = AssetDatabase.CopyAsset("Assets/Settings/PC_Renderer.asset", VariantRenderer)
+                      && AssetDatabase.CopyAsset("Assets/Settings/PC_RPAsset.asset", VariantAsset);
+            var renderer = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(VariantRenderer);
+            var pipeline = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(VariantAsset);
+            if (!ok || renderer == null || pipeline == null)
+            {
+                Debug.LogError("[ProjectSetup] could not copy the PC pipeline");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+                return;
+            }
+
+            foreach (var ssao in renderer.rendererFeatures.Where(f => f != null && f.GetType().Name == "ScreenSpaceAmbientOcclusion"))
+            {
+                var so = new SerializedObject(ssao);
+                so.FindProperty("m_Settings.Samples").intValue = 0; // AOSampleOption.High (12 samples)
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(ssao);
+            }
+            var pso = new SerializedObject(pipeline);
+            var list = pso.FindProperty("m_RendererDataList");
+            list.arraySize = 1;
+            list.GetArrayElementAtIndex(0).objectReferenceValue = renderer;
+            pso.ApplyModifiedProperties();
+            EditorUtility.SetDirty(pipeline);
+
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ProjectSetup] Ultra shader variants: " + VariantAsset + " (the \"PC Ultra Variants\" quality level must point at it)");
+            if (Application.isBatchMode) EditorApplication.Exit(0);
+        }
+
         static Material EnsureMaterial(string name, string shaderName)
         {
             var shader = Shader.Find(shaderName);

@@ -152,9 +152,7 @@ namespace PackTheTrunk
 
         void BuildGraphicsTab()
         {
-            ChoiceRow("Quality preset", "Sets everything below in one go. Changing any of them switches to Custom.",
-                () => GameSettings.Presets[Mathf.Clamp(GameSettings.Preset, 0, 4)],
-                d => GameSettings.Preset = (Mathf.Min(GameSettings.Preset, 3) + d + 4) % 4);
+            FidelityRow();
             SliderRow("Render resolution", "Below 100% is faster, above is sharper.", () => GameSettings.RenderScale, v => GameSettings.RenderScale = Mathf.Round(v * 20f) / 20f,
                 0.5f, 1.5f, v => $"{Mathf.RoundToInt(v * 100)}%");
             ChoiceRow("Anti-aliasing", "Smooths jagged edges. MSAA + SMAA looks best.",
@@ -377,7 +375,8 @@ namespace PackTheTrunk
         {
             format ??= v => $"{Mathf.RoundToInt(v * 100)}%";
             Row(label, hint, out var control);
-            var area = UiKit.Rect("Slider", control).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(20, 0), new Vector2(-130, 0));
+            // The same track length as the Graphics fidelity slider, so every slider on a tab lines up.
+            var area = UiKit.Rect("Slider", control).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(20, 0), new Vector2(-170, 0));
             var track = UiKit.Image("Track", area, new Color(UiTheme.InkSoft.r, UiTheme.InkSoft.g, UiTheme.InkSoft.b, 0.25f), true);
             track.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, -7), new Vector2(0, 7));
             var fillArea = UiKit.Rect("Fill Area", area).Place(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, -7), new Vector2(0, 7));
@@ -406,7 +405,7 @@ namespace PackTheTrunk
             slider.transition = Selectable.Transition.None;
             area.gameObject.AddComponent<PillHover>().HoverScale = 1f;
             var value = UiTheme.Label("Value", control, "", UiTheme.Display, 30, UiTheme.Ink, TextAnchor.MiddleRight);
-            value.rectTransform.Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-110, 0), Vector2.zero);
+            value.rectTransform.Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-150, 0), Vector2.zero);
 
             void Refresh()
             {
@@ -435,6 +434,102 @@ namespace PackTheTrunk
                 }
                 Refresh();
                 Sfx.Instance?.Tick();
+            };
+            settingsRefresh.Add(Refresh);
+            Refresh();
+        }
+
+        static readonly string[] FidelityHints =
+        {
+            "Low: 75% resolution, simple shadows, no glow or blur, fewer particles. Smooth on older laptops.",
+            "Medium: full resolution, soft shadows, lighter ambient occlusion, bloom and depth of field.",
+            "High: the game's own look, with MSAA 4x + SMAA and full ambient occlusion.",
+            "Ultra: 150% supersampling, 8K shadows, finer occlusion, bloom and fabric, more confetti.",
+        };
+
+        static string FidelityHint => GameSettings.FidelityCustom
+            ? "Custom: a row below was changed. Pick a step to set them all again."
+            : FidelityHints[GameSettings.Fidelity];
+
+        /// <summary>
+        /// Graphics fidelity: a slider that snaps to Low, Medium, High and Ultra, with a tick for each step.
+        /// It sets the rows below; once one of them changes it reads Custom, and picking a step (even the
+        /// one it's on) sets them all again. Drag or click it, or step it with ← / → or the D-pad.
+        /// </summary>
+        void FidelityRow()
+        {
+            var slot = Row("Graphics fidelity", "", out var control);
+            var row = slot.GetChild(0);
+            int last = GameSettings.FidelitySteps.Length - 1;
+            var area = UiKit.Rect("Slider", control).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(20, 0), new Vector2(-170, 0));
+            area.name = "Fidelity Slider";
+            var track = UiKit.Image("Track", area, new Color(UiTheme.InkSoft.r, UiTheme.InkSoft.g, UiTheme.InkSoft.b, 0.25f), true);
+            track.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, -7), new Vector2(0, 7));
+            var fillArea = UiKit.Rect("Fill Area", area).Place(new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(14, -7), new Vector2(-14, 7));
+            var fill = UiKit.Image("Fill", fillArea, UiTheme.Accent, true);
+            fill.rectTransform.Place(Vector2.zero, new Vector2(0, 1), new Vector2(-14, 0), Vector2.zero);
+            var ticks = UiKit.Rect("Ticks", area).Place(Vector2.zero, Vector2.one, new Vector2(14, 0), new Vector2(-14, 0));
+            var tickDots = new Image[last + 1];
+            for (int i = 0; i <= last; i++)
+            {
+                var dot = UiKit.Image("Tick " + GameSettings.FidelitySteps[i], ticks, Color.white, false);
+                dot.sprite = UiTheme.Circle;
+                dot.raycastTarget = false;
+                dot.rectTransform.Pin(new Vector2(i / (float)last, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16, 16));
+                tickDots[i] = dot;
+            }
+            var handleArea = UiKit.Rect("Handle Area", area).Place(Vector2.zero, Vector2.one, new Vector2(14, 0), new Vector2(-14, 0));
+            var handle = UiKit.Image("Handle", handleArea, Color.white, false);
+            handle.sprite = UiTheme.Circle;
+            handle.rectTransform.sizeDelta = new Vector2(36, 36);
+            var ring = UiKit.Image("Ring", handle.transform, UiTheme.Accent, false);
+            ring.sprite = UiTheme.Ring;
+            ring.raycastTarget = false;
+            ring.rectTransform.Fill();
+            var shadow = UiKit.Image("Shadow", handle.transform, new Color(0, 0, 0, 0.18f), false);
+            shadow.sprite = UiTheme.Circle;
+            shadow.raycastTarget = false;
+            shadow.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(2, -4), new Vector2(2, -4));
+            shadow.transform.SetAsFirstSibling();
+            var slider = area.gameObject.AddComponent<Slider>();
+            slider.fillRect = fill.rectTransform;
+            slider.handleRect = handle.rectTransform;
+            slider.targetGraphic = handle;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.minValue = 0;
+            slider.maxValue = last;
+            slider.wholeNumbers = true;
+            slider.transition = Selectable.Transition.None;
+            area.gameObject.AddComponent<PillHover>().HoverScale = 1f;
+            var value = UiTheme.Label("Value", control, "", UiTheme.Display, 30, UiTheme.Ink, TextAnchor.MiddleRight);
+            value.rectTransform.Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-150, 0), Vector2.zero);
+            var hover = row.GetComponent<SettingsRowHover>();
+            hover.OnEnter = () => settingsHint.text = FidelityHint;
+
+            void Refresh()
+            {
+                slider.SetValueWithoutNotify(GameSettings.Fidelity);
+                value.text = GameSettings.FidelityCustom ? "Custom" : GameSettings.FidelitySteps[GameSettings.Fidelity];
+                for (int i = 0; i <= last; i++)
+                    tickDots[i].color = i <= GameSettings.Fidelity ? UiTheme.Accent : new Color(UiTheme.InkSoft.r, UiTheme.InkSoft.g, UiTheme.InkSoft.b, 0.45f);
+            }
+            void Pick(int step)
+            {
+                GameSettings.Fidelity = step;
+                Refresh();
+                settingsHint.text = FidelityHint;
+                Sfx.Instance?.Tick();
+            }
+            slider.onValueChanged.AddListener(v => Pick(Mathf.RoundToInt(v)));
+            // Clicking the step it's already on (after a row was changed) sets the rows again.
+            area.gameObject.AddComponent<PointerUpAction>().Action = () =>
+            {
+                if (GameSettings.FidelityCustom && Mathf.RoundToInt(slider.value) == GameSettings.Fidelity) Pick(GameSettings.Fidelity);
+            };
+            area.gameObject.AddComponent<PadStep>().Step = dir =>
+            {
+                int step = Mathf.Clamp(GameSettings.Fidelity + dir, 0, last);
+                if (step != GameSettings.Fidelity || GameSettings.FidelityCustom) Pick(step);
             };
             settingsRefresh.Add(Refresh);
             Refresh();
@@ -555,6 +650,13 @@ namespace PackTheTrunk
             c.a = Mathf.Lerp(BaseAlpha, 0.85f, k);
             Background.color = c;
         }
+    }
+
+    /// <summary>Runs an action when a press on this control is released.</summary>
+    public class PointerUpAction : MonoBehaviour, IPointerUpHandler
+    {
+        public Action Action;
+        public void OnPointerUp(PointerEventData e) => Action?.Invoke();
     }
 
     /// <summary>Animated on/off switch.</summary>

@@ -62,7 +62,28 @@ namespace PackTheTrunk
 
         // ------------------------------------------------------------------ graphics
         public static readonly string[] Presets = { "Low", "Medium", "High", "Ultra", "Custom" };
+        /// <summary>A fidelity step (0-3), or 4 once a fine-tune row has been changed.</summary>
         public static int Preset { get => I("preset", 2); set => ApplyPreset(value); }
+
+        /// <summary>
+        /// The Graphics fidelity step: 0 Low, 1 Medium, 2 High (the default), 3 Ultra. It sets the fine-tune
+        /// rows below it, and the detail that has no row of its own (ambient occlusion quality, bloom
+        /// filtering, blanket texture density, particles, surface detail) follows it even once a row has been
+        /// changed (cached: particles read it).
+        /// </summary>
+        public static int Fidelity { get { Cache(); return fidelity; } set => ApplyPreset(Mathf.Clamp(value, 0, 3)); }
+
+        public static readonly string[] FidelitySteps = { "Low", "Medium", "High", "Ultra" };
+
+        /// <summary>A fine-tune row differs from the fidelity step.</summary>
+        public static bool FidelityCustom => Preset == 4;
+
+        /// <summary>How many particles an effect spawns, relative to High.</summary>
+        public static float ParticleDensity { get { Cache(); return ParticleDensities[fidelity]; } }
+        static readonly float[] ParticleDensities = { 0.5f, 0.75f, 1f, 1.6f };
+
+        /// <summary>Picnic blanket texels per unit (Ultra doubles them).</summary>
+        public static float BlanketTexelScale => Fidelity == 3 ? 2f : 1f;
         public static float RenderScale { get => F("renderscale", 1f); set => SetCustom("renderscale", value); }
         public static readonly string[] AntiAliasingModes = { "Off", "FXAA", "SMAA", "MSAA 4x + SMAA" };
         public static int AntiAliasing { get => I("aa", 3); set => SetCustom("aa", value); }
@@ -97,6 +118,7 @@ namespace PackTheTrunk
         // Settings read every frame: cached here and re-read whenever a setting changes, so the
         // per-frame code never touches the save or builds key strings.
         static bool cached, xrayToggle, reduceMotion;
+        static int fidelity = 2;
 
         static void Cache()
         {
@@ -104,6 +126,9 @@ namespace PackTheTrunk
             cached = true;
             xrayToggle = B("xraytoggle", false);
             reduceMotion = B("reducemotion", false);
+            // Saves from before the slider only have a preset: its step, or High for Custom.
+            int preset = I("preset", 2);
+            fidelity = Mathf.Clamp(Prefs.HasKey(Prefix + "fidelity") ? I("fidelity", 2) : preset < 4 ? preset : 2, 0, 3);
         }
 
         // ------------------------------------------------------------------ storage
@@ -176,11 +201,12 @@ namespace PackTheTrunk
             }
             switch (preset)
             {
-                case 0: Put(0.8f, 1, 1, false, true, false, false); break;
-                case 1: Put(1f, 2, 2, false, true, true, true); break;
+                case 0: Put(0.75f, 1, 1, false, true, false, false); break;
+                case 1: Put(1f, 2, 2, true, true, true, true); break;
                 case 2: Put(1f, 3, 3, true, true, true, true); break;
-                case 3: Put(1.25f, 3, 4, true, true, true, true); break;
+                case 3: Put(1.5f, 3, 4, true, true, true, true); break;
             }
+            if (preset < 4) Prefs.SetInt(Prefix + "fidelity", preset);
             Prefs.SetInt(Prefix + "preset", preset);
             Commit();
         }
@@ -189,7 +215,7 @@ namespace PackTheTrunk
         {
             foreach (var key in new[]
             {
-                "master", "music", "effects", "ambience", "bgmute", "vsync", "framecap", "fov", "uiscale", "preset", "renderscale",
+                "master", "music", "effects", "ambience", "bgmute", "vsync", "framecap", "fov", "uiscale", "preset", "fidelity", "renderscale",
                 "aa", "shadows", "ssao", "outlines", "dof", "bloom", "orbit", "invert", "shake", "hints", "tips", "ghostpal", "textspeed",
                 "xraytoggle", "reducemotion",
             })
@@ -288,23 +314,79 @@ namespace PackTheTrunk
                 data.renderShadows = Shadows > 0;
             }
 
+            int step = Fidelity;
             if (pipeline != null)
             {
                 pipeline.renderScale = Mathf.Clamp(RenderScale, 0.5f, 2f);
                 pipeline.msaaSampleCount = AntiAliasing == 3 ? 4 : 1;
                 int s = Mathf.Clamp(Shadows, 0, 4);
-                pipeline.shadowDistance = new[] { 0f, 35f, 50f, 70f, 90f }[s];
+                pipeline.shadowDistance = new[] { 0f, 35f, 50f, 70f, 70f }[s];
                 pipeline.shadowCascadeCount = new[] { 1, 1, 2, 4, 4 }[s];
-                SetPrivate(pipeline, "m_MainLightShadowmapResolution", new[] { 512, 1024, 2048, 4096, 4096 }[s]);
+                SetPrivate(pipeline, "m_MainLightShadowmapResolution", new[] { 512, 1024, 2048, 4096, 8192 }[s]);
                 SetPrivate(pipeline, "m_SoftShadowsSupported", s >= 2);
+                // UniversalRenderPipeline's SoftShadowQuality: 2 Medium, 3 High (a uniform on desktop, not a variant).
+                SetPrivate(pipeline, "m_SoftShadowQuality", s >= 3 ? 3 : 2);
             }
             foreach (var f in features ?? Enumerable.Empty<ScriptableRendererFeature>())
             {
                 if (f.name == "PTT Ink Outline") f.SetActive(Outlines);
-                else if (f.GetType().Name == "ScreenSpaceAmbientOcclusion") f.SetActive(AmbientOcclusion);
+                else if (f.GetType().Name == "ScreenSpaceAmbientOcclusion")
+                {
+                    f.SetActive(AmbientOcclusion);
+                    ConfigureOcclusion(f, step);
+                }
             }
-            Atmosphere?.ApplySettings(Bloom, DepthOfField);
+            // High forces anisotropic filtering on every texture as the game always has (at least 9x); Ultra forces 16x.
+            QualitySettings.anisotropicFiltering = step >= 2 ? AnisotropicFiltering.ForceEnable : AnisotropicFiltering.Enable;
+            Texture.SetGlobalAnisotropicFilteringLimits(step == 3 ? 16 : 9, 16);
+            // Surface detail in the toon shader: 0 a single cheap grain octave, 1 today's grain and the street's detail, 2 finer still.
+            Shader.SetGlobalFloat(DetailId, step == 0 ? 0f : step == 3 ? 2f : 1f);
+            Atmosphere?.ApplySettings(Bloom, DepthOfField, step);
         }
+
+        static readonly int DetailId = Shader.PropertyToID("_PttDetail");
+
+        /// <summary>
+        /// Ambient occlusion quality follows the fidelity step: half resolution with a Gaussian blur on Medium,
+        /// full resolution with the bilateral blur on High, and 12 samples instead of 8 on Ultra (that variant
+        /// is kept in the build by Assets/Settings/PC_UltraVariants_RPAsset, see ProjectSetup.EnsureUltraVariants).
+        /// </summary>
+        static void ConfigureOcclusion(ScriptableRendererFeature ssao, int step)
+        {
+            var settings = ssao.GetType().GetField("m_Settings", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(ssao);
+            if (settings == null) return;
+            SetInternal(settings, "Downsample", step <= 1);
+            SetInternal(settings, "BlurQuality", step <= 1 ? 1 : 0);   // BlurQualityOptions: High (bilateral) 0, Medium (Gaussian) 1
+            SetInternal(settings, "Samples", step == 3 ? 0 : 1);       // AOSampleOption: High (12) 0, Medium (8) 1
+        }
+
+        /// <summary>What the ambient occlusion is set to right now (for the self-test and the benchmark log).</summary>
+        public static string OcclusionDescription()
+        {
+            var ssao = features?.FirstOrDefault(f => f.GetType().Name == "ScreenSpaceAmbientOcclusion");
+            if (ssao == null) return "none";
+            if (!ssao.isActive) return "off";
+            var settings = ssao.GetType().GetField("m_Settings", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(ssao);
+            object Get(string name) => settings?.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(settings);
+            return $"{Get("Samples")} samples, {((Get("Downsample") as bool?) == true ? "half" : "full")} res, {Get("BlurQuality")} blur";
+        }
+
+        /// <summary>One line with what the renderer is actually set to (logged by the benchmark and checked by the self-test).</summary>
+        public static string RenderDescription()
+        {
+            if (pipeline == null) return "no pipeline";
+            var res = pipeline.GetType().GetField("m_MainLightShadowmapResolution", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(pipeline);
+            return $"scale {pipeline.renderScale:0.##}, MSAA {pipeline.msaaSampleCount}x, AA {Camera?.GetUniversalAdditionalCameraData().antialiasing}, " +
+                   $"shadows {(Camera != null && !Camera.GetUniversalAdditionalCameraData().renderShadows ? "off" : $"{res} x{pipeline.shadowCascadeCount} to {pipeline.shadowDistance:0}m, soft {pipeline.supportsSoftShadows}")}, " +
+                   $"AO {OcclusionDescription()}, aniso {QualitySettings.anisotropicFiltering}, particles {ParticleDensity:0.##}x, " +
+                   $"detail {Shader.GetGlobalFloat(DetailId):0}, {Atmosphere?.Describe()}";
+        }
+
+        public static int ShadowMapResolution =>
+            pipeline?.GetType().GetField("m_MainLightShadowmapResolution", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(pipeline) is object o ? Convert.ToInt32(o) : 0;
+
+        public static float AppliedRenderScale => pipeline != null ? pipeline.renderScale : 0f;
+        public static int AppliedMsaa => pipeline != null ? pipeline.msaaSampleCount : 0;
 
         static void ApplyAudio()
         {
@@ -326,6 +408,8 @@ namespace PackTheTrunk
             var r = Resolutions[Mathf.Clamp(index, 0, Resolutions.Count - 1)];
             Screen.SetResolution(r.width, r.height, mode);
         }
+
+        static void SetInternal(object target, string field, object value) => SetPrivate(target, field, value);
 
         static void SetPrivate(object target, string field, object value)
         {

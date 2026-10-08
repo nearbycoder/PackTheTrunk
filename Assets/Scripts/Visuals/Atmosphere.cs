@@ -113,12 +113,28 @@ namespace PackTheTrunk
             UpdateFocus();
         }
 
-        public void ApplySettings(bool bloomOn, bool dofOn)
+        /// <summary>
+        /// Bloom on or off, and its quality from the fidelity step: Medium and below blur a quarter-size
+        /// image with the cheaper dual filter, High is the look the game shipped with, Ultra adds
+        /// high-quality (bicubic) upsampling and two more blur passes for a wider, smoother glow.
+        /// </summary>
+        public void ApplySettings(bool bloomOn, bool dofOn, int fidelity = 2)
         {
-            if (bloom != null) bloom.active = bloomOn;
+            if (bloom != null)
+            {
+                bloom.active = bloomOn;
+                bloom.downscale.Override(fidelity <= 1 ? BloomDownscaleMode.Quarter : BloomDownscaleMode.Half);
+                bloom.filter.Override(fidelity <= 1 ? BloomFilterMode.Dual : BloomFilterMode.Gaussian);
+                bloom.highQualityFiltering.Override(fidelity >= 3);
+                bloom.maxIterations.Override(fidelity >= 3 ? 8 : 6);
+            }
             dofEnabled = dofOn;
             UpdateFocus();
         }
+
+        public string Describe() =>
+            $"bloom {(bloom != null && bloom.active ? $"{bloom.filter.value} {bloom.downscale.value}{(bloom.highQualityFiltering.value ? " HQ" : "")} x{bloom.maxIterations.value}" : "off")}, " +
+            $"DOF {(dofEnabled ? "on" : "off")}";
 
         /// <summary>Soft-focus the whole scene behind menus (0 = sharp, 1 = fully blurred).</summary>
         public void SetBlur(float amount) => blurTarget = Mathf.Clamp01(amount);

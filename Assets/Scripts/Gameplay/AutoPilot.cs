@@ -246,6 +246,7 @@ namespace PackTheTrunk
             yield return MouseOnlyChecks(solutions);
             yield return MouseRedoChecks(solutions);
             yield return KeyMenuChecks();
+            yield return FidelityChecks();
             yield return KeyboardOnlyChecks(solutions);
             yield return FavourChecks();
             yield return RebindChecks();
@@ -2457,6 +2458,24 @@ namespace PackTheTrunk
                 $"gamepad menus: on the master volume slider D-pad right raises it ({master:0.00} > {raised:0.00}) and left lowers it ({lowered:0.00}); {string.Join(" > ", visited)}");
             GameSettings.Master = master;
             Uncap();
+
+            // Graphics fidelity with the D-pad: right steps up to Ultra, left back down.
+            visited.Clear();
+            // (The stick takes it to the tab: the D-pad's jumps between the tabs aren't what's being checked here.)
+            yield return PadClick(pad, "Tab GRAPHICS");
+            yield return Wait(0.8f);
+            for (int i = 0; i < 4 && GamepadCursor.LastNavigation != "Fidelity Slider"; i++) yield return Nav(GamepadButton.DpadDown);
+            bool onFidelity = GamepadCursor.LastNavigation == "Fidelity Slider";
+            int fidelityBefore = GameSettings.Fidelity;
+            yield return Nav(GamepadButton.DpadRight);
+            Uncap();
+            int fidelityUp = GameSettings.Fidelity;
+            yield return Nav(GamepadButton.DpadLeft);
+            Uncap();
+            int fidelityDown = GameSettings.Fidelity;
+            Check(onFidelity && fidelityBefore == 2 && fidelityUp == 3 && fidelityDown == 2 && Mathf.Approximately(GameSettings.AppliedRenderScale, 1f),
+                $"gamepad menus: the D-pad reaches the Graphics fidelity slider ({string.Join(" > ", visited)}), right steps High > Ultra ({fidelityBefore} > {fidelityUp}) and left back ({fidelityDown})");
+
             yield return PadPress(pad, GamepadButton.East);
             yield return Wait(0.8f);
             Check(!Visible("Settings Back"), "gamepad menus: B closes Settings");

@@ -36,6 +36,9 @@ Shader "PTT/Toon"
             half _RimStrength;
         CBUFFER_END
 
+        // Graphics fidelity: 0 Low (one cheap grain octave), 1 Medium / High, 2 Ultra (finer surface detail).
+        half _PttDetail;
+
         struct Attributes
         {
             float4 positionOS : POSITION;
@@ -114,9 +117,15 @@ Shader "PTT/Toon"
                 half3 albedo = _BaseColor.rgb * SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
                 if (_Grain > 0)
                 {
-                    // Fade fine detail with distance so it never shimmers.
-                    float fine = 1.0 - saturate(length(i.positionWS - _WorldSpaceCameraPos) / 45.0);
-                    float g = vnoise(i.positionWS * 9.0) * 0.45 * fine + vnoise(i.positionWS * 2.2) * 0.35 + vnoise(i.positionWS * 0.45) * 0.2;
+                    float g;
+                    if (_PttDetail < 0.5)
+                        g = vnoise(i.positionWS * 2.2);
+                    else
+                    {
+                        // Fade fine detail with distance so it never shimmers.
+                        float fine = 1.0 - saturate(length(i.positionWS - _WorldSpaceCameraPos) / 45.0);
+                        g = vnoise(i.positionWS * 9.0) * 0.45 * fine + vnoise(i.positionWS * 2.2) * 0.35 + vnoise(i.positionWS * 0.45) * 0.2;
+                    }
                     albedo *= 1.0 + (g - 0.5) * _Grain;
                 }
 

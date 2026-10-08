@@ -40,6 +40,8 @@ namespace PackTheTrunk
             cloth.GetComponent<MeshFilter>().sharedMesh = mesh;
             var mat = OwnedAssets.Track(root.transform, new Material(MaterialLibrary.Lit(Color.white, 0.05f)) { name = "Blanket" });
             mat.SetTexture("_BaseMap", CachedTexture(sx, sz, Mathf.Abs(seed) % Plaids.Length));
+            var fabric = root.AddComponent<Fabric>();
+            fabric.Init(mat, sx, sz, Mathf.Abs(seed) % Plaids.Length);
             mat.SetFloat("_Grain", 0.12f);
             mat.SetFloat("_RimStrength", 0.15f);
             cloth.GetComponent<MeshRenderer>().sharedMaterial = mat;
@@ -67,6 +69,33 @@ namespace PackTheTrunk
             return root;
         }
 
+        /// <summary>Re-weaves the blanket when the Graphics fidelity step changes its texel density.</summary>
+        class Fabric : MonoBehaviour
+        {
+            Material material;
+            float sx, sz, scale;
+            int plaid;
+
+            public void Init(Material mat, float width, float depth, int plaidIndex)
+            {
+                material = mat;
+                sx = width;
+                sz = depth;
+                plaid = plaidIndex;
+                scale = GameSettings.BlanketTexelScale;
+                GameSettings.Changed += Refresh;
+            }
+
+            void OnDestroy() => GameSettings.Changed -= Refresh;
+
+            void Refresh()
+            {
+                if (material == null || Mathf.Approximately(scale, GameSettings.BlanketTexelScale)) return;
+                scale = GameSettings.BlanketTexelScale;
+                material.SetTexture("_BaseMap", CachedTexture(sx, sz, plaid));
+            }
+        }
+
         static Mesh cubeMesh;
 
         static Mesh CubeMesh
@@ -87,7 +116,7 @@ namespace PackTheTrunk
 
         static Texture2D CachedTexture(float sx, float sz, int plaid)
         {
-            var key = (Mathf.RoundToInt(sx * 100f), Mathf.RoundToInt(sz * 100f), plaid);
+            var key = (Mathf.RoundToInt(sx * 100f), Mathf.RoundToInt(sz * 100f), plaid * 4 + Mathf.RoundToInt(GameSettings.BlanketTexelScale));
             if (cachedTexture != null && cachedKey == key) return cachedTexture;
             // The old blanket's material is destroyed along with its level this same frame.
             if (cachedTexture != null) Object.Destroy(cachedTexture);
@@ -141,9 +170,12 @@ namespace PackTheTrunk
 
         static Texture2D BuildTexture(float sx, float sz, Plaid plaid)
         {
-            int w = Mathf.Clamp(Mathf.RoundToInt(sx * TexelsPerUnit), 64, 2048);
-            int h = Mathf.Clamp(Mathf.RoundToInt(sz * TexelsPerUnit), 64, 2048);
-            var tex = new Texture2D(w, h, TextureFormat.RGB24, true) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear, anisoLevel = 8 };
+            // Ultra doubles the texel density (and filters at 16x), so the weave stays crisp up close and at 150% render scale.
+            float density = TexelsPerUnit * GameSettings.BlanketTexelScale;
+            int w = Mathf.Clamp(Mathf.RoundToInt(sx * density), 64, 4096);
+            int h = Mathf.Clamp(Mathf.RoundToInt(sz * density), 64, 4096);
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, true)
+                { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear, anisoLevel = GameSettings.BlanketTexelScale > 1f ? 16 : 8 };
             var px = new Color32[w * h];
             const float hem = 0.16f;
 

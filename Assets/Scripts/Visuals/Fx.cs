@@ -55,20 +55,24 @@ namespace PackTheTrunk
             }
         }
 
+        /// <summary>How many of <paramref name="count"/> particles the Graphics fidelity step spawns (at least one).</summary>
+        static int Scaled(int count) => Mathf.Max(1, Mathf.RoundToInt(count * GameSettings.ParticleDensity));
+
         /// <summary>Soft dust ring and a few sparkles where something lands.</summary>
         public static void Land(Vector3 basePosition, Vector3 footprint)
         {
             var fx = Instance;
             float radius = Mathf.Max(footprint.x, footprint.z) * 0.5f;
-            for (int i = 0; i < 14; i++)
+            int puffs = Scaled(14);
+            for (int i = 0; i < puffs; i++)
             {
-                float a = i / 14f * Mathf.PI * 2f + Random.value * 0.3f;
+                float a = i / (float)puffs * Mathf.PI * 2f + Random.value * 0.3f;
                 var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
                 fx.Spawn(Shape.Puff, basePosition + dir * radius * 0.8f + Vector3.up * 0.08f, dir * Random.Range(1.2f, 2.2f) + Vector3.up * 0.3f,
                     Random.Range(0.35f, 0.6f), Random.Range(0.25f, 0.45f), 1.8f, new Color(0.95f, 0.9f, 0.82f, 0.55f), 0f, 4f);
             }
             fx.Spawn(Shape.Ring, basePosition + Vector3.up * 0.05f, Vector3.zero, 0.45f, radius * 1.2f, radius * 3.5f, new Color(1f, 0.95f, 0.75f, 0.7f), 0f, 0f, billboard: false);
-            for (int i = 0; i < 6; i++)
+            for (int i = 0, n = Scaled(6); i < n; i++)
                 fx.Spawn(Shape.Sparkle, basePosition + new Vector3(Random.Range(-radius, radius), Random.Range(0.3f, 1f), Random.Range(-radius, radius)),
                     Vector3.up * Random.Range(0.6f, 1.4f), Random.Range(0.4f, 0.7f), Random.Range(0.18f, 0.3f), -0.2f, new Color(1f, 0.95f, 0.6f, 1f), -0.5f, 1f);
         }
@@ -77,7 +81,7 @@ namespace PackTheTrunk
         public static void Twinkle(Vector3 position)
         {
             var fx = Instance;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0, n = Scaled(5); i < n; i++)
                 fx.Spawn(Shape.Sparkle, position + Random.insideUnitSphere * 0.5f, Random.insideUnitSphere * 0.6f + Vector3.up,
                     Random.Range(0.35f, 0.55f), Random.Range(0.15f, 0.25f), -0.1f, new Color(1f, 1f, 0.8f, 1f), 0f, 1.5f);
         }
@@ -87,6 +91,7 @@ namespace PackTheTrunk
         {
             var fx = Instance;
             Color[] colors = { new Color(1f, 0.36f, 0.4f), new Color(1f, 0.8f, 0.26f), new Color(0.33f, 0.78f, 0.5f), new Color(0.3f, 0.6f, 1f), new Color(0.75f, 0.45f, 1f) };
+            count = Scaled(count);
             for (int i = 0; i < count; i++)
             {
                 var v = Random.insideUnitSphere * 5f;
