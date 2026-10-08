@@ -248,8 +248,9 @@ namespace PackTheTrunk
                 padBindLabels.Add((action, label));
             }
             var fixedLine = UiTheme.Label("Pad Fixed", grid, "Always: L-STICK + A point and click  ·  B back  ·  MENU pause  ·  LB the other way / redo  ·  R-STICK, LT RT look and zoom",
-                UiTheme.Body, 20, UiTheme.InkSoft, TextAnchor.MiddleLeft);
-            fixedLine.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -536), new Vector2(0, -500));
+                UiTheme.Body, 20, UiTheme.InkSoft, TextAnchor.UpperLeft);
+            // Hangs from where one centred line's top was, with room below for a second on a small window.
+            fixedLine.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -578), new Vector2(0, -506));
             settingsHint.text = "Mouse: right-click turns, the wheel picks a shelf, right-drag looks around. Hold SHIFT (or LB) to turn the other way.";
         }
 

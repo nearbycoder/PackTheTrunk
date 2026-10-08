@@ -132,7 +132,18 @@ namespace PackTheTrunk
 
         readonly Dictionary<RectTransform, int> hintRank = new Dictionary<RectTransform, int>();
         float hudLayoutWidth = -1f, hudLayoutHeight = -1f;
-        const float ListReserve = 470f, HudMargin = 40f;
+        const float HudMargin = 40f;
+
+        /// <summary>
+        /// Room for the packing list at the right of the HUD. When the 12 px floor makes the list's text bigger than it
+        /// was laid out for (windows under 1024x768), the list widens so a name and two stamps still fit side by side.
+        /// </summary>
+        float ListReserve => 470f + ListExtra;
+        // What the rows asked for: zero wherever every name already fits beside its stamps at a readable size.
+        float ListExtra => listNeed;
+        float listNeed;
+        RectTransform listHolder;
+        float listBuiltWidth = -1f;
 
         /// <summary>
         /// Fit the HUD to the canvas (screen shape and interface size): the key-hint strip keeps to the
@@ -143,8 +154,18 @@ namespace PackTheTrunk
         void LayoutHud()
         {
             float width = root.rect.width;
+            // A new canvas size asks the rows again how much room they need.
+            if (!Mathf.Approximately(width, hudLayoutWidth) || !Mathf.Approximately(root.rect.height, hudLayoutHeight)) listNeed = 0f;
             hudLayoutWidth = width;
             hudLayoutHeight = root.rect.height;
+            // Widen (or narrow back) from the left edge; the slide-in moves both edges, so go by the width.
+            float grow = ListReserve - HudMargin - (listHolder != null ? listHolder.rect.width : ListReserve - HudMargin);
+            if (Mathf.Abs(grow) > 0.5f)
+            {
+                var before = listHolder.anchoredPosition;
+                listHolder.offsetMin -= new Vector2(grow, 0f);
+                listHolder.GetComponent<UiIntro>()?.Shift(listHolder.anchoredPosition - before);
+            }
             float strip = width - 44f - ListReserve - 24f;
             keyHints.sizeDelta = new Vector2(strip, keyHints.sizeDelta.y);
             foreach (var row in new[] { keyboardHintsRow, padHintsRow })
@@ -166,7 +187,7 @@ namespace PackTheTrunk
             PlaceToast();
             if (nowPlaying.gameObject.activeSelf && !PlaceNowPlaying()) RetractNowPlaying();
             // A different canvas height (interface size changed mid-trip, window resized): new rows.
-            if (listItems != null && Mathf.Abs(listViewport.rect.height - listBuiltFor) > 1f)
+            if (listItems != null && (Mathf.Abs(listViewport.rect.height - listBuiltFor) > 1f || Mathf.Abs(listViewport.rect.width - listBuiltWidth) > 1f))
             {
                 BuildListRows(listItems);
                 RefreshHud(listItems, lastRefresh.Held, lastRefresh.CanClose, lastRefresh.AllPacked, lastRefresh.FreeCells);
@@ -254,6 +275,73 @@ namespace PackTheTrunk
             }
             sizes.Sort((a, b) => a.Item3.CompareTo(b.Item3));
             return sizes;
+        }
+
+        /// <summary>
+        /// Texts that don't fit their box (legibility self-test): a word broken across two lines (a label narrower than
+        /// one of its words), or wrapped text taller than its box, which spills into whatever is below it.
+        /// </summary>
+        public List<string> WrapProblems()
+        {
+            var problems = new List<string>();
+            var screen = new Rect(0, 0, Screen.width, Screen.height);
+            foreach (var t in (IsAlbumZoomOpen ? albumZoom : root).GetComponentsInChildren<Text>(false))
+            {
+                if (!t.enabled || string.IsNullOrWhiteSpace(t.text) || t.canvasRenderer.cull) continue;
+                if (t.color.a * t.canvasRenderer.GetInheritedAlpha() < 0.35f) continue;
+                if (!ScreenRect(t.rectTransform).Overlaps(screen) || t.horizontalOverflow != HorizontalWrapMode.Wrap) continue;
+                string name = (t.transform.parent != null ? t.transform.parent.name + "/" : "") + t.name;
+                var lines = t.cachedTextGenerator.lines;
+                // Line starts index the string itself only when there's no markup in it.
+                if (!t.supportRichText || t.text.IndexOf('<') < 0)
+                    for (int i = 1; i < lines.Count; i++)
+                    {
+                        int c = lines[i].startCharIdx;
+                        if (c <= 0 || c >= t.text.Length) continue;
+                        char before = t.text[c - 1], at = t.text[c];
+                        if (char.IsWhiteSpace(before) || char.IsWhiteSpace(at) || before == '-' || before == '/') continue;
+                        int from = c, to = c;
+                        while (from > 0 && !char.IsWhiteSpace(t.text[from - 1])) from--;
+                        while (to < t.text.Length && !char.IsWhiteSpace(t.text[to])) to++;
+                        problems.Add($"{name} breaks \"{t.text.Substring(from, to - from)}\"");
+                        break;
+                    }
+                // Lines the text breaks onto by itself (not the ones it was written with) that its box has no room for;
+                // a third of a line of slack, since a box needn't hold the last line's descenders.
+                int written = 1;
+                foreach (char ch in t.text) if (ch == '\n') written++;
+                if (lines.Count > written && t.preferredHeight > t.rectTransform.rect.height + 0.35f * t.fontSize)
+                    problems.Add($"{name} \"{(t.text.Length > 24 ? t.text.Substring(0, 24) + "…" : t.text).Replace("\n", " ")}\" is {t.preferredHeight - t.rectTransform.rect.height:0} units taller than its box");
+            }
+            return problems;
+        }
+
+        /// <summary>Packing list rows whose name runs into its FRAGILE / EXTRA stamps (layout self-test).</summary>
+        public List<string> ListCrowdedRows()
+        {
+            var problems = new List<string>();
+            var corners = new Vector3[4];
+            foreach (var kv in rows)
+            {
+                var row = kv.Value;
+                if (!row.Stamps.gameObject.activeInHierarchy || row.Stamps.childCount == 0) continue;
+                var rowRt = (RectTransform)row.Name.transform.parent;
+                float nameRight = rowRt.rect.xMin + row.Name.rectTransform.offsetMin.x + row.Name.preferredWidth;
+                float stampsLeft = float.MaxValue, stampsRight = float.MinValue;
+                foreach (RectTransform stamp in row.Stamps)
+                {
+                    stamp.GetWorldCorners(corners);
+                    foreach (var c in corners)
+                    {
+                        float x = rowRt.InverseTransformPoint(c).x;
+                        stampsLeft = Mathf.Min(stampsLeft, x);
+                        stampsRight = Mathf.Max(stampsRight, x);
+                    }
+                }
+                if (nameRight > stampsLeft + 1f) problems.Add($"{kv.Key.Def.Name} runs {nameRight - stampsLeft:0} units into its stamps");
+                else if (stampsRight > rowRt.rect.xMax + 6f) problems.Add($"{kv.Key.Def.Name}'s stamps run {stampsRight - rowRt.rect.xMax:0} units off the list");
+            }
+            return problems;
         }
 
         /// <summary>One visible text, for the contrast check.</summary>
@@ -513,7 +601,7 @@ namespace PackTheTrunk
 
         static string SealsLine(int sealedCount, int total) =>
             (sealedCount == 0 ? "Grandpa's seal" : $"Grandpa's seal on {sealedCount} of {total} trips") +
-            "\n<size=21>Three stars without asking him for a hint.</size>";
+            $"\n<size={ReadableText.Tag(21)}>Three stars without asking him for a hint.</size>";
         Func<int, bool> menuUnlocked;
 
         // Chapter card + note
@@ -740,11 +828,13 @@ namespace PackTheTrunk
                 cap.type = Image.Type.Sliced;
                 var kt = UiTheme.Label("K", cap.transform, key, UiTheme.Display, 19, UiTheme.Ink, TextAnchor.MiddleCenter);
                 kt.rectTransform.Fill(2);
+                kt.horizontalOverflow = HorizontalWrapMode.Overflow;
                 UiKit.Size(cap, Mathf.Max(40, kt.preferredWidth + 20), 36);
+                FitToText.Attach(cap, kt, 20f, 40f);
                 var lt = UiTheme.Label("T", r, text, UiTheme.Body, 21, UiTheme.InkSoft, TextAnchor.MiddleLeft);
-                UiKit.Size(lt, 480, 36);
+                UiKit.Size(lt, 520, 36);
             }
-            Hint("CLICK", "pick something up, then drop it in the trunk");
+            Hint("CLICK", "pick something up, drop it in the trunk");
             Hint("R  T  F", "turn, tip and roll it to fit");
             Hint("WHEEL", "choose a shelf when there's a gap");
 
@@ -1316,7 +1406,7 @@ namespace PackTheTrunk
 
             // Packing checklist on a taped notepad.
             var list = UiTheme.Card("Packing List", hud, UiTheme.Paper, 1f);
-            ((RectTransform)list.parent).Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-470, 40), new Vector2(-40, -118));
+            listHolder = ((RectTransform)list.parent).Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-470, 40), new Vector2(-40, -118));
             UiMotion.Intro(list.parent, new Vector2(620, 0), 0.08f, 0.96f, 6f, 0.65f);
             UiTheme.Tape(list, new Vector2(0.5f, 1f), new Vector2(0, -2), 2f, 170f);
             var margin = UiKit.Image("Margin", list, new Color(0.95f, 0.45f, 0.45f, 0.45f), false);
@@ -1441,6 +1531,10 @@ namespace PackTheTrunk
             ShowOnly(hud);
             HideHudForCutscene(false);
             tagTrip.text = $"TRIP {level.Index + 1}  ·  {(level.Trip ?? "").ToUpperInvariant()}  ·  {level.Vehicle.ToUpperInvariant()}";
+            // On a small window's bigger text, drop the car, then the month, rather than wrap into the title.
+            string place = (level.Trip ?? "").Split('·').Last().Trim().ToUpperInvariant();
+            if (tagTrip.preferredWidth > tagTrip.rectTransform.rect.width) tagTrip.text = $"TRIP {level.Index + 1}  ·  {(level.Trip ?? "").ToUpperInvariant()}";
+            if (tagTrip.preferredWidth > tagTrip.rectTransform.rect.width) tagTrip.text = $"TRIP {level.Index + 1}  ·  {place}";
             tagTitle.text = level.Title;
             tagBlurb.text = level.Blurb;
             listFrom.text = string.IsNullOrEmpty(level.PackFor) ? "" : "for " + level.PackFor;
@@ -1458,6 +1552,9 @@ namespace PackTheTrunk
             }
             keyHints.gameObject.SetActive(GameSettings.KeyHints);
             BuildFragileTags(items);
+            // A new trip's rows say again how wide the list needs to be.
+            listItems = null;
+            if (listNeed > 0f) { listNeed = 0f; LayoutHud(); }
             BuildListRows(items);
             ShowResultsPanel(false);
         }
@@ -1477,6 +1574,9 @@ namespace PackTheTrunk
             UiKit.Clear(itemList);
             float available = listViewport.rect.height > 50f ? listViewport.rect.height : 1080f - 118f - 40f - 214f - 114f;
             listBuiltFor = available;
+            listBuiltWidth = listViewport.rect.width;
+            float listWidth = 430f + ListExtra;
+            float need = 0f;
             // Never below a readable 20 units (or 12 screen pixels of text); if that doesn't fit, the list
             // scrolls instead.
             int minFont = Mathf.Max(14, MinReadableFont);
@@ -1527,16 +1627,6 @@ namespace PackTheTrunk
                 swatch.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(82, 0), new Vector2(14, 14));
                 swatch.raycastTarget = false;
                 int stampCount = (item.Def.Fragile ? 1 : 0) + (item.IsBonus ? 1 : 0);
-                var name = UiTheme.Label("Name", rowRt, item.Def.Name, UiTheme.Hand, fontSize, UiTheme.Ink, TextAnchor.MiddleLeft);
-                name.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(96, 0), new Vector2(-8 - stampCount * 74, 0));
-                name.horizontalOverflow = HorizontalWrapMode.Overflow;
-                // Shrink to stay on one line beside the stamps.
-                float room = 430f - 36f - 96f - 8f - stampCount * 74f;
-                while (name.fontSize > minFont && name.preferredWidth > room) name.fontSize--;
-                var strike = UiKit.Image("Strike", rowRt, new Color(UiTheme.Ink.r, UiTheme.Ink.g, UiTheme.Ink.b, 0.55f), false);
-                strike.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(92, -1), new Vector2(Mathf.Min(name.preferredWidth, 300f - stampCount * 74f) + 10, 3));
-                strike.raycastTarget = false;
-
                 var stamps = UiKit.Rect("Stamps", rowRt).Place(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-170, 0), new Vector2(-4, 0));
                 UiKit.Horizontal(stamps.gameObject, 6, TextAnchor.MiddleRight);
                 // Stamps are 28 units tall; on short rows they get a thinner border rather than smaller
@@ -1546,10 +1636,36 @@ namespace PackTheTrunk
                 if (item.Def.Fragile) UiTheme.StampLabel(stamps, "FRAGILE", UiTheme.Stamp, stampFont, -5f, stampPad);
                 if (item.IsBonus) UiTheme.StampLabel(stamps, "EXTRA", new Color(0.85f, 0.6f, 0.1f), stampFont, 4f, stampPad);
                 stamps.localScale = Vector3.one * Mathf.Clamp01((rowHeight + 2f) / (stampFont + stampPad + 2f));
+                // 74 units a stamp, or what the stamps really need when the text floor makes them bigger.
+                float stampsWidth = 0f;
+                foreach (Transform st in stamps) stampsWidth += st.GetComponent<LayoutElement>().preferredWidth;
+                stampsWidth = (stampsWidth + 6f * Mathf.Max(0, stampCount - 1)) * stamps.localScale.x;
+                float reserve = Mathf.Max(stampCount * 74f, stampCount > 0 ? stampsWidth + 8f : 0f);
+                if (reserve + 4f > 166f) stamps.offsetMin = new Vector2(-reserve - 4f, 0f);
+
+                var name = UiTheme.Label("Name", rowRt, item.Def.Name, UiTheme.Hand, fontSize, UiTheme.Ink, TextAnchor.MiddleLeft);
+                name.rectTransform.Place(Vector2.zero, Vector2.one, new Vector2(96, 0), new Vector2(-8 - reserve, 0));
+                name.horizontalOverflow = HorizontalWrapMode.Overflow;
+                // Shrink to stay on one line beside the stamps.
+                float room = listWidth - 36f - 96f - 8f - reserve;
+                while (name.fontSize > minFont && name.preferredWidth > room) name.fontSize--;
+                need = Mathf.Max(need, name.preferredWidth - room);
+                var strike = UiKit.Image("Strike", rowRt, new Color(UiTheme.Ink.r, UiTheme.Ink.g, UiTheme.Ink.b, 0.55f), false);
+                strike.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(92, -1), new Vector2(Mathf.Min(name.preferredWidth, 300f + ListExtra - reserve) + 10, 3));
+                strike.raycastTarget = false;
+                stamps.SetAsLastSibling();
 
                 rows[item] = new ItemRow { Marker = marker, Check = check, Strike = strike, Name = name, Stamps = stamps, StrikeWidth = strike.rectTransform.sizeDelta.x };
             }
             LayoutRebuilder.ForceRebuildLayoutImmediate(itemList);
+            // A name that can't shrink any further beside its stamps (a small window's floor): widen the list for it
+            // and lay the HUD out again, which builds the rows once more at the new width.
+            if (need > 0.5f && listNeed < 320f)
+            {
+                listNeed = Mathf.Min(320f, listNeed + need + 6f);
+                Debug.Log($"[Layout] the packing list is {listNeed:0} units wider at {Screen.width}x{Screen.height}, {GameSettings.UiScale * 100f:0}% (names at {minFont} units beside their stamps)");
+                LayoutHud();
+            }
         }
 
         /// <summary>Scroll the packing list so this item's row is fully in view.</summary>
@@ -1608,7 +1724,7 @@ namespace PackTheTrunk
 
             countsReq = req;
             countsBonus = bonus;
-            countsText.text = CountsLine(reqDone, req, bonusDone, bonus);
+            FitCounts(reqDone, req, bonusDone, bonus);
             SetMeter(GameController.StarRating(reqDone == req, bonusDone, bonus));
             spaceTarget = Mathf.Clamp01(1f - freeCells / (float)totalSpace);
             spaceText.text = freeCells == 0 ? "not a single inch to spare!" : $"{freeCells} space{(freeCells == 1 ? "" : "s")} left in the trunk";
@@ -1621,15 +1737,22 @@ namespace PackTheTrunk
 
         static readonly string CountsGood = UiKit.Hex(UiTheme.Good), CountsInk = UiKit.Hex(UiTheme.Ink), CountsGold = UiKit.Hex(new Color(0.8f, 0.55f, 0.05f));
 
-        static string CountsLine(int reqDone, int req, int bonusDone, int bonus) =>
-            $"Essentials <b><color={(reqDone == req ? CountsGood : CountsInk)}>{reqDone}/{req}</color></b>      " +
+        static string CountsLine(int reqDone, int req, int bonusDone, int bonus, string gap = "      ") =>
+            $"Essentials <b><color={(reqDone == req ? CountsGood : CountsInk)}>{reqDone}/{req}</color></b>{gap}" +
             $"Extras <b><color={CountsGold}>{bonusDone}/{bonus}</color></b>";
+
+        /// <summary>The counts line, with a narrower gap when the wide one doesn't fit (a small window's bigger text).</summary>
+        void FitCounts(int reqDone, int req, int bonusDone, int bonus)
+        {
+            countsText.text = CountsLine(reqDone, req, bonusDone, bonus);
+            if (countsText.preferredWidth > countsText.rectTransform.rect.width) countsText.text = CountsLine(reqDone, req, bonusDone, bonus, "   ");
+        }
 
         /// <summary>How far the widest counts line this trip can show runs past its one line, in canvas units (layout self-test).</summary>
         public float CountsOverflow()
         {
             string saved = countsText.text;
-            countsText.text = CountsLine(countsReq, countsReq, countsBonus, countsBonus);
+            FitCounts(countsReq, countsReq, countsBonus, countsBonus);
             float over = countsText.preferredWidth - countsText.rectTransform.rect.width;
             countsText.text = saved;
             return over;
@@ -1740,7 +1863,9 @@ namespace PackTheTrunk
 
         public bool TipVisible => tipShown;
 
-        const float TipLeft = 744f, TipTop = -128f, TipRightMargin = 490f;
+        const float TipLeft = 744f, TipTop = -128f;
+        // Clear of the packing list (and of a list widened for a small window).
+        float TipRightMargin => ListReserve + 20f;
 
         Vector2 tipHome = new Vector2(TipLeft, TipTop);
 
@@ -1924,6 +2049,9 @@ namespace PackTheTrunk
                 while (cap.fontSize > minFont && cap.preferredWidth > lineWidth) cap.fontSize--;
                 int lines = cap.preferredWidth > lineWidth ? 2 : 1;
                 float capHeight = Mathf.Max(38f * k, lines * cap.fontSize * 1.05f + 4f);
+                // A long title on a small window can take a third line: give it the room.
+                float capNeed = HeightAt(cap, lineWidth);
+                if (capNeed > capHeight + 0.35f * cap.fontSize) capHeight = capNeed;
                 cap.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, yearTop - 2f), new Vector2(-4, yearTop - 2f + capHeight));
                 var year = UiTheme.Label("Year", polaroid, level.Year > 0 ? level.Year.ToString() : "", UiTheme.Body, yearFont, UiTheme.InkSoft, TextAnchor.LowerCenter);
                 year.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, 4f * k), new Vector2(-4, yearTop));
@@ -1950,6 +2078,15 @@ namespace PackTheTrunk
                     swatch.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(10f * k, photoBottom), new Vector2(-10f * k, -10f * k));
                     var v = UiTheme.Label("Vehicle", swatch.transform, level.Vehicle, UiTheme.Display, Mathf.Max(Mathf.RoundToInt(18f * k), minFont), Color.white, TextAnchor.MiddleCenter);
                     v.rectTransform.Fill(6);
+                    // A placeholder: if a word of it can't fit the polaroid at a readable size, leave the colour alone.
+                    var probe = v.text;
+                    foreach (var word in probe.Split(' '))
+                    {
+                        v.text = word;
+                        if (v.preferredWidth > photoArea.x - 12f) { probe = ""; break; }
+                    }
+                    v.text = probe;
+                    if (probe.Length > 0 && HeightAt(v, photoArea.x - 12f) > photoArea.y - 12f + 0.35f * v.fontSize) v.text = "";
                 }
                 if (SealedFor != null && SealedFor(level.Index))
                     UiTheme.Seal(polaroid, 40f * k).Pin(new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-12f * k, -12f * k), new Vector2(40f * k, 40f * k));
@@ -1972,7 +2109,7 @@ namespace PackTheTrunk
             yield return new WaitForSeconds(0.8f);
             int sealedCount = SealCount(levels);
             albumThanks.text = albumFinale ? "Thank you for packing with us." : "Every trip you pack adds a photo." +
-                (sealedCount > 0 ? $"\n<size=28>Grandpa's seal on {sealedCount} of {levels.Count}.</size>" : "");
+                (sealedCount > 0 ? $"\n<size={ReadableText.Tag(28)}>Grandpa's seal on {sealedCount} of {levels.Count}.</size>" : "");
             albumDone.gameObject.SetActive(true);
         }
 
@@ -2113,6 +2250,8 @@ namespace PackTheTrunk
             stampInner.rectTransform.Fill(5);
             resultsTitle = UiTheme.Label("Title", stampInner.transform, "", UiTheme.Display, 40, UiTheme.Stamp, TextAnchor.UpperCenter);
             resultsTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -64), new Vector2(-10, -14));
+            // Drawn as large text (Lilita One is bold), so it keeps 19 px and the large-text contrast rule on a small window.
+            ReadableText.KeepLarge(resultsTitle);
             resultsStars = UiKit.Rect("Stars", stampInner.transform).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(10, 20), new Vector2(-10, -70));
             UiKit.Horizontal(resultsStars.gameObject, 10, TextAnchor.MiddleCenter);
 
@@ -2181,6 +2320,10 @@ namespace PackTheTrunk
         /// <summary>Is the postcard showing Grandpa's seal (self-test)?</summary>
         public bool ResultsShowSeal => resultsSeal.gameObject.activeSelf && resultsSealMark.gameObject.activeSelf;
 
+        /// <summary>How tall a text would be at this width.</summary>
+        static float HeightAt(Text t, float width) =>
+            t.cachedTextGeneratorForLayout.GetPreferredHeight(t.text, t.GetGenerationSettings(new Vector2(width, 0f))) / Mathf.Max(0.0001f, t.pixelsPerUnit);
+
         public void ShowResults(LevelDef level, int stars, int reqDone, int req, int bonusDone, int bonus, IEnumerable<string> leftBehind, bool hasNext,
             bool sealEarned, bool sealNudge)
         {
@@ -2189,8 +2332,11 @@ namespace PackTheTrunk
             resultsSealMark.gameObject.SetActive(sealEarned);
             resultsSealMark.localScale = sealEarned ? Vector3.zero : Vector3.one;
             resultsSealText.color = sealEarned ? UiTheme.Ink : UiTheme.InkSoft;
-            resultsSealText.text = sealEarned ? "Grandpa's seal!\n<size=22>Packed without a single hint.</size>" : "<size=23>Three stars without a hint\nearns Grandpa's seal.</size>";
+            resultsSealText.text = sealEarned ? $"Grandpa's seal!\n<size={ReadableText.Tag(22)}>Packed without a single hint.</size>" : $"<size={ReadableText.Tag(23)}>Three stars without a hint\nearns Grandpa's seal.</size>";
             UiKit.Size(resultsSealText, sealEarned ? 250 : 340, 96);
+            // Beside the wax seal there's no more room: a small window's bigger text gets a shorter line, not a third one.
+            if (sealEarned && HeightAt(resultsSealText, 250f) > 96f + 0.35f * resultsSealText.fontSize)
+                resultsSealText.text = $"Grandpa's seal!\n<size={ReadableText.Tag(22)}>Not a single hint.</size>";
             ShowResultsPanel(true);
             resultsShownAt = UiTime.Now;
             // The postcard's buttons sit where the key hints are.
@@ -2207,7 +2353,7 @@ namespace PackTheTrunk
             var behind = leftBehind.ToList();
             bool gnome = level.Required.Concat(level.Bonus).Any(d => d.Id == "gnome");
             leftBehindText.text = behind.Count == 0 ? (gnome ? "Nothing left behind. Not even the gnome." : "Nothing left behind. Not one thing.") : "Left on the curb: " + string.Join(", ", behind) + ".";
-            resultsCounts.text = $"Essentials  <b>{reqDone}/{req}</b>\nExtras  <b>{bonusDone}/{bonus}</b>\n<size=21>{(level.Title.Contains(level.Vehicle) ? "" : level.Vehicle + " · ")}{level.Title}{(level.Year > 0 ? " · " + level.Year : "")}</size>";
+            resultsCounts.text = $"Essentials  <b>{reqDone}/{req}</b>\nExtras  <b>{bonusDone}/{bonus}</b>\n<size={ReadableText.Tag(21)}>{(level.Title.Contains(level.Vehicle) ? "" : level.Vehicle + " · ")}{level.Title}{(level.Year > 0 ? " · " + level.Year : "")}</size>";
             nextLabel.text = hasNext ? "NEXT TRIP" : "THE END";
             resultsKeys.text = hasNext ? "<b>SPACE</b>  next trip      <b>R</b>  try again      <b>ESC</b>  map" : "<b>SPACE</b>  the end      <b>R</b>  try again      <b>ESC</b>  map";
 

@@ -50,6 +50,13 @@ namespace PackTheTrunk
         /// <summary>The smallest font size, in canvas units, that comes out at this many screen pixels (12 by default) at this scale.</summary>
         public static int Floor(float scaleFactor, float pixels = MinPixels) => Mathf.CeilToInt(pixels / Mathf.Max(0.01f, scaleFactor) - 0.05f);
 
+        /// <summary>
+        /// A size for a &lt;size=…&gt; tag inside a label (a smaller second line), at least the floor at the current
+        /// scale. Tags are part of the text, so the label's own floor doesn't reach them; code that builds such a
+        /// text calls this each time it sets it.
+        /// </summary>
+        public static int Tag(int units) => lastFactor > 0f ? Mathf.Max(units, Floor(lastFactor)) : units;
+
         /// <summary>Called every frame by the UI with its canvas scale; only does work when the scale changes.</summary>
         public static void Follow(float scaleFactor)
         {
@@ -71,6 +78,34 @@ namespace PackTheTrunk
             if (canvas == null || canvas.rootCanvas.renderMode == RenderMode.WorldSpace) return;
             e.Applied = Mathf.Max(e.Base, Floor(scaleFactor, e.MinPixels));
             if (t.fontSize != e.Applied) t.fontSize = e.Applied;
+        }
+    }
+
+    /// <summary>
+    /// Keeps a layout element as wide as its label (plus padding) whenever the label's size changes, which the 12 px
+    /// floor does on a small window. Keycaps are sized from their text when they're built, before the floor is known.
+    /// </summary>
+    public class FitToText : MonoBehaviour
+    {
+        public Text Label;
+        public float Pad, Min;
+        int size = -1;
+        LayoutElement element;
+
+        public static void Attach(Component target, Text label, float pad, float min = 0f)
+        {
+            var fit = target.gameObject.AddComponent<FitToText>();
+            fit.Label = label;
+            fit.Pad = pad;
+            fit.Min = min;
+        }
+
+        void LateUpdate()
+        {
+            if (Label == null || Label.fontSize == size) return;
+            size = Label.fontSize;
+            if (element == null) element = GetComponent<LayoutElement>();
+            if (element != null) element.preferredWidth = Mathf.Max(Min, Label.preferredWidth + Pad);
         }
     }
 }

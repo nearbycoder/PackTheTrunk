@@ -1741,6 +1741,7 @@ namespace PackTheTrunk
                 float countsOver = game.Ui.CountsOverflow(), meterGap = game.Ui.MeterGapToHeading();
                 if (countsOver > 0f) problems.Add($"the counts line is {countsOver:0} units too wide for one line");
                 if (meterGap < 4f) problems.Add($"the star meter is {-meterGap:0} units into the heading");
+                problems.AddRange(game.Ui.ListCrowdedRows().Take(4));
                 var wrapped = game.Ui.WrappedKeyHints();
                 if (wrapped.Count > 0) problems.Add("key hints wrap onto two lines: " + string.Join(", ", wrapped));
                 Check(problems.Count == 0, $"layout {size} at {scale * 100:0}%: " + (problems.Count == 0 ? $"{names.Count} HUD pieces, {rows.Count} list rows of {smallest:0} units{(game.Ui.ListScrolls ? " (scrolling)" : "")}, counts line {-countsOver:0} units spare, star meter {meterGap:0} clear of the heading, all clear" : string.Join("; ", problems)));
@@ -1847,6 +1848,8 @@ namespace PackTheTrunk
                 var small = sizes.Where(x => x.Px < MinPx - 0.05f).Select(x => $"{x.Name} {x.Px:0.0}").Distinct().Take(8).ToList();
                 Check(small.Count == 0, $"legibility {size} {screen}: smallest text {px:0.0} px (\"{Short(text.Replace("\n", " "))}\" in {name}), {sizes.Count} texts" +
                     (small.Count > 0 ? "; under 12 px: " + string.Join(", ", small) : ""));
+                var wraps = game.Ui.WrapProblems().Distinct().ToList();
+                Check(wraps.Count == 0, $"wrapping {size} {screen}: " + (wraps.Count == 0 ? "no text breaks a word or spills out of its box" : string.Join("; ", wraps.Take(6))));
                 yield return ContrastCheck($"{size} {screen}");
             }
 

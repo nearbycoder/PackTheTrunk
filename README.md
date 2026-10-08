@@ -110,7 +110,8 @@ arrows walk the packing list and the buttons, and Enter on a row picks that thin
 out of the trunk). Holding it, the arrows move it **one square at a time** across the trunk (↑ away
 from the camera, ↓ towards you, ← / → sideways), the usual keys turn, tip, roll and pick a shelf
 (`W` / `S`), **Enter** drops it and `Esc` puts it back. The key hints switch to ARROWS and ENTER while
-you do. An arrow key you've bound to a packing action keeps that job.
+you do, and the pause card's HOW TO PACK list has an ARROWS · ENTER row, so it's written down even with the
+key hints off. An arrow key you've bound to a packing action keeps that job.
 
 Every keyboard key above (except `Esc` and `Shift`) can be changed in **Settings → Controls**:
 click a key and press the new one. A key that's already taken swaps with it, and **Defaults**
@@ -230,9 +231,12 @@ Also in the box:
   scrolls (and follows whatever you're holding).
 - **Readable on small screens.** Until you pick an interface size, it follows the screen: a Steam
   Deck–sized 1280×800 window starts at 110%, and every text in the game comes out at 12 screen
-  pixels or more there, in a 1280×720 window and in a 1024×768 one (the smallest Settings offers),
-  checked screen by screen by the self-test (Valve's recommended minimum). On windows that small the
-  tiniest labels grow just enough to stay at 12 pixels; picking a smaller interface size still shrinks
+  pixels or more there, in a 1280×720 window, in a 1024×768 one (the smallest Settings offers) and in
+  an 800×600 window (smaller than Settings offers, but a window can be dragged that small), checked
+  screen by screen by the self-test (Valve's recommended minimum). On windows that small the
+  tiniest labels grow just enough to stay at 12 pixels, the packing list widens so a name and its
+  FRAGILE / EXTRA stamps still fit side by side, and the self-test checks that no word is broken across
+  two lines and no wrapped text runs out of its box; picking a smaller interface size still shrinks
   everything evenly.
   The same pass measures every text's contrast against what's actually behind it on screen and
   holds it to WCAG's 4.5:1 (3:1 for large or bold text): orange and teal words use deeper inks,
@@ -491,10 +495,10 @@ the autopilot (330 checks) passes every trip. Still rough or missing:
 - **The trailer, poster and teaser are the v0.1.0 cut.** They don't show the HINT button, the star
   meter, Grandpa's seal, dragging or the round-7 contrast look (outlined button labels, deeper
   orange). The README screenshots were refreshed in round 8 and show the game as it looks now.
-- **Small screens are checked, not seen.** Text size and contrast were measured at 1024×768, 1280×720,
-  1280×800 (Steam Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has looked at the game
-  on a real Deck. Windows narrower than 1024 pixels (which Settings doesn't offer, but a resized window
-  can be) aren't measured. The contrast check reads each
+- **Small screens are checked, not seen.** Text size, wrapping and contrast were measured at 800×600,
+  1024×768, 1280×720, 1280×800 (Steam Deck), 1440×900, 1600×900, 1200×900 and 2100×900, but nobody has
+  looked at the game on a real Deck. Windows smaller than 800×600 (which Settings doesn't offer, but a
+  resized window can be) aren't measured. The contrast check reads each
   text's background from the screen, along the text's own tilt, and uses the text's own colour (a
   `<color>` part inside a line isn't checked separately), and it covers the screens the self-test
   visits, not every possible moment.

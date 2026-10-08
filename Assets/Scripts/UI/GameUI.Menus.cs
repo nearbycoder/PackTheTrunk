@@ -347,9 +347,11 @@ namespace PackTheTrunk
             kt.horizontalOverflow = HorizontalWrapMode.Overflow;
             kt.rectTransform.Fill(2);
             UiKit.Size(cap, Mathf.Max(46, kt.preferredWidth + 24), size + 18);
+            FitToText.Attach(cap, kt, 24f, 46f);
             var lt = UiTheme.Label("T", r, text, UiTheme.Body, size, UiTheme.InkSoft, TextAnchor.MiddleLeft);
             lt.horizontalOverflow = HorizontalWrapMode.Overflow;
             UiKit.Size(lt, lt.preferredWidth + 4, size + 18);
+            FitToText.Attach(lt, lt, 4f);
         }
 
         RectTransform pauseKeys, pauseCard;

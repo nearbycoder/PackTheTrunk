@@ -103,6 +103,12 @@ namespace PackTheTrunk
             Capture();
         }
 
+        /// <summary>The element was moved by this much (resized from one side): land the intro there too.</summary>
+        public void Shift(Vector2 delta)
+        {
+            if (captured) home += delta;
+        }
+
         void OnEnable()
         {
             Capture();

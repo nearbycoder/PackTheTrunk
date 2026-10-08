@@ -63,7 +63,8 @@ namespace PackTheTrunk
             zoomTitle = UiTheme.Label("Title", card, "", UiTheme.Hand, 54, UiTheme.Ink, TextAnchor.UpperLeft);
             zoomTitle.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(40, 96), new Vector2(-250, 166));
             zoomWhen = UiTheme.Label("When", card, "", UiTheme.Body, 25, UiTheme.InkSoft, TextAnchor.UpperLeft);
-            zoomWhen.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(42, 40), new Vector2(-250, 92));
+            // Room for a second line on a small window (it hangs from the top, so one line sits where it always did).
+            zoomWhen.rectTransform.Place(new Vector2(0, 0), new Vector2(1, 0), new Vector2(42, 14), new Vector2(-250, 92));
 
             var stars = UiKit.Rect("Stars", card).Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-236, 104), new Vector2(-40, 156));
             UiKit.Horizontal(stars.gameObject, 6, TextAnchor.MiddleRight);
