@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <title>Pack The Trunk</title>
+    <meta name="description" content="A cozy voxel packing puzzle about one family, thirty years, and one very full trunk. Plays in your browser.">
+    <meta name="theme-color" content="#2A3150">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232A3150'/%3E%3Crect x='6' y='11' width='20' height='14' rx='2' fill='%23FF7A3D'/%3E%3Crect x='12' y='7' width='8' height='5' rx='1.5' fill='none' stroke='%23FFF7E8' stroke-width='2'/%3E%3C/svg%3E">
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #2A3150; color: #FFF7E8;
+                   font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+                   overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+      #game { position: fixed; inset: 0; }
+      #unity-canvas { width: 100%; height: 100%; display: block; background: #2A3150; outline: none; touch-action: none; }
+      .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+                 gap: 14px; text-align: center; padding: 24px 24px 9vh; box-sizing: border-box;
+                 background: linear-gradient(to bottom, rgba(42,49,80,0) 35%, rgba(42,49,80,0.92) 80%), url("poster.jpg") center / cover, #2A3150; }
+      .logo { font-weight: 900; font-size: clamp(34px, 6vw, 72px); line-height: 1; letter-spacing: 1px;
+              text-shadow: 0 3px 0 #2B2938, 0 6px 18px rgba(0,0,0,0.35); }
+      .tagline { color: #F2E6D2; font-size: clamp(14px, 1.8vw, 19px); max-width: 640px; text-shadow: 0 1px 6px rgba(0,0,0,0.6); }
+      #progress { width: min(440px, 72vw); height: 10px; border-radius: 5px; background: rgba(255,247,232,0.2); overflow: hidden; }
+      #progress div { width: 0; height: 100%; background: #FF7A3D; transition: width 0.2s; }
+      #status { color: #F2E6D2; font-size: 15px; min-height: 1.45em; max-width: 680px; }
+      #status.error { color: #FFD2C2; background: rgba(140,30,30,0.85); padding: 10px 16px; border-radius: 8px; }
+      #note { color: #D9CDB8; font-size: 13px; max-width: 560px; display: none; }
+      /* phones and tablets: the game needs a keyboard and mouse, or a gamepad */
+      @media (hover: none) and (pointer: coarse) { #note { display: block; } }
+      #fullscreen { position: fixed; right: 12px; top: 12px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 600;
+                    color: #FFF7E8; background: rgba(42,49,80,0.75); border: 1px solid rgba(255,247,232,0.3); border-radius: 8px;
+                    cursor: pointer; display: none; z-index: 2; }
+      #fullscreen:hover { background: rgba(42,49,80,0.95); }
+    </style>
+  </head>
+  <body>
+    <div id="game"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+    <div id="loading" class="overlay">
+      <div class="logo">PACK THE TRUNK</div>
+      <div class="tagline">A cozy voxel packing puzzle about one family, thirty years, and one very full trunk.</div>
+      <div id="progress"><div></div></div>
+      <div id="status">Loading…</div>
+      <div id="note">Pack The Trunk is played with a mouse and keyboard, or a gamepad. Touch screens aren't supported.</div>
+    </div>
+    <button id="fullscreen" title="Full screen (Esc to leave)">⛶ Full screen</button>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      var loading = document.querySelector("#loading");
+      var statusEl = document.querySelector("#status");
+      var bar = document.querySelector("#progress div");
+      // for Tools/check-pages.mjs and anyone curious: "loading", "running" or "error: ..."
+      window.pttLoad = "loading";
+
+      function fail(msg) {
+        window.pttLoad = "error: " + msg;
+        loading.style.display = "flex";
+        document.querySelector("#progress").style.display = "none";
+        statusEl.className = "error";
+        statusEl.textContent = msg;
+      }
+
+      function showBanner(msg, type) {
+        if (type === "error") fail(msg);
+        else console.warn(msg);
+      }
+
+      // The game draws with WebGL 2: say so plainly if the browser can't, instead of a blank page.
+      var gl = null;
+      try { gl = document.createElement("canvas").getContext("webgl2"); } catch (e) { }
+      if (!gl) {
+        fail("This browser can't run Pack The Trunk: it needs WebGL 2, which is off or unsupported here. " +
+             "Try a current Chrome, Edge or Firefox, and check that hardware acceleration is turned on.");
+      } else {
+        // Sharp on high-DPI screens, up to about 1440p worth of pixels (the Graphics tab's render resolution goes further).
+        var maxPixels = 2560 * 1440;
+        var pixelRatio = function () {
+          var dpr = window.devicePixelRatio || 1;
+          var css = Math.max(1, window.innerWidth * window.innerHeight);
+          return Math.max(1, Math.min(dpr, Math.sqrt(maxPixels / css)));
+        };
+        var buildUrl = "Build";
+        var config = {
+          // test tools only: player arguments in the URL (?arg=-name&arg=value); players never need this
+          arguments: new URLSearchParams(location.search).getAll("arg"),
+          dataUrl: buildUrl + "/WebGL.data.unityweb",
+          frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb",
+          codeUrl: buildUrl + "/WebGL.wasm.unityweb",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "Nearby Games",
+          productName: "Pack The Trunk",
+          productVersion: "0.1.0",
+          showBanner: showBanner,
+          // album photos are written to the browser's storage (IndexedDB) as soon as they're saved
+          autoSyncPersistentDataPath: true,
+          devicePixelRatio: pixelRatio(),
+        };
+
+        var fsButton = document.querySelector("#fullscreen");
+        var fsAllowed = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+        // On the title screen only (the game says which screen is up); elsewhere Settings → Display has it.
+        var syncFsButton = function () {
+          var full = document.fullscreenElement || document.webkitFullscreenElement;
+          var onTitle = window.pttState && window.pttState.mode === "Title";
+          fsButton.style.display = fsAllowed && !full && onTitle && window.pttLoad === "running" ? "block" : "none";
+        };
+        document.addEventListener("fullscreenchange", syncFsButton);
+        document.addEventListener("webkitfullscreenchange", syncFsButton);
+        setInterval(syncFsButton, 500);
+        // right-drag swings the camera: no context menu over the game
+        canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+        canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+
+        var script = document.createElement("script");
+        script.src = buildUrl + "/WebGL.loader.js";
+        script.onload = function () {
+          createUnityInstance(canvas, config, function (progress) {
+            bar.style.width = Math.round(100 * progress) + "%";
+            statusEl.textContent = progress < 0.9 ? "Loading… " + Math.round(100 * progress) + "%" : "Opening the garage…";
+          }).then(function (unityInstance) {
+            window.unityInstance = unityInstance;
+            window.pttLoad = "running";
+            window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
+            loading.style.display = "none";
+            fsButton.onclick = function () { unityInstance.SetFullscreen(1); canvas.focus(); };
+            syncFsButton();
+            canvas.focus();
+          }).catch(function (message) {
+            fail("The game couldn't start. Reload the page to try again; if it keeps happening, the download may be " +
+                 "blocked or the browser out of memory. (" + String(message).split("\n")[0] + ")");
+          });
+        };
+        script.onerror = function () { fail("The game files couldn't be downloaded. Check your connection and reload the page."); };
+        document.body.appendChild(script);
+      }
+    </script>
+  </body>
+</html>
