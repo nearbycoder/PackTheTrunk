@@ -313,8 +313,8 @@ All taken from the game at its Ultra graphics step.
 been deployed). It's the game as it is in `main`, built with Unity's WebGL export, and needs a desktop browser
 with WebGL 2: a mouse and keyboard, or a gamepad. Touch screens aren't supported, as on desktop.
 
-- **Download:** about 48 MB the first time (a 41 MB data file and a 6 MB WebAssembly file); the browser keeps
-  them, so later visits start quicker.
+- **Download:** about 48 MB (a 41 MB data file and a 6 MB WebAssembly file). The game asks the browser to cache
+  the data file, but how much that saves on a later visit hasn't been measured.
 - **Tested in:** headless Chromium 151 and Firefox 157 on Linux, on one machine: the page loads to the title,
   a scripted session plays the first trip with the mouse and keyboard, closes the trunk and saves the photo, and a
   Graphics change and the progress survive a reload (`Tools/check-pages.mjs`). Safari, Windows, macOS, phones and a
