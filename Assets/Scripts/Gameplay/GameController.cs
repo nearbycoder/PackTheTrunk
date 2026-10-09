@@ -555,7 +555,8 @@ namespace PackTheTrunk
             else if (resumed < 0)
             {
                 string undoKey = GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo);
-                string key = undo.Count > 0 ? undoKey : GamepadCursor.Active ? "LB + " + undoKey : "SHIFT + " + undoKey;
+                string key = Web.TouchActive ? (undo.Count > 0 ? "UNDO" : "REDO")
+                    : undo.Count > 0 ? undoKey : GamepadCursor.Active ? "LB + " + undoKey : "SHIFT + " + undoKey;
                 ui.Toast($"Your trunk is empty, but {key} still brings back what you packed.", 4f);
             }
             music.Play(level.Music);
@@ -678,6 +679,12 @@ namespace PackTheTrunk
             bounds.Encapsulate(pileBounds);
             bounds.center = new Vector3(bounds.center.x, 0f, bounds.center.z);
             if (menuPreview) rig.Frame(bounds, true, 0.56f, 0.44f, -34f, 34f);
+            else if (Web.TouchActive)
+            {
+                // the page's touch controls take the bottom-left corner and a row along the bottom
+                float left = Mathf.Clamp(Web.TouchLeft + 0.01f, 0.03f, 0.3f);
+                rig.Frame(bounds, true, 0.74f - (left - 0.03f), left, regionBottom: Mathf.Clamp(Web.TouchBottom + 0.01f, 0.08f, 0.3f));
+            }
             else rig.Frame(bounds, true, 0.74f);
             if (watch.ElapsedMilliseconds > 20) Debug.Log($"[Perf] built {level.Id} in {watch.ElapsedMilliseconds} ms (car {tVehicle}, items {tItems - tVehicle}, pile {tPile - tItems})");
         }
@@ -744,6 +751,7 @@ namespace PackTheTrunk
                 if (paused) ResumeGame();
                 else PauseGame();
             }
+            RunTouchVerbs();
             if (kb != null || Pad.Current != null)
             {
                 bool go = (kb != null && (kb.spaceKey.wasPressedThisFrame || ((kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) && !GamepadCursor.KeyClickedThisFrame))) || Pad.Start;
@@ -837,13 +845,17 @@ namespace PackTheTrunk
             if (mouse == null) return;
             // Items glide every frame; make sure their colliders are where they are drawn.
             Physics.SyncTransforms();
-            var ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+            var ray = cam.ScreenPointToRay(AimPoint(mouse));
+            bool touch = Web.TouchActive;
 
             if (held == null)
             {
                 dragArmed = false;
+                touchPressHeld = false;
                 PackItem hit = null;
-                if (!overUi && AimRaycast(ray, out var info))
+                // A finger only points while it's down.
+                bool pointing = !touch || mouse.leftButton.isPressed;
+                if (!overUi && pointing && AimRaycast(ray, out var info))
                 {
                     hit = info.collider.GetComponentInParent<PackItem>();
                     if (hit != null && hit.State != ItemState.Pile && hit.State != ItemState.Packed) hit = null;
@@ -877,6 +889,11 @@ namespace PackTheTrunk
                 {
                     if (hasTarget && targetValid) PlaceHeld();
                     else if (hasTarget) RefusePlacement();
+                    return;
+                }
+                if (touch)
+                {
+                    TouchDrop(mouse, overUi);
                     return;
                 }
 
@@ -1005,7 +1022,7 @@ namespace PackTheTrunk
         string PackedHint(PackItem item)
         {
             var top = grid.ItemOnTop(item);
-            return top == null ? item.Def.Name + "  (click to take it back out)" : $"{item.Def.Name}  (under the {top.Def.Name})";
+            return top == null ? item.Def.Name + $"  ({(Web.TouchActive ? "touch" : "click")} to take it back out)" : $"{item.Def.Name}  (under the {top.Def.Name})";
         }
 
         // ------------------------------------------------------------------ Targeting
@@ -1300,7 +1317,7 @@ namespace PackTheTrunk
             closeArmedUntil = Time.unscaledTime + 2.2f;
             int left = items.Count(i => i.IsBonus && !IsPacked(i));
             sfx.Error();
-            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Close) : Bindings.Label(Bindings.Action.Close))} again to close anyway.", 2.2f);
+            ui.Toast($"{left} extra{(left == 1 ? "" : "s")} would still fit! {ControlName("CLOSE THE TRUNK", PadBindings.Action.Close, Bindings.Action.Close)} again to close anyway.", 2.2f);
             return false;
         }
 
@@ -1446,7 +1463,7 @@ namespace PackTheTrunk
             sfx.PutBack(vehicle.transform.position);
             RefreshHud();
             SaveTrunk();
-            ui.Toast($"Unpacked everything. {(GamepadCursor.Active ? PadBindings.Label(PadBindings.Action.Undo) : Bindings.Label(Bindings.Action.Undo))} puts it all back.", 3f);
+            ui.Toast($"Unpacked everything. {ControlName("UNDO", PadBindings.Action.Undo, Bindings.Action.Undo)} puts it all back.", 3f);
             Debug.Log($"[Restart] {level.Id}: unpacked {undo.Peek().Count(s => s.Packed)} items in place");
         }
 

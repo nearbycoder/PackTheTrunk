@@ -63,14 +63,28 @@ namespace PackTheTrunk
         // ------------------------------------------------------------------ graphics
         public static readonly string[] Presets = { "Low", "Medium", "High", "Ultra", "Custom" };
 
-        /// <summary>The fidelity step a new save starts on: High, or Medium in the browser (WebGL draws the same frame slower).</summary>
-        public static readonly int DefaultFidelity = Web.IsBrowser ? 1 : 2;
+        /// <summary>
+        /// The fidelity step a new save starts on: High, or Medium in the browser (WebGL draws the same frame slower), or Low
+        /// in a phone's or tablet's browser (fewer and smaller full-screen buffers, for a tab's tight memory limit).
+        /// </summary>
+        public static readonly int DefaultFidelity = Web.IsTouchFirst ? 0 : Web.IsBrowser ? 1 : 2;
+
+        /// <summary>The fine-tune rows each fidelity step sets (a new save's rows are its default step's).</summary>
+        static readonly (float scale, int aa, int shadows, bool ssao, bool outlines, bool dof, bool bloom)[] StepRows =
+        {
+            (0.75f, 1, 1, false, true, false, false),   // Low
+            (1f, 2, 2, false, true, true, true),        // Medium
+            (1f, 3, 3, true, true, true, true),         // High
+            (1.5f, 3, 4, true, true, true, true),       // Ultra
+        };
+
+        static (float scale, int aa, int shadows, bool ssao, bool outlines, bool dof, bool bloom) DefaultRows => StepRows[DefaultFidelity];
 
         /// <summary>A fidelity step (0-3), or 4 once a fine-tune row has been changed.</summary>
         public static int Preset { get => I("preset", DefaultFidelity); set => ApplyPreset(value); }
 
         /// <summary>
-        /// The Graphics fidelity step: 0 Low, 1 Medium (the browser's default), 2 High (the default), 3 Ultra. It sets the fine-tune
+        /// The Graphics fidelity step: 0 Low (the default on phones and tablets), 1 Medium (the browser's default), 2 High (the default), 3 Ultra. It sets the fine-tune
         /// rows below it, and the detail that has no row of its own (ambient occlusion quality, bloom
         /// filtering, blanket texture density, particles, surface detail) follows it even once a row has been
         /// changed (cached: particles read it).
@@ -88,15 +102,15 @@ namespace PackTheTrunk
 
         /// <summary>Picnic blanket texels per unit (Ultra doubles them).</summary>
         public static float BlanketTexelScale => Fidelity == 3 ? 2f : 1f;
-        public static float RenderScale { get => F("renderscale", 1f); set => SetCustom("renderscale", value); }
+        public static float RenderScale { get => F("renderscale", DefaultRows.scale); set => SetCustom("renderscale", value); }
         public static readonly string[] AntiAliasingModes = { "Off", "FXAA", "SMAA", "MSAA 4x + SMAA" };
-        public static int AntiAliasing { get => I("aa", DefaultFidelity >= 2 ? 3 : 2); set => SetCustom("aa", value); }
+        public static int AntiAliasing { get => I("aa", DefaultRows.aa); set => SetCustom("aa", value); }
         public static readonly string[] ShadowModes = { "Off", "Low", "Medium", "High", "Ultra" };
-        public static int Shadows { get => I("shadows", DefaultFidelity >= 2 ? 3 : 2); set => SetCustom("shadows", value); }
-        public static bool AmbientOcclusion { get => B("ssao", DefaultFidelity >= 2); set => SetCustom("ssao", value); }
-        public static bool Outlines { get => B("outlines", true); set => SetCustom("outlines", value); }
-        public static bool DepthOfField { get => B("dof", true); set => SetCustom("dof", value); }
-        public static bool Bloom { get => B("bloom", true); set => SetCustom("bloom", value); }
+        public static int Shadows { get => I("shadows", DefaultRows.shadows); set => SetCustom("shadows", value); }
+        public static bool AmbientOcclusion { get => B("ssao", DefaultRows.ssao); set => SetCustom("ssao", value); }
+        public static bool Outlines { get => B("outlines", DefaultRows.outlines); set => SetCustom("outlines", value); }
+        public static bool DepthOfField { get => B("dof", DefaultRows.dof); set => SetCustom("dof", value); }
+        public static bool Bloom { get => B("bloom", DefaultRows.bloom); set => SetCustom("bloom", value); }
 
         // ------------------------------------------------------------------ gameplay
         public static float OrbitSpeed { get => F("orbit", 1f); set => Set("orbit", value); }
@@ -193,22 +207,16 @@ namespace PackTheTrunk
 
         static void ApplyPreset(int preset)
         {
-            void Put(float scale, int aa, int shadows, bool ssao, bool outlines, bool dof, bool bloom)
+            if (preset >= 0 && preset < StepRows.Length)
             {
-                Prefs.SetFloat(Prefix + "renderscale", scale);
-                Prefs.SetInt(Prefix + "aa", aa);
-                Prefs.SetInt(Prefix + "shadows", shadows);
-                Prefs.SetInt(Prefix + "ssao", ssao ? 1 : 0);
-                Prefs.SetInt(Prefix + "outlines", outlines ? 1 : 0);
-                Prefs.SetInt(Prefix + "dof", dof ? 1 : 0);
-                Prefs.SetInt(Prefix + "bloom", bloom ? 1 : 0);
-            }
-            switch (preset)
-            {
-                case 0: Put(0.75f, 1, 1, false, true, false, false); break;
-                case 1: Put(1f, 2, 2, false, true, true, true); break;
-                case 2: Put(1f, 3, 3, true, true, true, true); break;
-                case 3: Put(1.5f, 3, 4, true, true, true, true); break;
+                var r = StepRows[preset];
+                Prefs.SetFloat(Prefix + "renderscale", r.scale);
+                Prefs.SetInt(Prefix + "aa", r.aa);
+                Prefs.SetInt(Prefix + "shadows", r.shadows);
+                Prefs.SetInt(Prefix + "ssao", r.ssao ? 1 : 0);
+                Prefs.SetInt(Prefix + "outlines", r.outlines ? 1 : 0);
+                Prefs.SetInt(Prefix + "dof", r.dof ? 1 : 0);
+                Prefs.SetInt(Prefix + "bloom", r.bloom ? 1 : 0);
             }
             if (preset < 4) Prefs.SetInt(Prefix + "fidelity", preset);
             Prefs.SetInt(Prefix + "preset", preset);

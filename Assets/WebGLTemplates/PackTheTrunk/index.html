@@ -1,20 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-touch="off">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{{{ PRODUCT_NAME }}}</title>
     <meta name="description" content="A cozy voxel packing puzzle about one family, thirty years, and one very full trunk. Plays in your browser.">
     <meta name="theme-color" content="#2A3150">
+    <!-- added to a phone's home screen, it opens without the browser's bars -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pack The Trunk">
+    <meta name="format-detection" content="telephone=no">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232A3150'/%3E%3Crect x='6' y='11' width='20' height='14' rx='2' fill='%23FF7A3D'/%3E%3Crect x='12' y='7' width='8' height='5' rx='1.5' fill='none' stroke='%23FFF7E8' stroke-width='2'/%3E%3C/svg%3E">
     <style>
+      /* the game's button font (SIL Open Font License: OFL-LilitaOne.txt) */
+      @font-face { font-family: "Lilita One"; src: url("LilitaOne-Regular.ttf") format("truetype"); font-display: swap; }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #2A3150; color: #FFF7E8;
                    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-                   overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
-      #game { position: fixed; inset: 0; }
+                   overscroll-behavior: none; -webkit-user-select: none; user-select: none;
+                   /* a game, not a page: no scrolling, zooming, text selection, long-press callouts or tap flashes */
+                   touch-action: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+      /* clear of a phone's notch, rounded corners and home indicator */
+      #game, #touch { position: fixed; top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px);
+                      bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); }
       #unity-canvas { width: 100%; height: 100%; display: block; background: #2A3150; outline: none; touch-action: none; }
       .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-                 gap: 14px; text-align: center; padding: 24px 24px 9vh; box-sizing: border-box;
+                 gap: 14px; text-align: center; box-sizing: border-box;
+                 padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(9vh, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
                  background: linear-gradient(to bottom, rgba(42,49,80,0) 35%, rgba(42,49,80,0.92) 80%), url("poster.jpg") center / cover, #2A3150; }
       .logo { font-weight: 900; font-size: clamp(34px, 6vw, 72px); line-height: 1; letter-spacing: 1px;
               text-shadow: 0 3px 0 #2B2938, 0 6px 18px rgba(0,0,0,0.35); }
@@ -23,13 +36,62 @@
       #progress div { width: 0; height: 100%; background: #FF7A3D; transition: width 0.2s; }
       #status { color: #F2E6D2; font-size: 15px; min-height: 1.45em; max-width: 680px; }
       #status.error { color: #FFD2C2; background: rgba(140,30,30,0.85); padding: 10px 16px; border-radius: 8px; }
-      #note { color: #D9CDB8; font-size: 13px; max-width: 560px; display: none; }
-      /* phones and tablets: the game needs a keyboard and mouse, or a gamepad */
-      @media (hover: none) and (pointer: coarse) { #note { display: block; } }
-      #fullscreen { position: fixed; right: 12px; top: 12px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 600;
+      #fullscreen { position: fixed; right: calc(12px + env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px));
+                    padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 600;
                     color: #FFF7E8; background: rgba(42,49,80,0.75); border: 1px solid rgba(255,247,232,0.3); border-radius: 8px;
                     cursor: pointer; display: none; z-index: 2; }
       #fullscreen:hover { background: rgba(42,49,80,0.95); }
+      html[data-touch="on"] #fullscreen { padding: 12px 16px; font-size: 15px; }
+
+      /* ---- the on-screen touch controls: only while the last thing used was a finger (see the script) */
+      /* a phone on its side: 46 px buttons (Apple asks for 44 pt at least); a tablet: 60 px */
+      #touch { display: none; z-index: 3; pointer-events: none; --b: 46px; --gap: 6px; --edge: 8px;
+               font-family: "Lilita One", system-ui, sans-serif; }
+      html[data-touch="on"] #touch { display: block; }
+      @media (min-height: 600px) and (min-width: 900px) { #touch { --b: 60px; --gap: 9px; --edge: 14px; } }
+      .tc-group { position: absolute; display: grid; gap: var(--gap); opacity: 0; visibility: hidden;
+                  transition: opacity 0.15s, visibility 0s 0.15s; }
+      #touch[data-play="1"] .tc-play, #touch[data-play="1"][data-held="1"] .tc-held { opacity: 1; visibility: visible; transition: opacity 0.15s; }
+      /* the bottom-left corner: X-ray, hint, menu, undo, redo; beside it along the bottom, what to do with the thing in hand */
+      #tc-left { left: var(--edge); bottom: var(--edge); grid-template-columns: repeat(2, var(--b)); }
+      #tc-held { left: calc(var(--edge) * 2.5 + var(--b) * 2 + var(--gap)); bottom: var(--edge); grid-auto-flow: column; }
+      .tc { pointer-events: auto; position: relative; width: var(--b); height: var(--b); padding: 0; margin: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+            font: inherit; font-size: calc(var(--b) * 0.2); letter-spacing: 0.4px; line-height: 1; color: #FFF7E8;
+            background: rgba(42,49,80,0.86); border: 2px solid #2B2938; border-radius: 14px;
+            box-shadow: 0 3px 0 #2B2938, 0 4px 10px rgba(0,0,0,0.25), inset 0 2px 0 rgba(255,247,232,0.16);
+            text-shadow: 0 1px 0 #2B2938; touch-action: none; -webkit-user-select: none; user-select: none; cursor: pointer;
+            transition: transform 0.06s, box-shadow 0.06s, background 0.06s; }
+      .tc svg { width: 46%; height: 46%; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
+                filter: drop-shadow(0 1px 0 #2B2938); }
+      .tc.wide { width: calc(var(--b) * 2 + var(--gap)); grid-column: span 2; flex-direction: row; gap: 6px; font-size: calc(var(--b) * 0.26); }
+      .tc.wide svg { width: calc(var(--b) * 0.46); height: calc(var(--b) * 0.46); }
+      .tc.hint { background: rgba(255,122,61,0.94); }
+      .tc.undo { background: rgba(41,168,158,0.94); }
+      .tc.xray { background: rgba(70,58,120,0.9); }
+      .tc.back { background: rgba(140,52,52,0.9); }
+      .tc.down, .tc:active { transform: translateY(2px) scale(0.96); box-shadow: 0 1px 0 #2B2938, 0 2px 6px rgba(0,0,0,0.25); }
+      .tc.xray.down { background: #FF7A3D; }
+      .tc[disabled] { opacity: 0.45; }
+      .tc[hidden] { display: none; }
+
+      /* ---- portrait on a phone or tablet: the game is laid out for landscape */
+      #rotate { position: fixed; inset: 0; z-index: 5; display: none; flex-direction: column; align-items: center; justify-content: center;
+                gap: 16px; padding: 24px; box-sizing: border-box; text-align: center; background: rgba(42,49,80,0.97); }
+      @media (orientation: portrait) { html[data-touch="on"] #rotate { display: flex; } }
+      #rotate svg { width: 92px; height: 92px; fill: none; stroke: #FFF7E8; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+                    animation: tilt 2.4s ease-in-out infinite; }
+      @keyframes tilt { 0%, 30% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+      #rotate b { font-family: "Lilita One", system-ui, sans-serif; font-weight: normal; font-size: 26px; letter-spacing: 0.5px; }
+      #rotate span { color: #F2E6D2; font-size: 15px; max-width: 300px; }
+
+      /* ---- after the browser closed the game (on a phone, usually for memory) */
+      #notice { position: fixed; z-index: 4; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+                width: min(560px, calc(100vw - 32px)); box-sizing: border-box; padding: 12px 44px 12px 16px; border-radius: 10px;
+                background: rgba(255,247,232,0.97); color: #2B2938; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+                display: none; }
+      #notice button { position: absolute; right: 6px; top: 6px; width: 34px; height: 34px; border: 0; border-radius: 8px;
+                       background: transparent; color: #2B2938; font-size: 22px; line-height: 1; cursor: pointer; }
     </style>
   </head>
   <body>
@@ -39,16 +101,45 @@
       <div class="tagline">A cozy voxel packing puzzle about one family, thirty years, and one very full trunk.</div>
       <div id="progress"><div></div></div>
       <div id="status">Loading…</div>
-      <div id="note">Pack The Trunk is played with a mouse and keyboard, or a gamepad. Touch screens aren't supported.</div>
     </div>
     <button id="fullscreen" title="Full screen (Esc to leave)">⛶ Full screen</button>
+    <div id="touch" aria-hidden="true">
+      <div class="tc-group tc-play" id="tc-left">
+        <button class="tc wide xray" data-touch="xray" aria-label="X-ray (hold)"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>X-RAY</button>
+        <button class="tc hint" data-touch="hint" aria-label="Ask Grandpa for a hint"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21.5h4M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.6.5.8 1.1.8 1.7h6c0-.6.3-1.2.8-1.7A6.5 6.5 0 0 0 12 2.5z"/></svg>HINT</button>
+        <button class="tc" data-touch="pause" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M8.5 5v14M15.5 5v14"/></svg>MENU</button>
+        <button class="tc undo" data-touch="undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>UNDO</button>
+        <button class="tc" data-touch="redo" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>REDO</button>
+      </div>
+      <div class="tc-group tc-held" id="tc-held">
+        <button class="tc" data-touch="turn" aria-label="Turn"><svg viewBox="0 0 24 24"><path d="M15.5 16.6c-1.1.3-2.2.4-3.5.4-4.4 0-8-1.8-8-4s3.6-4 8-4 8 1.8 8 4c0 .9-.6 1.7-1.6 2.4"/><path d="m12.6 13.6 3 3-3 3"/></svg>TURN</button>
+        <button class="tc" data-touch="tip" aria-label="Tip over"><svg viewBox="0 0 24 24"><path d="M16.6 8.5c.3 1.1.4 2.2.4 3.5 0 4.4-1.8 8-4 8s-4-3.6-4-8 1.8-8 4-8c.9 0 1.7.6 2.4 1.6"/><path d="m13.6 11.4 3-3 3 3"/></svg>TIP</button>
+        <button class="tc" data-touch="roll" aria-label="Roll sideways"><svg viewBox="0 0 24 24"><path d="M19.5 13a7.5 7.5 0 1 1-2.6-6.7"/><path d="M18 2.5v4.5h-4.5"/></svg>ROLL</button>
+        <button class="tc" data-touch="up" aria-label="Higher shelf"><svg viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg>UP</button>
+        <button class="tc" data-touch="down" aria-label="Lower shelf"><svg viewBox="0 0 24 24"><path d="m6 10 6 6 6-6"/></svg>DOWN</button>
+        <button class="tc back" data-touch="back" aria-label="Put it back"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>BACK</button>
+      </div>
+    </div>
+    <div id="rotate" role="alert">
+      <svg viewBox="0 0 64 64"><rect x="20" y="6" width="24" height="44" rx="4"/><path d="M29 44h6"/><path d="M8 40a24 24 0 0 0 16 18" /><path d="m19 56 5 2 1-5"/></svg>
+      <b>Turn it sideways</b>
+      <span>Pack The Trunk is played in landscape. Turn your phone or tablet on its side.</span>
+    </div>
+    <div id="notice" role="alert"><span></span><button aria-label="Close">×</button></div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
       var loading = document.querySelector("#loading");
       var statusEl = document.querySelector("#status");
       var bar = document.querySelector("#progress div");
+      var root = document.documentElement;
       // for Tools/check-pages.mjs and anyone curious: "loading", "running" or "error: ..."
       window.pttLoad = "loading";
+
+      // A phone or tablet: the main pointer is a finger and there's no mouse or trackpad. The game reads this when it
+      // starts (Web.IsTouchFirst: the Low graphics step for a new save), and the page draws fewer pixels and shows the
+      // on-screen controls from the start. Any device shows them after a real touch (see the touch controls below).
+      var touchFirst = matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
+      window.pttTouchFirst = touchFirst;
 
       function fail(msg) {
         window.pttLoad = "error: " + msg;
@@ -63,19 +154,71 @@
         else console.warn(msg);
       }
 
+      var notice = document.querySelector("#notice");
+      function showNotice(text) {
+        notice.querySelector("span").textContent = text;
+        notice.style.display = "block";
+      }
+      notice.querySelector("button").addEventListener("click", function () { notice.style.display = "none"; });
+
+      // ---- a tab the browser closed. A phone's browser closes a tab that uses too much memory, and reloads it when
+      // the player comes back; the page can't catch that, but it can notice it afterwards: while the game runs in
+      // view, localStorage says "running", and leaving the page or switching away says "closed". Still "running" at
+      // the next load means the game stopped without either (a crash or the browser killing it).
+      var guardKey = "ptt.page";
+      var lastRun = null;
+      try { lastRun = JSON.parse(localStorage.getItem(guardKey) || "null"); } catch (e) { }
+      var crashedLastTime = !!(lastRun && lastRun.state === "running" && Date.now() - lastRun.at < 30 * 60 * 1000);
+      var markRun = function (state) { try { localStorage.setItem(guardKey, JSON.stringify({ state: state, at: Date.now() })); } catch (e) { } };
+      markRun("loading");
+      if (crashedLastTime) {
+        showNotice("The game stopped unexpectedly last time" + (touchFirst ? " (on a phone or tablet, the browser closes a tab " +
+          "that runs short of memory), so it starts on the Low graphics step now. Your progress is saved." : ". Your progress is saved."));
+      }
+
+      // ---- the browser's audio starts suspended until a tap or key: resume the game's on the first real one
+      var audioContexts = [];
+      ["AudioContext", "webkitAudioContext"].forEach(function (name) {
+        var Native = window[name];
+        if (!Native) return;
+        var Tracked = function (options) {
+          var ctx = options === undefined ? new Native() : new Native(options);
+          audioContexts.push(ctx);
+          return ctx;
+        };
+        Tracked.prototype = Native.prototype;
+        window[name] = Tracked;
+      });
+      var unlockAudio = function () {
+        audioContexts.forEach(function (ctx) {
+          if (ctx.state === "running" || ctx.state === "closed") return;
+          ctx.resume().catch(function () { });
+          // older iPhones also want a sound started inside the tap
+          try { var src = ctx.createBufferSource(); src.buffer = ctx.createBuffer(1, 1, 22050); src.connect(ctx.destination); src.start(0); } catch (e) { }
+        });
+      };
+      ["touchend", "pointerup", "mousedown", "keydown"].forEach(function (type) {
+        window.addEventListener(type, function (e) { if (e.isTrusted) unlockAudio(); }, true);
+      });
+
       // The game draws with WebGL 2: say so plainly if the browser can't, instead of a blank page.
       var gl = null;
       try { gl = document.createElement("canvas").getContext("webgl2"); } catch (e) { }
       if (!gl) {
         fail("This browser can't run Pack The Trunk: it needs WebGL 2, which is off or unsupported here. " +
-             "Try a current Chrome, Edge or Firefox, and check that hardware acceleration is turned on.");
+             "Try a current Chrome, Edge, Firefox or Safari, and check that hardware acceleration is turned on.");
       } else {
+        gl = null;
         // Sharp on high-DPI screens, up to about 1440p worth of pixels (the Graphics tab's render resolution goes further).
-        var maxPixels = 2560 * 1440;
+        // A phone or tablet draws at most twice its CSS size and about 1.6 million pixels: every full-screen buffer the
+        // renderer keeps grows with the pixel count, and a phone's tab has far less memory than a desktop's.
+        var maxPixels = touchFirst ? 1600000 : 2560 * 1440;
+        var maxRatio = touchFirst ? 2 : 8;
         var pixelRatio = function () {
           var dpr = window.devicePixelRatio || 1;
-          var css = Math.max(1, window.innerWidth * window.innerHeight);
-          return Math.max(1, Math.min(dpr, Math.sqrt(maxPixels / css)));
+          var r = canvas.getBoundingClientRect();
+          var css = Math.max(1, (r.width || window.innerWidth) * (r.height || window.innerHeight));
+          return Math.max(1, Math.min(dpr, maxRatio, Math.sqrt(maxPixels / css)));
         };
         var buildUrl = "Build";
         var config = {
@@ -103,6 +246,9 @@
           autoSyncPersistentDataPath: true,
           devicePixelRatio: pixelRatio(),
         };
+        // On a phone or tablet the data file isn't also copied into the game's own IndexedDB cache (the browser's
+        // HTTP cache still keeps it): one less 40 MB copy while the game starts.
+        if (touchFirst) config.cacheControl = function () { return "no-store"; };
 
         var fsButton = document.querySelector("#fullscreen");
         var fsAllowed = document.fullscreenEnabled || document.webkitFullscreenEnabled;
@@ -115,9 +261,17 @@
         document.addEventListener("fullscreenchange", syncFsButton);
         document.addEventListener("webkitfullscreenchange", syncFsButton);
         setInterval(syncFsButton, 500);
-        // right-drag swings the camera: no context menu over the game
+        // right-drag swings the camera, and a long press is a finger resting: no context menu over the game
         canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
         canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+        // A page that loses its WebGL context (a phone's browser does that when it runs short of graphics memory) can't
+        // get the game back: say so instead of leaving a frozen picture.
+        canvas.addEventListener("webglcontextlost", function (e) {
+          e.preventDefault();
+          markRun("closed");
+          fail("The browser took the game's graphics away, usually because the device ran short of memory. " +
+               "Reload the page to carry on: your progress is saved." + (touchFirst ? " Closing other tabs helps." : ""));
+        });
 
         var script = document.createElement("script");
         script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
@@ -128,19 +282,235 @@
           }).then(function (unityInstance) {
             window.unityInstance = unityInstance;
             window.pttLoad = "running";
-            window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); });
+            window.addEventListener("resize", function () { unityInstance.Module.devicePixelRatio = pixelRatio(); sendTouchMode(); });
             loading.style.display = "none";
-            fsButton.onclick = function () { unityInstance.SetFullscreen(1); canvas.focus(); };
+            fsButton.onclick = function () {
+              unityInstance.SetFullscreen(1);
+              canvas.focus();
+              // Android lets a full-screen page hold landscape
+              if (screen.orientation && screen.orientation.lock) setTimeout(function () { screen.orientation.lock("landscape").catch(function () { }); }, 300);
+            };
             syncFsButton();
             canvas.focus();
+            if (crashedLastTime && touchFirst) unityInstance.SendMessage("WebBridge", "Lighten", "");
+            sendTouchMode();
+            // still "running" at the next load means the browser closed it (see guardKey above)
+            var mark = function () { markRun(document.visibilityState === "visible" ? "running" : "closed"); };
+            mark();
+            setInterval(function () { if (document.visibilityState === "visible") markRun("running"); }, 5000);
+            document.addEventListener("visibilitychange", mark);
+            window.addEventListener("pagehide", function () { markRun("closed"); });
           }).catch(function (message) {
+            markRun("closed");
             fail("The game couldn't start. Reload the page to try again; if it keeps happening, the download may be " +
-                 "blocked or the browser out of memory. (" + String(message).split("\n")[0] + ")");
+                 "blocked or the browser out of memory" + (touchFirst ? " (closing other tabs helps)" : "") + ". (" + String(message).split("\n")[0] + ")");
           });
         };
         script.onerror = function () { fail("The game files couldn't be downloaded. Check your connection and reload the page."); };
         document.body.appendChild(script);
       }
+
+      // ================================================================== touch
+      // A finger on the game reaches it as the mouse: one finger presses, drags and lets go (the game's own touch
+      // handling is held back, so nothing happens twice), and a held thing aims a fingertip above the finger, so the
+      // finger doesn't hide its ghost (GameController.Touch.cs). Two fingers orbit the trunk and pinch to zoom. The
+      // buttons (#touch) send the keys' verbs. They show on a touch-first device and after any real touch, and hide
+      // as soon as a mouse, key or gamepad is used.
+      var touchEl = document.querySelector("#touch");
+      var touchOn = false;
+      var lastTouchAt = -1e9;
+      var aimOffsetCss = 64;   // how far above the finger a held thing aims, in CSS pixels (about a fingertip)
+      var canvasRatio = function () { var r = canvas.getBoundingClientRect(); return r.width > 0 ? canvas.width / r.width : 1; };
+      var send = function (method, arg) { if (window.unityInstance) window.unityInstance.SendMessage("WebBridge", method, String(arg)); };
+      // (sent again whenever it changes: the canvas's pixel size isn't final until the game has started)
+      var sentTouch = "";
+      // with how much of the game the controls cover (the bottom-left corner's width, the bottom row's height), so the
+      // game frames the trunk and the pile clear of them
+      var sendTouchMode = function () {
+        var msg = "0";
+        if (touchOn) {
+          var c = canvas.getBoundingClientRect(), corner = document.querySelector("#tc-left").getBoundingClientRect(),
+              row = document.querySelector("#tc-held").getBoundingClientRect();
+          var left = c.width > 0 ? (corner.right - c.left) / c.width : 0, bottom = c.height > 0 ? (c.bottom - row.top) / c.height : 0;
+          msg = "1," + Math.round(aimOffsetCss * canvasRatio()) + "," + left.toFixed(3) + "," + bottom.toFixed(3);
+        }
+        if (msg === sentTouch || !window.unityInstance) return;
+        sentTouch = msg;
+        send("Touch", msg);
+      };
+      function setTouch(on) {
+        if (touchOn === on) return;
+        touchOn = on;
+        root.dataset.touch = on ? "on" : "off";
+        sendTouchMode();
+      }
+      setTouch(touchFirst);
+
+      window.addEventListener("touchstart", function (e) { if (e.isTrusted) { lastTouchAt = performance.now(); setTouch(true); } }, { capture: true, passive: true });
+      window.addEventListener("touchend", function (e) { if (e.isTrusted) lastTouchAt = performance.now(); }, { capture: true, passive: true });
+      window.addEventListener("keydown", function (e) { if (e.isTrusted) setTouch(false); }, true);
+      window.addEventListener("wheel", function (e) { if (e.isTrusted) setTouch(false); }, { capture: true, passive: true });
+      // A real mouse: not the mouse events a browser makes up after a touch, and not the page's own (untrusted) ones.
+      var realMouse = function (e) {
+        return e.isTrusted && performance.now() - lastTouchAt > 1200 && !(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents)
+          && (!e.pointerType || e.pointerType === "mouse" || e.pointerType === "pen");
+      };
+      window.addEventListener("mousemove", function (e) { if (touchOn && realMouse(e) && Math.abs(e.movementX) + Math.abs(e.movementY) > 2) setTouch(false); }, true);
+      window.addEventListener("mousedown", function (e) { if (touchOn && realMouse(e)) setTouch(false); }, true);
+      setInterval(function () {
+        if (!touchOn || !navigator.getGamepads) return;
+        var pads = navigator.getGamepads();
+        for (var i = 0; i < pads.length; i++) {
+          var p = pads[i];
+          if (p && (p.buttons.some(function (b) { return b.pressed; }) || p.axes.some(function (a) { return Math.abs(a) > 0.5; }))) setTouch(false);
+        }
+      }, 250);
+      // iOS Safari zooms the page on a pinch whatever the viewport says
+      document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+
+      // ---- one finger = the mouse
+      var frame = 0;
+      (function tick() { frame++; requestAnimationFrame(tick); })();
+      // Unity reads input once a frame: a press and a release in the same frame would never be seen.
+      var afterFrames = function (since, n, fn) {
+        (function wait() { if (frame - since >= n) fn(); else requestAnimationFrame(wait); })();
+      };
+      var lastX = 0, lastY = 0;
+      function mouse(type, x, y, buttons) {
+        canvas.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, composed: true, view: window, clientX: x, clientY: y,
+          screenX: x, screenY: y, button: 0, buttons: buttons, movementX: x - lastX, movementY: y - lastY }));
+        lastX = x; lastY = y;
+      }
+      var fingers = new Map();   // touches that began on the game: id -> {x, y}
+      var press = null;          // the finger acting as the mouse: { id, x, y, down, at, timer }
+      var pendingUp = null;      // a release waiting for its press's frame to pass
+      var gesture = null;        // two fingers: { ids, x, y, dist, ox, oy, spread }
+      var holdOff = false;       // after a two-finger gesture: no mouse until every finger is up
+      function flushUp() { if (pendingUp) { var u = pendingUp; pendingUp = null; mouse("mouseup", u.x, u.y, 0); } }
+      function pressDown() {
+        if (!press || press.down) return;
+        clearTimeout(press.timer);
+        flushUp();
+        mouse("mousemove", press.x, press.y, 0);
+        mouse("mousedown", press.x, press.y, 1);
+        press.down = true;
+        press.at = frame;
+      }
+      function release(x, y) {
+        var p = press;
+        press = null;
+        if (!p || !p.down) return;
+        pendingUp = { x: x, y: y };
+        afterFrames(p.at, 2, flushUp);
+      }
+      function startGesture() {
+        var ids = Array.from(fingers.keys()).slice(0, 2);
+        var a = fingers.get(ids[0]), b = fingers.get(ids[1]);
+        gesture = { ids: ids, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, ox: 0, oy: 0, spread: 1, queued: false };
+      }
+      function moveGesture() {
+        var a = fingers.get(gesture.ids[0]), b = fingers.get(gesture.ids[1]);
+        if (!a || !b) return;
+        var x = (a.x + b.x) / 2, y = (a.y + b.y) / 2, dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        gesture.ox += x - gesture.x; gesture.oy += y - gesture.y; gesture.spread *= dist / gesture.dist;
+        gesture.x = x; gesture.y = y; gesture.dist = dist;
+        if (gesture.queued) return;
+        gesture.queued = true;
+        requestAnimationFrame(function () {
+          if (!gesture) return;
+          var r = canvasRatio();
+          // screen pixels with y up, as the game's mouse delta
+          if (Math.abs(gesture.ox) + Math.abs(gesture.oy) > 0.5) send("Orbit", (gesture.ox * r).toFixed(1) + "," + (-gesture.oy * r).toFixed(1));
+          if (Math.abs(gesture.spread - 1) > 0.002) send("Pinch", gesture.spread.toFixed(4));
+          gesture.ox = gesture.oy = 0; gesture.spread = 1; gesture.queued = false;
+        });
+      }
+      function onGame(t) { return t.target === canvas; }
+      window.addEventListener("touchstart", function (e) {
+        var mine = Array.prototype.filter.call(e.changedTouches, onGame);
+        if (!mine.length) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        mine.forEach(function (t) { fingers.set(t.identifier, { x: t.clientX, y: t.clientY }); });
+        if (fingers.size >= 2) {
+          // a second finger: whatever the first was doing, it's an orbit now
+          if (press) {
+            if (press.down) { send("Verb", "cancel"); release(press.x, press.y); }
+            else { clearTimeout(press.timer); press = null; }
+          }
+          if (!gesture) startGesture();
+          holdOff = true;
+          return;
+        }
+        if (holdOff || press) return;
+        var t = mine[0];
+        // wait a moment for a second finger before pressing (a two-finger orbit shouldn't pick anything up)
+        press = { id: t.identifier, x: t.clientX, y: t.clientY, x0: t.clientX, y0: t.clientY, down: false };
+        press.timer = setTimeout(pressDown, 70);
+      }, { capture: true, passive: false });
+      window.addEventListener("touchmove", function (e) {
+        var mine = Array.prototype.filter.call(e.changedTouches, function (t) { return fingers.has(t.identifier); });
+        if (!mine.length) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        mine.forEach(function (t) { fingers.set(t.identifier, { x: t.clientX, y: t.clientY }); });
+        if (gesture) { moveGesture(); return; }
+        if (!press || !fingers.has(press.id)) return;
+        var f = fingers.get(press.id);
+        if (!press.down && Math.hypot(f.x - press.x0, f.y - press.y0) > 8) pressDown();
+        press.x = f.x; press.y = f.y;
+        if (press.down) mouse("mousemove", f.x, f.y, 1);
+      }, { capture: true, passive: false });
+      var touchEnd = function (e) {
+        var mine = Array.prototype.filter.call(e.changedTouches, function (t) { return fingers.has(t.identifier); });
+        if (!mine.length) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        mine.forEach(function (t) {
+          fingers.delete(t.identifier);
+          if (press && press.id === t.identifier) {
+            if (e.type === "touchcancel") { if (press.down) send("Verb", "cancel"); }
+            else if (!press.down) pressDown();   // a quick tap
+            release(t.clientX, t.clientY);
+          }
+        });
+        if (gesture && fingers.size < 2) gesture = null;
+        if (fingers.size === 0) holdOff = false;
+      };
+      window.addEventListener("touchend", touchEnd, { capture: true, passive: false });
+      window.addEventListener("touchcancel", touchEnd, { capture: true, passive: false });
+
+      // ---- the buttons: each acts on its own finger (pointer), so several work at once and beside a drag
+      Array.prototype.forEach.call(touchEl.querySelectorAll(".tc"), function (b) {
+        var verb = b.dataset.touch;
+        var up = function () {
+          if (!b.classList.contains("down")) return;
+          b.classList.remove("down");
+          if (verb === "xray") send("Verb", "xray-up");
+        };
+        b.addEventListener("pointerdown", function (e) {
+          e.preventDefault();
+          if (b.disabled) return;
+          try { b.setPointerCapture(e.pointerId); } catch (err) { }
+          b.classList.add("down");
+          send("Verb", verb === "xray" ? "xray-down" : verb);
+          if (navigator.vibrate) navigator.vibrate(8);
+        });
+        b.addEventListener("pointerup", up);
+        b.addEventListener("pointercancel", up);
+        b.addEventListener("lostpointercapture", up);
+        b.addEventListener("click", function (e) { e.preventDefault(); });
+      });
+      // which buttons fit what's on screen (the game publishes it in window.pttState)
+      var redoButton = touchEl.querySelector('[data-touch="redo"]'), hintButton = touchEl.querySelector('[data-touch="hint"]');
+      setInterval(function () {
+        sendTouchMode();
+        var s = window.pttState;
+        var play = !!s && s.mode === "Playing" && !s.paused && !s.overlay;
+        touchEl.dataset.play = play ? "1" : "0";
+        touchEl.dataset.held = s && s.held ? "1" : "0";
+        if (s) { redoButton.disabled = !s.redo; hintButton.disabled = s.hintOk === false; }
+      }, 80);
     </script>
   </body>
 </html>

@@ -214,6 +214,8 @@ namespace PackTheTrunk
             if (title == null || !title.gameObject.activeSelf) return;
             FitTitleMenu();
             if (!waitingForKey) return;
+            string prompt = Web.TouchActive ? "TOUCH TO START" : "PRESS ANY KEY";
+            if (pressKeyText.text != prompt) pressKeyText.text = prompt;
             float since = UiTime.Now - titleShownAt;
             pressKeyGroup.alpha = Mathf.Clamp01((since - 1.2f) / 0.6f) * (0.55f + 0.45f * Mathf.Sin(UiTime.Now * 3.2f));
             if (since < 0.8f) return;
@@ -287,6 +289,8 @@ namespace PackTheTrunk
             pauseCard = card;
             var padKeys = UiKit.Rect("Pad Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
             UiKit.Vertical(padKeys.gameObject, 8).childControlHeight = false;
+            var touchKeys = UiKit.Rect("Touch Keys", card).Place(new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 40), new Vector2(-30, -262));
+            UiKit.Vertical(touchKeys.gameObject, 8).childControlHeight = false;
             bool filledToggle = false;
             void FillKeys()
             {
@@ -295,6 +299,8 @@ namespace PackTheTrunk
                 foreach (var (k, what) in ControlsList) ControlRow(keys, k, what, 22);
                 UiKit.Clear(padKeys);
                 foreach (var (k, what) in PadControlsList) ControlRow(padKeys, k, what, 22);
+                UiKit.Clear(touchKeys);
+                foreach (var (k, what) in TouchControlsList) ControlRow(touchKeys, k, what, 22);
             }
             FillKeys();
             Bindings.Changed += FillKeys;
@@ -303,11 +309,13 @@ namespace PackTheTrunk
             GameSettings.Changed += () => { if (GameSettings.XRayToggle != filledToggle) FillKeys(); };
             void ShowPadKeys()
             {
-                keys.gameObject.SetActive(!GamepadCursor.Active);
-                padKeys.gameObject.SetActive(GamepadCursor.Active);
+                keys.gameObject.SetActive(!GamepadCursor.Active && !Web.TouchActive);
+                padKeys.gameObject.SetActive(GamepadCursor.Active && !Web.TouchActive);
+                touchKeys.gameObject.SetActive(Web.TouchActive);
             }
             ShowPadKeys();
             GamepadCursor.ActiveChanged += ShowPadKeys;
+            Web.TouchActiveChanged += ShowPadKeys;
             pause.gameObject.SetActive(false);
         }
 
@@ -331,6 +339,19 @@ namespace PackTheTrunk
                 };
             }
         }
+
+        /// <summary>The browser's on-screen touch controls (Assets/WebGLTemplates/PackTheTrunk/index.html).</summary>
+        internal static (string, string)[] TouchControlsList => new[]
+        {
+            ("TOUCH", "pick up · drag it in · lift to drop"),
+            ("TURN  TIP  ROLL", "turn it around (while it's in hand)"),
+            ("UP  ·  DOWN", "choose a shelf when there's a gap"),
+            ("TWO FINGERS", "drag to look around · pinch to zoom"),
+            ($"X-RAY ({(GameSettings.XRayToggle ? "press" : "hold")})", "see through everything packed"),
+            ("UNDO  REDO  HINT", "take a step back · ask Grandpa"),
+            ("BACK", "put it back on the blanket"),
+            ("CLOSE THE TRUNK", "when the essentials are in"),
+        };
 
         internal static (string, string)[] PadControlsList
         {

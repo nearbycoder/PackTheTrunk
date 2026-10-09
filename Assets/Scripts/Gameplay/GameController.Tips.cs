@@ -59,6 +59,16 @@ namespace PackTheTrunk
                     case Tip.Undo: return $"Changed your mind? {P(PadBindings.Action.Undo)} undoes (LB + {P(PadBindings.Action.Undo)} redoes), and anything packed can be picked back out.";
                     case Tip.Orbit: return "Can't see the gap? The right stick walks you around the car.";
                 }
+            if (Web.TouchActive)
+                switch (tip)
+                {
+                    case Tip.Pickup: return "Touch something on the blanket to pick it up, or drag it straight into the trunk.";
+                    case Tip.Aim: return $"Drag it into the trunk. {(blue ? "Blue" : "Green")} (just above your finger) shows where it lands; striped means it won't fit. Lift your finger to drop it.";
+                    case Tip.Turn: return "Won't fit like that? TURN turns it, TIP tips it over and ROLL rolls it sideways.";
+                    case Tip.Shelf: return "There's room underneath too! UP and DOWN pick the shelf.";
+                    case Tip.Undo: return "Changed your mind? UNDO takes a step back (REDO puts it back), and anything packed can be picked back out.";
+                    case Tip.Orbit: return "Can't see the gap? Drag with two fingers to walk around the car, and pinch to come closer.";
+                }
             if (GamepadCursor.KeysActive)
                 switch (tip)
                 {

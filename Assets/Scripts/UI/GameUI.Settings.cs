@@ -635,7 +635,7 @@ namespace PackTheTrunk
         void ApplyUiSettings()
         {
             if (scaler != null) scaler.referenceResolution = new Vector2(1920, 1080) / Mathf.Clamp(GameSettings.UiScale, 0.7f, 1.3f);
-            if (keyHints != null && hud != null && hud.gameObject.activeSelf && !hudHidden && !results.gameObject.activeSelf) keyHints.gameObject.SetActive(GameSettings.KeyHints);
+            if (keyHints != null && hud != null && hud.gameObject.activeSelf && !hudHidden && !results.gameObject.activeSelf) keyHints.gameObject.SetActive(ShowKeyHints);
         }
     }
 

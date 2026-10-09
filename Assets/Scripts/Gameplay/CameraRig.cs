@@ -36,8 +36,10 @@ namespace PackTheTrunk
         /// <summary>
         /// Fit the bounds into the left <paramref name="usableWidth"/> fraction of the screen
         /// (the rest is covered by UI panels) by projecting its corners and solving for distance.
+        /// <paramref name="regionBottom"/> keeps that much of the screen's height free below it.
         /// </summary>
-        public void Frame(Bounds bounds, bool instant, float usableWidth = 0.75f, float regionLeft = 0.03f, float yaw = -6f, float pitchAngle = 54f)
+        public void Frame(Bounds bounds, bool instant, float usableWidth = 0.75f, float regionLeft = 0.03f, float yaw = -6f, float pitchAngle = 54f,
+                          float regionBottom = 0.08f)
         {
             targetYaw = yaw;
             targetPitch = pitchAngle;
@@ -49,7 +51,7 @@ namespace PackTheTrunk
                 corners[i] = bounds.center + Vector3.Scale(bounds.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
 
             // Screen region the content should occupy (viewport units).
-            var region = new Rect(regionLeft, 0.08f, usableWidth - 0.05f, 0.78f);
+            var region = new Rect(regionLeft, regionBottom, usableWidth - 0.05f, 0.86f - regionBottom);
             var look = bounds.center;
             float dist = 20f;
             for (int pass = 0; pass < 3; pass++)
@@ -212,6 +214,25 @@ namespace PackTheTrunk
             distance = Mathf.Lerp(distance, targetDistance, k);
             Apply();
         }
+
+        /// <summary>A two-finger drag on a touch screen, in screen pixels (y up): orbits as a right-drag does.</summary>
+        public void Orbit(Vector2 delta)
+        {
+            if (!InputEnabled || Attract) return;
+            float speed = GameSettings.OrbitSpeed;
+            targetYaw += delta.x * 0.25f * speed;
+            targetPitch = Mathf.Clamp(targetPitch - delta.y * 0.2f * speed * (GameSettings.InvertOrbit ? -1f : 1f), 20f, 85f);
+        }
+
+        /// <summary>A pinch on a touch screen: how much the fingers spread (above 1 comes closer). Works with something in hand too.</summary>
+        public void Pinch(float spread)
+        {
+            if (!InputEnabled || Attract || spread <= 0f) return;
+            targetDistance = Mathf.Clamp(targetDistance / spread, minDistance, maxDistance);
+        }
+
+        /// <summary>The camera's yaw in degrees (for the page's test tools).</summary>
+        public float Yaw => yaw;
 
         /// <summary>True on the frame a right-click is released without having dragged.</summary>
         public bool RightClickReleased()

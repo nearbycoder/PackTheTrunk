@@ -711,6 +711,9 @@ namespace PackTheTrunk
 
         public bool PointerOverUi => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
+        /// <summary>The key hints along the bottom: as Settings says, except while the browser's touch controls show (they're the hints then).</summary>
+        bool ShowKeyHints => GameSettings.KeyHints && !Web.TouchActive;
+
         void Awake()
         {
             if (FindAnyObjectByType<EventSystem>() == null)
@@ -748,6 +751,15 @@ namespace PackTheTrunk
             BuildCurtain();
             ApplyUiSettings();
             ShowOnly(title);
+            Web.TouchActiveChanged += OnTouchChanged;
+        }
+
+        void OnDestroy() => Web.TouchActiveChanged -= OnTouchChanged;
+
+        void OnTouchChanged()
+        {
+            ApplyUiSettings();
+            if (Web.TouchActive && heldPanel != null) heldPanel.gameObject.SetActive(false);
         }
 
         void Update()
@@ -1689,7 +1701,7 @@ namespace PackTheTrunk
                 star.color = MeterUnlit;
                 star.transform.localScale = Vector3.one;
             }
-            keyHints.gameObject.SetActive(GameSettings.KeyHints);
+            keyHints.gameObject.SetActive(ShowKeyHints);
             BuildFragileTags(items);
             // A new trip's rows say again how wide the list needs to be.
             listItems = null;
@@ -1964,7 +1976,9 @@ namespace PackTheTrunk
 
         public void ShowHeld(PackItem item)
         {
-            heldPanel.gameObject.SetActive(item != null);
+            // With the touch controls on, their buttons and the highlighted list row stand in for the held card
+            // (it would sit under them in the bottom-left corner).
+            heldPanel.gameObject.SetActive(item != null && !Web.TouchActive);
             hoverText.gameObject.SetActive(item == null);
             if (item == null) return;
             ScrollToRow(item);
@@ -2106,7 +2120,7 @@ namespace PackTheTrunk
             if (!hide)
             {
                 heldPanel.gameObject.SetActive(false);
-                keyHints.gameObject.SetActive(GameSettings.KeyHints);
+                keyHints.gameObject.SetActive(ShowKeyHints);
             }
         }
 
