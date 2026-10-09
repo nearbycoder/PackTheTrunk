@@ -15,7 +15,9 @@
 // Settings with the keyboard and steps the Graphics fidelity slider, closes Settings, reloads the page (the step must
 // survive: it's in the browser's IndexedDB), starts the first trip with the keyboard and packs three things with the
 // mouse, undoes one with Z, packs the rest, closes the trunk with Space (the postcard; the album photo is saved), and
-// reloads again: CONTINUE must start the next trip. The game publishes what's on screen in window.pttState (Assets/Scripts/Gameplay/WebBridge.cs).
+// reloads again: CONTINUE must start the next trip. The phone and tablet touch controls must stay hidden throughout
+// (Tools/check-mobile.mjs checks them on phones). The game publishes what's on screen in window.pttState
+// (Assets/Scripts/Gameplay/WebBridge.cs).
 //
 // Needs playwright-core 1.63 or newer (for Firefox: it drives the system Firefox over WebDriver BiDi, channel
 // "moz-firefox"). Set PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core, or it looks in ~/Sites/*/node_modules.
@@ -273,6 +275,11 @@ async function runBrowser(pw, engine, url) {
     check(!!first.s, `${first.s ? "reached the title screen" : "never reached the title screen"} in ${first.secs.toFixed(1)} s; ` +
       `downloaded ${(bytes / 1048576).toFixed(1)} MB (${Object.entries(files).filter(([, n]) => n > 1048576).map(([f, n]) => `${f} ${(n / 1048576).toFixed(1)} MB`).join(", ")})`);
     if (first.s) log(`state: ${JSON.stringify(first.s)}`);
+    // The on-screen touch controls are for phones and tablets: never on a desktop with a mouse and keyboard.
+    const touchControls = () => page.evaluate(() => ({ attr: document.documentElement.dataset.touch,
+      shown: Array.from(document.querySelectorAll("#touch .tc")).filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.dataset.touch) }));
+    let tc = await touchControls();
+    check(tc.attr !== "on" && tc.shown.length === 0, `no on-screen touch controls on the desktop (data-touch=${tc.attr}; showing: ${tc.shown.join(", ") || "none"})`);
 
     if (opts.play && first.s) {
       // ---- audio: quiet (or suspended) before any input, playing after a key
@@ -389,6 +396,9 @@ async function runBrowser(pw, engine, url) {
         s = await waitFor("packing", (s) => s.mode === "Playing" && s.items > 0, 30);
         await shot("next-trip");
         check(!!s && s.level !== trip, `after a reload, CONTINUE starts the next trip (${s?.level}, not ${trip}): progress is saved in the browser`);
+        tc = await touchControls();
+        check(tc.attr !== "on" && tc.shown.length === 0 && s?.touch !== true,
+          `still no touch controls after playing with the mouse and keyboard (data-touch=${tc.attr}; showing: ${tc.shown.join(", ") || "none"})`);
       }
     }
   } catch (e) {
