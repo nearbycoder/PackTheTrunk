@@ -47,7 +47,9 @@ namespace PackTheTrunk
             var closed = GameDatabase.Levels.Where((l, i) => StarsFor(i) > 0).ToList();
             var pool = closed.SelectMany(l => l.Required.Concat(l.Bonus)).ToList();
             pendingWatch = System.Diagnostics.Stopwatch.StartNew();
-            pendingFavour = Web.Run(() => Favours.Make(number, closed, pool, avoidCar));
+            System.Func<LevelDef> make = () => Favours.Make(number, closed, pool, avoidCar);
+            // Task.Run itself on desktop: the first close of a session would otherwise also compile Web.Run<T>.
+            pendingFavour = Web.IsBrowser ? Web.Run(make) : System.Threading.Tasks.Task.Run(make);
         }
 
         /// <summary>Save the favour the worker made, once it's done (called every frame; nothing to do most of the time).</summary>
