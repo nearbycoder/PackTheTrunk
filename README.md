@@ -268,7 +268,8 @@ take any packing action; A, B, Menu, LB, the sticks and the triggers keep their 
 and tips switch to controller buttons as soon as you touch the pad, and back when you move the mouse.
 Gamepad support has only been tested with a simulated pad (see [Status](#status-and-known-issues)).
 
-**Touch:** not supported.
+**Touch** (the browser version on a phone or tablet): on-screen buttons and two-finger gestures, see
+[Play in your browser](#play-in-your-browser). The desktop builds don't support touch.
 
 ## Content
 
@@ -310,20 +311,44 @@ All taken from the game at its Ultra graphics step.
 ### Play in your browser
 
 **<https://nearbycoder.github.io/PackTheTrunk/>** (GitHub Pages; if the link doesn't load yet, the site hasn't
-been deployed). It's the game as it is in `main`, built with Unity's WebGL export, and needs a desktop browser
-with WebGL 2: a mouse and keyboard, or a gamepad. Touch screens aren't supported, as on desktop.
+been deployed). It's the game as it is in `main`, built with Unity's WebGL export, and needs a browser with
+WebGL 2: on a computer with a mouse and keyboard or a gamepad, or on a phone or tablet held sideways, with
+on-screen touch controls.
 
 - **Download:** about 48 MB (a 41 MB data file and a 6 MB WebAssembly file). The game asks the browser to cache
   the data file, but how much that saves on a later visit hasn't been measured.
 - **Tested in:** headless Chromium 151 and Firefox 157 on Linux, on one machine: the page loads to the title,
   a scripted session plays the first trip with the mouse and keyboard, closes the trunk and saves the photo, and a
-  Graphics change and the progress survive a reload (`Tools/check-pages.mjs`). Safari, Windows, macOS, phones and a
-  physical gamepad haven't been tried.
+  Graphics change and the progress survive a reload (`Tools/check-pages.mjs`), and no touch control shows. On
+  phone and tablet profiles (`Tools/check-mobile.mjs`, above) a scripted session plays by touch alone. Real
+  Safari, Windows, macOS, real phones and tablets and a physical gamepad haven't been tried.
+- **Phones and tablets** (a browser whose main pointer is a finger and that has no mouse or trackpad):
+  - **On-screen controls** show only there, or after a real touch on any device, and hide as soon as a mouse,
+    key or gamepad is used. Touch something to pick it up, or drag it straight into the trunk: while it's in
+    hand its ghost sits a fingertip above your finger, and lifting the finger drops it (where it doesn't fit, it
+    stays in hand). Two fingers drag to look around the car and pinch to zoom. The bottom-left corner has
+    **X-RAY** (hold), **HINT**, **MENU** (pause), **UNDO** and **REDO**; while something is in hand, a row beside
+    it has **TURN**, **TIP**, **ROLL**, **UP** / **DOWN** (the shelf, the mouse wheel's job) and **BACK** (put it back).
+    Every menu and screen works by tapping. The buttons are 46 px on a phone and 60 px on a tablet, stay clear
+    of the notch and home indicator, and the camera frames the trunk and the pile clear of them.
+  - **Landscape only:** held upright, the page asks to be turned sideways. Sound starts with the first touch.
+  - **Lighter:** a new save starts on the **Low** graphics step, the page draws at most twice the screen's CSS
+    size and about 1.6 million pixels, and the data file isn't copied into the game's own browser cache. If the
+    browser closed the game last time (a phone does that to a tab that runs short of memory), the next visit
+    says so and goes back to Low; a lost WebGL context gets a message instead of a frozen picture.
+  - **Measured** with `Tools/check-mobile.mjs` in headless WebKit (iPhone 15 and iPad Pro 11 profiles) and
+    Chromium (Pixel 7): what the page hands WebGL (textures, render targets, buffers, the canvas) fell from about
+    270 MB to 90 MB on the iPhone profile, 410 to 130 MB on the iPad and 280 to 115 MB on the Pixel. The wasm
+    heap is 256 MB (about 137 MB in use) and the JavaScript heap about 95 MB, as before. Headless WebKit doesn't
+    enforce iOS's per-tab limit, and **no real phone or tablet has tried the game yet**: whether it stays
+    inside an older iPhone's memory, how it feels under a finger and how fast it runs are still to be seen.
+  - The game's own text is small on a phone (it's laid out for a 1920 × 1080 screen); Settings → Interface size
+    makes it bigger.
 - **Saves** (progress, settings, album photos) are kept in the browser's storage for the site, separate from a
   desktop install. Clearing the site's data in the browser erases them.
 - **What differs from the desktop build:**
-  - it starts on the **Medium** graphics step (all four steps are in Settings → Graphics);
-  - sound starts with your first key press or click (browsers don't let a page play sound before that);
+  - it starts on the **Medium** graphics step (**Low** on a phone or tablet; all four steps are in Settings → Graphics);
+  - sound starts with your first key press, click or touch (browsers don't let a page play sound before that);
   - there's no QUIT (close the tab), and Settings → Display has a **Full screen** switch instead of window mode,
     resolution, V-Sync and the frame-rate limit (the browser paces frames to the screen); the title screen has a
     Full screen button too, and Esc leaves full screen;
@@ -393,12 +418,24 @@ Tools/play.sh -pttBench -pttFidelity "$PWD/Recordings/fidelity"   # each Graphic
 python3 Tools/solve_levels.py --check-favours Recordings/autopilot/favours.json   # re-check the self-test's favours with the solver's rules
 node Tools/check-pages.mjs --serve Builds/pages --browser both --play   # browser build: title, audio, a setting and progress across reloads, a trip
 node Tools/check-pages.mjs https://nearbycoder.github.io/PackTheTrunk/   # the live site reaches its title with no errors (exit 0)
+node Tools/check-mobile.mjs --serve Builds/pages --play   # phones and tablets: memory, the rotate prompt, a session by touch; none on desktop
 ```
 
 `check-pages.mjs` runs headless Chromium (the newest one cached by Playwright) and the system Firefox through
 playwright-core 1.63+ (`PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core`); `--serve` serves the site under
 `/PackTheTrunk/` with no compression headers, as GitHub Pages does. The browser build has no sandboxed save: the
 check uses a fresh browser profile each time, so it never touches anyone's saves.
+
+`check-mobile.mjs` opens the site in headless WebKit with iPhone 15 (upright and sideways) and iPad Pro 11
+profiles (`WEBKIT_PATH`, or Playwright's WebKit in `~/.cache/webkit-libs/webkit-2359/pw_run.sh`) and in Chromium
+with a Pixel 7 profile, then in desktop Chromium and Firefox. On the touch profiles it records the wasm heap, what
+the page hands WebGL and the browser processes' memory every 250 ms, checks the "turn it sideways" prompt, and
+with `--play` taps through the title, the menu and the story, drags things into the trunk, and uses every
+on-screen button (turn, tip, roll, the shelf, X-ray held, undo, redo, hint, pause) and a two-finger orbit. On
+the desktop profiles no touch control may show, before or after a click and a key. Logs and screenshots go to
+`Logs/mobile-check/<label>/<device>/`. Headless WebKit on the test machine has no GStreamer audio sink or AAC
+decoder and crashes as soon as a page makes an AudioContext, so its runs give the page silent AudioContexts
+and check that the game resumes them after the first tap; Chromium checks the sound itself.
 
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
 `-pttAutopilot`. It clicks, rotates, drops and undoes with real input events (mouse, keyboard and a
@@ -567,7 +604,8 @@ Still rough or missing:
   `.app`, bundle id `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
   and isn't published**. Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't
-  installed here. The browser build (WebGL) has been tested headless in Chromium and Firefox on Linux only
+  installed here. The browser build (WebGL) has been tested headless in Chromium and Firefox on Linux only, and
+  with phone and tablet profiles in headless WebKit and Chromium, never on a real phone or tablet
   ([Play in your browser](#play-in-your-browser)).
 - **Gamepad support is untested on hardware.** It passes the autopilot's simulated-gamepad checks
   (pointing, every packing action, undo, hint, pause, menu clicks, D-pad menu navigation, the album
