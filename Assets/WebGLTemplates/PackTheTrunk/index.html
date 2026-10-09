@@ -322,8 +322,9 @@
       var aimOffsetCss = 64;   // how far above the finger a held thing aims, in CSS pixels (about a fingertip)
       var canvasRatio = function () { var r = canvas.getBoundingClientRect(); return r.width > 0 ? canvas.width / r.width : 1; };
       var send = function (method, arg) { if (window.unityInstance) window.unityInstance.SendMessage("WebBridge", method, String(arg)); };
-      // (sent again whenever it changes: the canvas's pixel size isn't final until the game has started)
-      var sentTouch = "";
+      // (sent again whenever it changes: the canvas's pixel size isn't final until the game has started; the game starts
+      // with them off, so a desktop never sends anything)
+      var sentTouch = "0";
       // with how much of the game the controls cover (the bottom-left corner's width, the bottom row's height), so the
       // game frames the trunk and the pile clear of them
       var sendTouchMode = function () {

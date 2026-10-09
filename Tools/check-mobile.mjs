@@ -522,7 +522,7 @@ async function runDevice(pw, key, prof, url) {
   // The page's on-screen controls: name -> bounding box centre, if shown.
   const controls = () => page.evaluate(() => {
     const out = {};
-    for (const el of document.querySelectorAll("[data-touch]")) {
+    for (const el of document.querySelectorAll("#touch [data-touch]")) {
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       if (r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0.05)

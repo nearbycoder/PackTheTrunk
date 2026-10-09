@@ -66,7 +66,6 @@ namespace PackTheTrunk
             var parts = args.Split(',');
             float Part(int i) => parts.Length > i && float.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out float f) ? f : 0f;
             Web.SetTouch(parts[0] == "1", Part(1), Part(2), Part(3));
-            Publish();
         }
 
         public void Verb(string verb) => game.QueueTouchVerb(verb);
