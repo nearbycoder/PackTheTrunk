@@ -62,11 +62,15 @@ namespace PackTheTrunk
 
         // ------------------------------------------------------------------ graphics
         public static readonly string[] Presets = { "Low", "Medium", "High", "Ultra", "Custom" };
+
+        /// <summary>The fidelity step a new save starts on: High, or Medium in the browser (WebGL draws the same frame slower).</summary>
+        public static readonly int DefaultFidelity = Web.IsBrowser ? 1 : 2;
+
         /// <summary>A fidelity step (0-3), or 4 once a fine-tune row has been changed.</summary>
-        public static int Preset { get => I("preset", 2); set => ApplyPreset(value); }
+        public static int Preset { get => I("preset", DefaultFidelity); set => ApplyPreset(value); }
 
         /// <summary>
-        /// The Graphics fidelity step: 0 Low, 1 Medium, 2 High (the default), 3 Ultra. It sets the fine-tune
+        /// The Graphics fidelity step: 0 Low, 1 Medium (the browser's default), 2 High (the default), 3 Ultra. It sets the fine-tune
         /// rows below it, and the detail that has no row of its own (ambient occlusion quality, bloom
         /// filtering, blanket texture density, particles, surface detail) follows it even once a row has been
         /// changed (cached: particles read it).
@@ -86,10 +90,10 @@ namespace PackTheTrunk
         public static float BlanketTexelScale => Fidelity == 3 ? 2f : 1f;
         public static float RenderScale { get => F("renderscale", 1f); set => SetCustom("renderscale", value); }
         public static readonly string[] AntiAliasingModes = { "Off", "FXAA", "SMAA", "MSAA 4x + SMAA" };
-        public static int AntiAliasing { get => I("aa", 3); set => SetCustom("aa", value); }
+        public static int AntiAliasing { get => I("aa", DefaultFidelity >= 2 ? 3 : 2); set => SetCustom("aa", value); }
         public static readonly string[] ShadowModes = { "Off", "Low", "Medium", "High", "Ultra" };
-        public static int Shadows { get => I("shadows", 3); set => SetCustom("shadows", value); }
-        public static bool AmbientOcclusion { get => B("ssao", true); set => SetCustom("ssao", value); }
+        public static int Shadows { get => I("shadows", DefaultFidelity >= 2 ? 3 : 2); set => SetCustom("shadows", value); }
+        public static bool AmbientOcclusion { get => B("ssao", DefaultFidelity >= 2); set => SetCustom("ssao", value); }
         public static bool Outlines { get => B("outlines", true); set => SetCustom("outlines", value); }
         public static bool DepthOfField { get => B("dof", true); set => SetCustom("dof", value); }
         public static bool Bloom { get => B("bloom", true); set => SetCustom("bloom", value); }
@@ -118,7 +122,7 @@ namespace PackTheTrunk
         // Settings read every frame: cached here and re-read whenever a setting changes, so the
         // per-frame code never touches the save or builds key strings.
         static bool cached, xrayToggle, reduceMotion;
-        static int fidelity = 2;
+        static int fidelity = DefaultFidelity;
 
         static void Cache()
         {
@@ -126,9 +130,9 @@ namespace PackTheTrunk
             cached = true;
             xrayToggle = B("xraytoggle", false);
             reduceMotion = B("reducemotion", false);
-            // Saves from before the slider only have a preset: its step, or High for Custom.
-            int preset = I("preset", 2);
-            fidelity = Mathf.Clamp(Prefs.HasKey(Prefix + "fidelity") ? I("fidelity", 2) : preset < 4 ? preset : 2, 0, 3);
+            // Saves from before the slider only have a preset: its step, or the default step for Custom.
+            int preset = I("preset", DefaultFidelity);
+            fidelity = Mathf.Clamp(Prefs.HasKey(Prefix + "fidelity") ? I("fidelity", DefaultFidelity) : preset < 4 ? preset : DefaultFidelity, 0, 3);
         }
 
         // ------------------------------------------------------------------ storage
@@ -289,7 +293,7 @@ namespace PackTheTrunk
                 backgrounded = !focused;
                 ApplyAudio();
             };
-            if (Prefs.GetInt(Prefix + "displaySet", 0) == 1) ApplyDisplay();
+            if (Prefs.GetInt(Prefix + "displaySet", 0) == 1 && !Web.IsBrowser) ApplyDisplay();
             Apply();
         }
 

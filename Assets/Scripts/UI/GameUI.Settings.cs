@@ -87,6 +87,8 @@ namespace PackTheTrunk
             SelectTab(settingsTab, false);
         }
 
+        public bool SettingsOpen => settings != null && settings.gameObject.activeSelf;
+
         public void HideSettings()
         {
             if (!settings.gameObject.activeSelf) return;
@@ -130,20 +132,28 @@ namespace PackTheTrunk
 
         void BuildDisplayTab()
         {
-            ChoiceRow("Window mode", "Borderless is the smoothest way to play full screen.",
-                () => GameSettings.WindowModes[Mathf.Clamp(GameSettings.WindowMode, 0, 2)],
-                d => GameSettings.WindowMode = (GameSettings.WindowMode + d + 3) % 3);
-            ChoiceRow("Resolution", "Screen size in pixels.",
-                () => GameSettings.ResolutionLabel(GameSettings.CurrentResolutionIndex()),
-                d =>
-                {
-                    int count = GameSettings.Resolutions.Count;
-                    GameSettings.ResolutionIndex = (GameSettings.CurrentResolutionIndex() + d + count) % count;
-                });
-            ToggleRow("V-Sync", "Match the monitor's refresh rate to avoid tearing.", () => GameSettings.VSync, v => GameSettings.VSync = v);
-            ChoiceRow("Frame rate limit", "Only used when V-Sync is off.",
-                () => { int c = GameSettings.FrameCaps[Mathf.Clamp(GameSettings.FrameCap, 0, GameSettings.FrameCaps.Length - 1)]; return c < 0 ? "Unlimited" : c + " FPS"; },
-                d => GameSettings.FrameCap = (GameSettings.FrameCap + d + GameSettings.FrameCaps.Length) % GameSettings.FrameCaps.Length);
+            if (Web.IsBrowser)
+            {
+                // A page has no window modes or resolutions of its own, and the browser paces frames to the screen.
+                ToggleRow("Full screen", "Fill the whole screen with the game. Esc leaves full screen.", () => Screen.fullScreen, v => Screen.fullScreen = v);
+            }
+            else
+            {
+                ChoiceRow("Window mode", "Borderless is the smoothest way to play full screen.",
+                    () => GameSettings.WindowModes[Mathf.Clamp(GameSettings.WindowMode, 0, 2)],
+                    d => GameSettings.WindowMode = (GameSettings.WindowMode + d + 3) % 3);
+                ChoiceRow("Resolution", "Screen size in pixels.",
+                    () => GameSettings.ResolutionLabel(GameSettings.CurrentResolutionIndex()),
+                    d =>
+                    {
+                        int count = GameSettings.Resolutions.Count;
+                        GameSettings.ResolutionIndex = (GameSettings.CurrentResolutionIndex() + d + count) % count;
+                    });
+                ToggleRow("V-Sync", "Match the monitor's refresh rate to avoid tearing.", () => GameSettings.VSync, v => GameSettings.VSync = v);
+                ChoiceRow("Frame rate limit", "Only used when V-Sync is off.",
+                    () => { int c = GameSettings.FrameCaps[Mathf.Clamp(GameSettings.FrameCap, 0, GameSettings.FrameCaps.Length - 1)]; return c < 0 ? "Unlimited" : c + " FPS"; },
+                    d => GameSettings.FrameCap = (GameSettings.FrameCap + d + GameSettings.FrameCaps.Length) % GameSettings.FrameCaps.Length);
+            }
             SliderRow("Field of view", "How wide the camera sees.", () => GameSettings.FieldOfView, v => GameSettings.FieldOfView = Mathf.Round(v),
                 32f, 55f, v => $"{Mathf.RoundToInt(v)}°");
             SliderRow("Interface size", "Scale every menu, card and button. It suits your screen until you change it (DEFAULTS puts that back).", () => GameSettings.UiScale, v => GameSettings.UiScale = Mathf.Round(v * 20f) / 20f,

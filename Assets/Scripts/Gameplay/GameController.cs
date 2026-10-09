@@ -215,6 +215,7 @@ namespace PackTheTrunk
                 && !ui.IsRebinding && !ui.IsTitleWaiting;
 
             ShowTitle(true);
+            if (Web.IsBrowser) WebBridge.Attach(this);
             // On its own host: level changes stop this controller's coroutines.
             new GameObject("Album Loader").AddComponent<CoroutineHost>().StartCoroutine(WarmAlbum());
             Debug.Log($"[Perf] boot {bootWatch.ElapsedMilliseconds} ms (environment {tEnv}, audio {tAudio - tEnv}, ui {tUi - tAudio}, title {bootWatch.ElapsedMilliseconds - tUi})");
@@ -986,7 +987,7 @@ namespace PackTheTrunk
                     if (!showingEnding) { sfx.Back(); ui.Transition(ShowMenu); }
                     break;
                 case Mode.Title:
-                    if (!ui.IsTitleWaiting) ui.Confirm("Leave the driveway?", "QUIT", Quit);
+                    if (!ui.IsTitleWaiting && !Web.IsBrowser) ui.Confirm("Leave the driveway?", "QUIT", Quit);
                     break;
             }
         }
@@ -1707,7 +1708,7 @@ namespace PackTheTrunk
             var legacy = System.IO.Path.Combine(AlbumDir, id + ".png");
             var format = tex.graphicsFormat;
             byte[] thumb = null;
-            var work = System.Threading.Tasks.Task.Run(() =>
+            var work = Web.Run(() =>
             {
                 thumb = Shrink(pixels, width, height, 3);
                 try

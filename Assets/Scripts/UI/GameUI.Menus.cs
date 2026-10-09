@@ -95,7 +95,9 @@ namespace PackTheTrunk
             MenuEntry(titleMenu, "Album", "FAMILY ALBUM", "", () => AlbumPressed?.Invoke(), n++, out albumEntrySub);
             MenuEntry(titleMenu, "Settings", "SETTINGS", "Sound, display, graphics and controls", () => ShowSettings(), n++, out _);
             MenuEntry(titleMenu, "Credits", "CREDITS", "The people (and ducks) behind it", () => CreditsPressed?.Invoke(), n++, out _);
-            MenuEntry(titleMenu, "Quit", "QUIT", "", () => Confirm("Leave the driveway?", "QUIT", () => QuitPressed?.Invoke()), n++, out _);
+            // A browser tab can't close itself: there the tab is the way out.
+            if (!Web.IsBrowser)
+                MenuEntry(titleMenu, "Quit", "QUIT", "", () => Confirm("Leave the driveway?", "QUIT", () => QuitPressed?.Invoke()), n++, out _);
 
             pressKeyText = UiTheme.Label("Press", title, "PRESS ANY KEY", UiTheme.Display, 40, Color.white, TextAnchor.MiddleCenter);
             pressKeyText.rectTransform.Pin(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(900, 60));

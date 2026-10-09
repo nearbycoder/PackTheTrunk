@@ -27,7 +27,7 @@ namespace PackTheTrunk
         static void WarmShapes()
         {
             var shapes = GameDatabase.Items.Select(d => d.Shape).ToList();
-            System.Threading.Tasks.Task.Run(() =>
+            Web.Run(() =>
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 int turns = 0;
@@ -47,7 +47,7 @@ namespace PackTheTrunk
             var closed = GameDatabase.Levels.Where((l, i) => StarsFor(i) > 0).ToList();
             var pool = closed.SelectMany(l => l.Required.Concat(l.Bonus)).ToList();
             pendingWatch = System.Diagnostics.Stopwatch.StartNew();
-            pendingFavour = System.Threading.Tasks.Task.Run(() => Favours.Make(number, closed, pool, avoidCar));
+            pendingFavour = Web.Run(() => Favours.Make(number, closed, pool, avoidCar));
         }
 
         /// <summary>Save the favour the worker made, once it's done (called every frame; nothing to do most of the time).</summary>

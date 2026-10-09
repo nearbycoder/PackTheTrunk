@@ -27,6 +27,8 @@ namespace PackTheTrunk
         public Camera Camera => cam;
         public Vehicle CurrentVehicle => vehicle;
         public bool IsPlaying => mode == Mode.Playing;
+        /// <summary>Title, Menu, Story, Playing, Closing or Results (for the browser page's state, see <see cref="WebBridge"/>).</summary>
+        public string ModeName => mode.ToString();
         public bool IsShowingResults => mode == Mode.Results;
         public bool IsInStory => mode == Mode.Story;
         public bool IsPaused => paused;
