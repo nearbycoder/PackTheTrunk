@@ -14,6 +14,7 @@
 [![C#](https://img.shields.io/badge/code-C%23-512bd4?logo=dotnet&logoColor=white)](Assets/Scripts)
 [![Release](https://img.shields.io/github/v/release/nearbycoder/PackTheTrunk?label=download&color=29a89e)](https://github.com/nearbycoder/PackTheTrunk/releases/latest)
 
+**[Play in your browser](https://nearbycoder.github.io/PackTheTrunk/)** ·
 **[Download for Linux](https://github.com/nearbycoder/PackTheTrunk/releases/latest)** ·
 **[Watch the trailer](docs/media/pack-the-trunk-trailer.mp4)** ·
 [Screenshots](#screenshots) ·
@@ -26,7 +27,8 @@
 > is the launch build from October 4, 2026. The trailer, screenshots and features below show the game as it is in
 > `main` today, after twelve rounds of improvements ([docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md)). Ask Grandpa's hints, X-ray,
 > drag to pack, redo, the star meter and Grandpa's seal, gamepad and keyboard-only play, favours for the neighbours and the
-> Graphics fidelity slider aren't in v0.1.0. Until a new release is cut, [build from source](#build-from-source) to play them.
+> Graphics fidelity slider aren't in v0.1.0. Until a new release is cut, [build from source](#build-from-source) to play them,
+> or [play in your browser](#play-in-your-browser): the browser version is built from `main` and has all of them.
 
 ## Trailer
 
@@ -305,6 +307,33 @@ All taken from the game at its Ultra graphics step.
 
 ## Play it
 
+### Play in your browser
+
+**<https://nearbycoder.github.io/PackTheTrunk/>** (GitHub Pages; if the link doesn't load yet, the site hasn't
+been deployed). It's the game as it is in `main`, built with Unity's WebGL export, and needs a desktop browser
+with WebGL 2: a mouse and keyboard, or a gamepad. Touch screens aren't supported, as on desktop.
+
+- **Download:** about 48 MB the first time (a 41 MB data file and a 6 MB WebAssembly file); the browser keeps
+  them, so later visits start quicker.
+- **Tested in:** headless Chromium 151 and Firefox 157 on Linux, on one machine: the page loads to the title,
+  a scripted session plays the first trip with the mouse and keyboard, closes the trunk and saves the photo, and a
+  Graphics change and the progress survive a reload (`Tools/check-pages.mjs`). Safari, Windows, macOS, phones and a
+  physical gamepad haven't been tried.
+- **Saves** (progress, settings, album photos) are kept in the browser's storage for the site, separate from a
+  desktop install. Clearing the site's data in the browser erases them.
+- **What differs from the desktop build:**
+  - it starts on the **Medium** graphics step (all four steps are in Settings → Graphics);
+  - sound starts with your first key press or click (browsers don't let a page play sound before that);
+  - there's no QUIT (close the tab), and Settings → Display has a **Full screen** switch instead of window mode,
+    resolution, V-Sync and the frame-rate limit (the browser paces frames to the screen); the title screen has a
+    Full screen button too, and Esc leaves full screen;
+  - Unity's browser audio has no custom filters, so the mix skips the desktop's bus compressor and limiter (it's
+    a little quieter), and the music isn't muffled in menus and pauses;
+  - work the desktop does on a background thread (making the neighbours' next favour, saving an album photo) runs
+    on the page's only thread, so closing a favour or a trunk can stall for a moment.
+
+### Download for Linux
+
 1. Download `PackTheTrunk-v0.1.0-linux-x86_64.zip` from the
    [latest release](https://github.com/nearbycoder/PackTheTrunk/releases/latest). That's the **launch build**
    (October 4, 2026), without the features added since. To play the game as this page shows it,
@@ -341,7 +370,8 @@ Tools/unity.sh               # open in the editor, then press Play
 Tools/unity.sh build-linux   # batch build: Builds/Linux/PackTheTrunk.x86_64
 Tools/unity.sh build-mac     # batch build: Builds/macOS/PackTheTrunk.app (universal, unsigned; not run on a Mac yet)
 Tools/unity.sh build-windows # batch build: Builds/Windows (needs Windows Build Support; never built yet)
-Tools/unity.sh build-webgl   # batch build: Builds/WebGL (not tested or published yet)
+Tools/unity.sh build-webgl   # batch build: Builds/WebGL (the browser version)
+Tools/build-pages.sh         # build-webgl, then lay out the GitHub Pages site in Builds/pages
 Tools/play.sh                # run the Linux build
 ```
 
@@ -361,7 +391,14 @@ Tools/resume_test.sh                     # crash test: half-pack a trip, SIGKILL
 Tools/play.sh -pttBench                  # benchmark: holds each screen uncapped, logs [Perf] frame times
 Tools/play.sh -pttBench -pttFidelity "$PWD/Recordings/fidelity"   # each Graphics fidelity step: frame times + same-moment screenshots
 python3 Tools/solve_levels.py --check-favours Recordings/autopilot/favours.json   # re-check the self-test's favours with the solver's rules
+node Tools/check-pages.mjs --serve Builds/pages --browser both --play   # browser build: title, audio, a setting and progress across reloads, a trip
+node Tools/check-pages.mjs https://nearbycoder.github.io/PackTheTrunk/   # the live site reaches its title with no errors (exit 0)
 ```
+
+`check-pages.mjs` runs headless Chromium (the newest one cached by Playwright) and the system Firefox through
+playwright-core 1.63+ (`PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core`); `--serve` serves the site under
+`/PackTheTrunk/` with no compression headers, as GitHub Pages does. The browser build has no sandboxed save: the
+check uses a fresh browser profile each time, so it never touches anyone's saves.
 
 The autopilot (`Assets/Scripts/Gameplay/AutoPilot.cs`) only runs when the player is launched with
 `-pttAutopilot`. It clicks, rotates, drops and undoes with real input events (mouse, keyboard and a
@@ -530,7 +567,8 @@ Still rough or missing:
   `.app`, bundle id `com.nearbycoder.packthetrunk`) builds cleanly from Linux and packages with
   `package_release.sh <version> mac`. It is **not signed or notarized, hasn't been run on a Mac,
   and isn't published**. Windows (`build-windows`) needs Unity's Windows Build Support module, which isn't
-  installed here, and WebGL hasn't been built or tested.
+  installed here. The browser build (WebGL) has been tested headless in Chromium and Firefox on Linux only
+  ([Play in your browser](#play-in-your-browser)).
 - **Gamepad support is untested on hardware.** It passes the autopilot's simulated-gamepad checks
   (pointing, every packing action, undo, hint, pause, menu clicks, D-pad menu navigation, the album
   close-up, the fidelity slider, ASK SOMEONE ELSE, remapping a button, handing back to the mouse), but no
