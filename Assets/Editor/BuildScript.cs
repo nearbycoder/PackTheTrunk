@@ -32,9 +32,28 @@ namespace PackTheTrunk.EditorTools
         public static void BuildWindows() =>
             Build(BuildTarget.StandaloneWindows64, "Builds/Windows/PackTheTrunk.exe");
 
+        /// <summary>
+        /// The browser build (Tools/build-pages.sh turns it into the GitHub Pages site). GitHub Pages can't send
+        /// Content-Encoding headers, so the files are Brotli-compressed with the decompression fallback (the loader
+        /// unpacks them itself); it is single-threaded (no SharedArrayBuffer, so no COOP/COEP headers needed), uses
+        /// the page in Assets/WebGLTemplates/PackTheTrunk, and is built for download size.
+        /// </summary>
         [MenuItem("Pack The Trunk/Build WebGL Player")]
-        public static void BuildWebGL() =>
+        public static void BuildWebGL()
+        {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.threadsSupport = false;
+            PlayerSettings.WebGL.nameFilesAsHashes = false;
+            PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.template = "PROJECT:PackTheTrunk";
+            PlayerSettings.WebGL.initialMemorySize = 256;
+            PlayerSettings.WebGL.maximumMemorySize = 2048;
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+            PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget.WebGL, Il2CppCodeGeneration.OptimizeSize);
+            UnityEditor.WebGL.UserBuildSettings.codeOptimization = UnityEditor.WebGL.WasmCodeOptimization.DiskSize;
             Build(BuildTarget.WebGL, "Builds/WebGL");
+        }
 
         static void Build(BuildTarget target, string path)
         {

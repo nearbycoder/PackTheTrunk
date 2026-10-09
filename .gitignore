@@ -73,3 +73,6 @@ Thumbs.db
 desktop.ini
 *~
 *.swp
+
+# Burst writes its WebGL glue next to wherever the build ran
+/Data/Plugins/lib_burst_generated.*
